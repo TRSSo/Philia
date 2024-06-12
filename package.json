@@ -1,0 +1,31 @@
+{
+  "name": "Bot",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "minify": "for i in lib/**/*.js;do uglifyjs \"$i\" -cmo \"$i\";done",
+    "compile": "tsc",
+    "eslint": "eslint --fix src",
+    "build": "rm -rf lib/* && pnpm eslint && pnpm compile && pnpm minify"
+  },
+  "keywords": [],
+  "author": "TimeRainStarSky",
+  "license": "",
+  "devDependencies": {
+    "@eslint/js": "^9.4.0",
+    "@types/node": "^20.14.2",
+    "eslint": "8",
+    "globals": "^15.4.0",
+    "tsx": "^4.15.2",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.13.0",
+    "uglify-js": "^3.18.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "log4js": "^6.9.1",
+    "ulid": "^2.3.0"
+  }
+}

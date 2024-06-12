@@ -1,0 +1,11 @@
+{
+  "include": ["src"],
+  "compilerOptions": {
+    "types": ["node"],
+    "outDir": "lib",
+    "strict": true,
+    "module": "nodenext",
+    "target": "esnext",
+    "allowSyntheticDefaultImports": true
+  }
+}
