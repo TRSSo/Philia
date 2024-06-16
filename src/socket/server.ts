@@ -52,6 +52,7 @@ export class Server {
 
   listener: { [key: string]: (...args: any[]) => void } = {
     end(this: Client) {
+      this.closed = true
       logger.debug(`客户端 ${this.meta.remote?.id} 请求关闭`)
     },
     close(this: Client) {

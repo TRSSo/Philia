@@ -12,4 +12,4 @@ export const V8Serializer: IEncoder<any> = {
   decode: v8.deserialize,
 }
 
-export default { JSON, V8Serializer } as IEncoders<any>
+export default { V8Serializer, JSON } as IEncoders<any>

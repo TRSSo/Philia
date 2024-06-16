@@ -1,4 +1,5 @@
 import { Socket, Server } from "node:net"
+import Client from "./client.js"
 
 export interface IMetaInfo {
   id: string
@@ -28,8 +29,8 @@ export interface IServerOptions extends IOptions {
 }
 
 export interface IEncoder<T> {
-  encode: (data: T) => Buffer
-  decode: (data: Buffer) => T
+  encode(data: T): Buffer
+  decode(data: Buffer): T
 }
 
 export interface IEncoders<T> {
@@ -59,14 +60,16 @@ export interface IError extends IBase<EStatus.Error> {
 }
 
 export interface ICache {
-  data: IBase<EStatus>
+  data: IRequest
   retry: number
-  promise: Promise<IBase<EStatus>["data"]>
-  resolve: (data: any) => void
-  reject: (data: any) => void
+  promise: Promise<(IReceive | IError)["data"]>
+  resolve(data: any): void
+  reject(data: any): void
   timeout?: NodeJS.Timeout
 }
 
-export interface IHandle {
-  [key: IRequest["name"]]: (data: IRequest["data"]) => (IReceive["data"] | Promise<IReceive["data"]>)
+export type IHandle = {
+  [key: IRequest["name"]]: (data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
+} & {
+  default?: (name: IRequest["name"], data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
 }

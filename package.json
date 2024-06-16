@@ -1,11 +1,11 @@
 {
-  "name": "Bot",
+  "name": "trssb",
   "version": "0.0.0",
   "description": "",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "minify": "for i in lib/**/*.js;do uglifyjs \"$i\" -cmo \"$i\";done",
+    "minify": "find lib -type f -name '*.js' -exec uglifyjs {} -cmo {} \\;",
     "compile": "tsc",
     "eslint": "eslint --fix src",
     "build": "rm -rf lib/* && pnpm eslint && pnpm compile && pnpm minify"
