@@ -1,5 +1,7 @@
-import { logger, chalk } from "./logger.js"
-import {
+import encoder from "./encoder.js"
+
+export { logger, chalk } from "./logger.js"
+export {
   makeError,
   findArrays,
   StringOrNull,
@@ -8,15 +10,4 @@ import {
   Loging,
   getAllProps,
 } from "./common.js"
-
-export {
-  logger,
-  chalk,
-  makeError,
-  findArrays,
-  StringOrNull,
-  StringOrBuffer,
-  String,
-  Loging,
-  getAllProps,
-}
+export { encoder }

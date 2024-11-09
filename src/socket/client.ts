@@ -3,10 +3,11 @@ import Path from "node:path"
 import { isPromise } from "node:util/types"
 import { ulid } from "ulid"
 import { IOptions, IMeta, IMetaInfo, IHandle, EStatus, IRequest, IBase, ICache, IReceive, IAsync, IError } from "./types.js"
-import { logger, makeError, findArrays, StringOrBuffer, Loging, getAllProps } from "../util/index.js"
-import encoding from "./encoding.js"
+import { encoder, logger, makeError, findArrays, StringOrBuffer, Loging, getAllProps } from "../util/index.js"
+import { promiseEvent } from "../util/common.js"
 
 export default class Client {
+  logger = logger
   socket: Socket
   timeout = {
     send: 5e3,
@@ -19,55 +20,67 @@ export default class Client {
       id: ulid(),
       name: "Client",
       version: 1,
-      encoding: Object.keys(encoding),
+      encode: Object.keys(encoder),
     },
   }
-  encoding = encoding.JSON
-  handle: IHandle = {
+  path = ""
+  encoder = encoder.JSON
+  handles: IHandle[] = [{
     heartbeat() {},
-    getKeys() { return Object.keys(this) },
-  }
-  handles?: IHandle[]
+    getKeys: () => Array.from(new Set(this.handles.flatMap(i => getAllProps(i)))),
+  }]
+  handle = new Proxy(this.handles, {
+    get(target, prop: string) {
+      for (const i of target) if (prop in i) {
+        if (typeof i[prop]?.bind === "function")
+          return i[prop].bind(i)
+        else
+          return i[prop]
+      }
+    },
+    has(target, prop: string) {
+      for (const i of target)
+        if (prop in i)
+          return true
+      return false
+    },
+  }) as unknown as IHandle
   buffer = Buffer.alloc(0)
   reply_cache: { [key: string]: IBase<EStatus> } = {}
   cache: { [key: ICache["data"]["id"]]: ICache } = {}
   heap: ICache["data"]["id"][] = []
   idle = false
-  closed = false
+  open = false
 
-  constructor(handle: IHandle | IHandle[] = {}, opts: IOptions = {}, ...args: any[]) {
-    if (Array.isArray(handle)) {
-      this.handles = handle
-      this.handle.default = (name, data, client) => {
-        for (const i of this.handles as IHandle[]) if (name in i) {
-          if (typeof (i as any)[name] === "function")
-            return (i as any)[name](data, client)
-          else
-            return (i as any)[name]
-        }
-        throw Error(`处理器 ${name} 不存在`)
-      }
-      this.handle.getKeys = () => Array.from(new Set((this.handles as IHandle[]).flatMap(i => getAllProps(i))))
-    } else Object.assign(this.handle, handle)
+  constructor(handle?: IHandle | IHandle[], opts: IOptions = {}, ...args: any[]) {
+    if (handle) 
+      if (Array.isArray(handle))
+        this.handles.push(...handle)
+      else
+        this.handles.push(handle)
 
     if (opts.meta)
       Object.assign(this.meta.local, opts.meta)
     if (opts.timeout)
       Object.assign(this.timeout, opts.timeout)
     if (opts.socket)
-      this.socket = opts.socket
+      this.socket = opts.socket as Socket
     else
       this.socket = new Socket(...args)
         .on("connect", this.onconnect)
     this.socket.setTimeout(this.timeout.idle)
+
+    for (const i in this.listener)
+      this.listener[i] = this.listener[i].bind(this)
   }
 
   connect(path: string, listener?: () => void) {
     if (process.platform === "win32")
-      path = Path.join("\\\\?\\pipe", path)
+      this.path = Path.join("\\\\?\\pipe", path)
     else
-      path = `\0${path}`
-    this.socket.connect(path, listener)
+      this.path = `\0${path}`
+    this.socket.connect(this.path, listener)
+    return promiseEvent(this.socket, "connected", "error")
   }
 
   onconnect = async () => {
@@ -75,50 +88,66 @@ export default class Client {
       this.meta.remote = await this.getMetaInfo() as IMetaInfo
       if (this.meta.local.version !== this.meta.remote.version)
         throw makeError("两端版本不匹配", this.meta)
-
-      const encode = findArrays(this.meta.local.encoding, this.meta.remote.encoding) as string
+      const encode = findArrays(this.meta.local.encode, this.meta.remote.encode) as string
       if (!encode)
         throw makeError("两端编码不匹配", this.meta)
-      const decode = findArrays(this.meta.remote.encoding, this.meta.local.encoding) as string
-      this.encoding = {
-        encode: encoding[encode].encode,
-        decode: encoding[decode].decode,
+      const decode = findArrays(this.meta.remote.encode, this.meta.local.encode) as string
+      this.encoder = {
+        encode: encoder[encode].encode,
+        decode: encoder[decode].decode,
       }
     } catch (err) {
       this.socket.destroy()
       throw err
     }
+
     for (const i in this.listener)
-      this.socket.on(i, this.listener[i].bind(this))
-    logger.info("已连接", this.meta.remote)
-    this.sender()
+      this.socket.on(i, this.listener[i])
+    this.socket.emit("connected", this)
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
     data: this.receive,
     end(this: Client) {
-      this.closed = true
-      logger.debug(`服务端 ${this.meta.remote?.id} 请求关闭`)
+      this.logger.info(`${this.meta.remote?.id} 请求关闭`)
     },
     close(this: Client) {
-      logger.debug(`服务端 ${this.meta.remote?.id} 已断开连接`)
+      this.open = false
+      this.buffer = Buffer.alloc(0)
+      for (const i in this.listener)
+        this.socket.off(i, this.listener[i])
+      this.logger.info(`${this.meta.remote?.id} 已断开连接`)
     },
     timeout(this: Client) {
-      return this.request("heartbeat")
+      this.request("heartbeat")
     },
+    connected(this: Client) {
+      this.logger.info("已连接", this.meta.remote)
+      this.open = true
+      this.sender()
+    },
+    error(this: Client, error) {
+      this.logger.error("错误", error)
+    },
+  }
+
+  close() {
+    this.socket.end()
+    const timeout = setTimeout(() => this.socket.destroy(), this.timeout.wait)
+    return promiseEvent(this.socket, "close", "error").finally(() => clearTimeout(timeout))
   }
 
   write(data: IBase<EStatus>) {
     if (data.data === undefined) delete data.data
-    logger.trace("发送", data)
-    const buffer = this.encoding.encode(data)
+    this.logger.trace("发送", data)
+    const buffer = this.encoder.encode(data)
     const length = Buffer.alloc(4)
     length.writeInt32BE(buffer.length)
     return this.socket.write(Buffer.concat([length, buffer]))
   }
 
   async sender(): Promise<ICache["promise"]> {
-    if (this.closed) {
+    if (!this.open) {
       for (const i of this.heap)
         this.cache[i].reject(makeError("连接关闭"))
       this.heap = []
@@ -130,9 +159,9 @@ export default class Client {
     if (!cache?.data) return this.sender()
     const timeout = () => {
       if (cache.retry > this.timeout.retry)
-        cache.reject(makeError("等待消息超时", { timeout: this.timeout.send }))
+        return cache.reject(makeError("等待消息超时", { timeout: this.timeout.send }))
       cache.retry++
-      logger.debug(`发送 ${id} 超时，重试${cache.retry}次`)
+      this.logger.debug(`发送 ${id} 超时，重试${cache.retry}次`)
       cache.timeout = setTimeout(timeout, this.timeout.send)
       this.write(cache.data)
     }
@@ -158,12 +187,12 @@ export default class Client {
   }
 
   getMetaInfo(): Promise<IMetaInfo> {
-    this.socket.write(this.encoding.encode(this.meta.local))
+    this.socket.write(encoder.JSON.encode(this.meta.local))
     return new Promise((resolve, reject) => {
       const listener = (data: Buffer) => {
         clearTimeout(timeout)
         try {
-          resolve(this.encoding.decode(data))
+          resolve(encoder.JSON.decode(data))
         } catch (err) {
           reject(makeError("解析元数据错误", { data: StringOrBuffer(data), cause: err }))
         }
@@ -198,8 +227,8 @@ export default class Client {
 
   handleData(data: Buffer) {
     try {
-      const req: IBase<EStatus> = this.encoding.decode(data)
-      logger.trace("接收", req)
+      const req: IBase<EStatus> = this.encoder.decode(data)
+      this.logger.trace("接收", req)
       this.handleSwitch(req)
     } catch (err) {
       throw makeError("处理数据错误", { data: StringOrBuffer(data), cause: err })
@@ -229,10 +258,10 @@ export default class Client {
       if (req.name in this.handle) {
         if (typeof this.handle[req.name] !== "function")
           return reply(EStatus.Receive, this.handle[req.name])
-        logger.debug(`执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`)
+        this.logger.debug(`执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`)
         ret = this.handle[req.name](req.data, this)
       } else if (typeof this.handle.default === "function") {
-        logger.debug(`执行处理器 default(${req.name}, ${req.data === undefined ? "" : Loging(req.data)})`)
+        this.logger.debug(`执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`)
         ret = this.handle.default(req.name, req.data, this)
       } else {
         return reply(EStatus.Error, {
@@ -243,7 +272,7 @@ export default class Client {
 
       if (isPromise(ret)) {
         reply(EStatus.Async)
-        return reply(EStatus.Receive, await ret)
+        ret = await ret
       }
       return reply(EStatus.Receive, ret)
     } catch (err) {
@@ -260,18 +289,17 @@ export default class Client {
   getCache(req: IBase<EStatus>) {
     const cache = this.cache[req.id]
     if (!cache) throw makeError(`请求缓存 ${req.id} 不存在`, { req })
+    clearTimeout(cache.timeout)
     return cache
   }
 
   handleReceive(req: IReceive) {
     const cache = this.getCache(req)
-    clearTimeout(cache.timeout)
     cache.resolve(req.data)
   }
 
   handleAsync(req: IAsync) {
     const cache = this.getCache(req)
-    clearTimeout(cache.timeout)
     cache.timeout = setTimeout(() =>
       cache.reject(makeError("等待异步返回超时", { cache, req, timeout: this.timeout.wait }))
     , this.timeout.wait)
@@ -279,7 +307,6 @@ export default class Client {
 
   handleError(req: IError) {
     const cache = this.getCache(req)
-    clearTimeout(cache.timeout)
     cache.reject(makeError(req.data.message, { ...req.data, request: cache.data }))
   }
 }

@@ -4,10 +4,16 @@ import { IUser } from "./user.js"
 
 /** 群信息 */
 export interface IGroup {
+  /** 群ID */
   id: string
+  /** 群名 */
   name: string
-  mark?: string
+  /** 群头像 */
   avatar?: string
+  /** 群备注 */
+  mark?: string
+  /** 平台扩展字段 */
+  [key: string]: unknown
 }
 
 /** 群成员信息 */

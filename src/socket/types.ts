@@ -5,7 +5,7 @@ export interface IMetaInfo {
   id: string
   name: string
   version: number
-  encoding: string[]
+  encode: string[]
 }
 
 export interface IMeta {
@@ -21,22 +21,15 @@ export interface IOptions {
     idle?: number
     retry?: number
   }
-  socket?: Socket
+  socket?: Socket | Server
 }
 
 export interface IServerOptions extends IOptions {
-  server?: Server
+  socket?: Server
+  limit?: number
 }
 
-export interface IEncoder<T> {
-  encode(data: T): Buffer
-  decode(data: Buffer): T
-}
-
-export interface IEncoders<T> {
-  [key: string]: IEncoder<T>
-}
-
+export enum ESocketStatus { New, Idle, Send, Close }
 export enum EStatus { Request, Receive, Async, Error }
 export interface IBase<T extends EStatus> {
   id: string

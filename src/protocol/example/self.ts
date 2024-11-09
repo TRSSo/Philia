@@ -2,9 +2,14 @@ import { makeError } from "../../util/index.js"
 
 /** 自己信息 */
 export interface ISelf {
+  /** 用户ID */
   id: string
+  /** 用户名 */
   name: string
+  /** 用户头像 */
   avatar?: string
+  /** 平台扩展字段 */
+  [key: string]: unknown
 }
 
 /** 自己类 */

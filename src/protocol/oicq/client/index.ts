@@ -1,0 +1,15 @@
+export * from "./client.js"
+export * from "./contact/index.js"
+export * from "./event/index.js"
+export * from "./message/index.js"
+
+import * as client from "./client.js"
+import * as contact from "./contact/index.js"
+import * as event from "./event/index.js"
+import * as message from "./message/index.js"
+export default {
+  ...client,
+  ...contact,
+  ...event,
+  ...message,
+}

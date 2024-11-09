@@ -19,4 +19,4 @@ log4js.configure({
 export const chalk = new Chalk({ level: 3 })
 export const logger = log4js.getLogger()
 const _log = logger._log.bind(logger)
-logger._log = (level, args) => _log(level, args.map((i: any) => Loging(i)))
+logger._log = (level, args) => _log(level, args.map((i: any) => Loging(i, { string: true })))

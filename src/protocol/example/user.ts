@@ -4,6 +4,7 @@ import { ISelf } from "./self.js"
 
 /** 用户信息 */
 export interface IUser extends ISelf {
+  /** 用户备注 */
   mark?: string
 }
 

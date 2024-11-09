@@ -6,30 +6,40 @@ import OClient from "./client.js"
 import { logger } from "../util/index.js"
 
 export class Server {
-  server: SocketServer
+  logger = logger
+  socket: SocketServer
   sockets: Socket[] = []
   clients: Client[] = []
   meta = {
     id: ulid(),
     name: "Server",
   }
+  path = ""
   handle: IHandle
+  limit?: number
 
   constructor(handle: IHandle = {}, opts: IServerOptions = {}, ...args: any[]) {
     this.handle = handle
-    if (opts.server)
-      this.server = opts.server
+    if (opts.limit)
+      this.limit = opts.limit
+
+    if (opts.socket)
+      this.socket = opts.socket
     else
-      this.server = new SocketServer(...args)
-        .on("connection", socket => new Client(handle, this, socket, opts))
+      this.socket = new SocketServer(...args).on("connection", socket => {
+        if (this.limit && this.sockets.length >= this.limit)
+          return socket.end()
+        new Client(this.handle, this, socket, opts)
+      })
   }
 
   listen(path: string, ...args: any[]) {
     if (process.platform === "win32")
-      path = Path.join('\\\\?\\pipe', path)
+      this.path = Path.join('\\\\?\\pipe', path)
     else
-      path = `\0${path}`
-    this.server.listen(path, ...args)
+      this.path = `\0${path}`
+    this.socket.listen(this.path, ...args)
+    return this
   }
 
   add(client: Client) {
@@ -51,13 +61,10 @@ export class Server {
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
-    end(this: Client) {
-      this.closed = true
-      logger.debug(`客户端 ${this.meta.remote?.id} 请求关闭`)
-    },
     close(this: Client) {
+      this.open = false
       this.server.del(this)
-      logger.debug(`客户端 ${this.meta.remote?.id} 已断开连接，剩余${this.server.length}个连接`)
+      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.length}个连接`)
     },
   }
 }
@@ -68,8 +75,16 @@ class Client extends OClient {
   constructor(handle: IHandle = {}, server: Server, socket: Socket, opts: IServerOptions = {}) {
     super(handle, { ...opts, socket })
     this.server = server
-    Object.assign(this.meta.local, this.server.meta)
-    Object.assign(this.listener, this.server.listener)
-    this.onconnect().then(() => this.server.add(this))
+    Object.defineProperty(this, "logger", {
+      get() { return this.server.logger },
+    })
+    Object.assign(this.meta.local, server.meta)
+
+    for (const i in server.listener)
+      this.listener[i] = server.listener[i].bind(this)
+    this.onconnect().then(() => {
+      server.add(this)
+      server.socket.emit("connected", this)
+    })
   }
 }

@@ -1,5 +1,6 @@
 import util from "node:util"
 import { chalk } from "./logger.js"
+import EventEmitter from "node:events"
 
 /**
  * 生成错误对象并赋予一些参数
@@ -93,12 +94,14 @@ export function String(data: any, space?: number | string): string {
 
   try {
     return JSON.stringify(data, getCircularReplacer(), space) || StringOrNull(data)
-  } catch (err) {
+  } catch {
     return StringOrNull(data)
   }
 }
 
 interface InspectOptions extends util.InspectOptions {
+  /** 字符串是否直接返回 */
+  string?: boolean
   /** 限制长度 */
   length?: number
 }
@@ -106,15 +109,15 @@ interface InspectOptions extends util.InspectOptions {
 /**
  * 把任意类型转成终端彩色编码字符串
  * @param data 任意类型
- * @param opts 继承 util.InspectOptions + { length 限制长度 }
+ * @param opts { @link util.InspectOptions } + { @link InspectOptions }
  * @returns 终端彩色编码字符串
  */
 export function Loging(data: any, opts: InspectOptions = {}): string {
-  if (typeof data === "string") {}
+  if (opts.string && typeof data === "string") {}
   else if (!opts)
     data = StringOrNull(data)
   else data = util.inspect(data, {
-    depth: 10,
+    depth: 5,
     colors: true,
     showHidden: true,
     showProxy: true,
@@ -141,4 +144,36 @@ export function getAllProps(data: any, props: string[] = []): string[] {
   if ([null, undefined].includes(data)) return props
   props.push(...Object.getOwnPropertyNames(data))
   return getAllProps(Object.getPrototypeOf(data), props)
+}
+
+/**
+ * 事件转 Promise
+ * @param event 事件触发器
+ * @param resolve 兑现事件名
+ * @param reject 拒绝事件名
+ * @param timeout 超时时间
+ * @returns Promise
+ */
+export function promiseEvent(event: EventEmitter, resolve: string | symbol, reject?: string | symbol, timeout?: number) {
+  let listener: {
+    resolve: (value: unknown) => void
+    reject: (reason?: any) => void
+    timeout?: NodeJS.Timeout
+  }
+  return new Promise((...args) => {
+    listener = { resolve: args[0], reject: args[1] }
+    event.once(resolve, listener.resolve)
+    if (reject)
+      event.once(reject, listener.reject)
+    if (timeout)
+      listener.timeout = setTimeout(() => listener.reject(
+        makeError("等待事件超时", { event, resolve, reject, timeout })
+      ), timeout)
+  }).finally(() => {
+    event.off(resolve, listener.resolve)
+    if (reject)
+      event.off(reject, listener.reject)
+    if (timeout)
+      clearTimeout(listener.timeout)
+  })
 }
