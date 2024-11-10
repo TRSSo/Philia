@@ -291,7 +291,7 @@ export interface ReplyElem {
 
 /** 分享音乐 */
 export interface MusicElem {
-  type: 'music'
+  type: "music"
   /** 音乐id */
   id: string
   /** 音乐平台 */
@@ -313,7 +313,7 @@ export interface Quotable {
 
 /** 引用回复消息 */
 export interface QuoteElem extends Quotable {
-  type: 'quote'
+  type: "quote"
 }
 
 /** 可转发的消息 */
@@ -330,7 +330,7 @@ export interface Forwardable {
 
 /** 可转发节点 */
 export interface ForwardNode {
-  type: 'node'
+  type: "node"
   data: Forwardable | Forwardable[]
 }
 
@@ -437,11 +437,11 @@ export const segment = {
     return { type: "mirai", data }
   },
   /** 音乐 */
-  music(id: string, platform = 'qq'): MusicElem {
+  music(id: string, platform = "qq"): MusicElem {
     return { type: "music", id, platform }
   },
   fake(user_id: string, message: Sendable, nickname?: string, time?: number): ForwardNode {
-    return { type: 'node', data: { user_id, nickname, message, time } }
+    return { type: "node", data: { user_id, nickname, message, time } }
   },
   /** 链接分享 */
   share(url: string, title: string, image?: string, content?: string): ShareElem {

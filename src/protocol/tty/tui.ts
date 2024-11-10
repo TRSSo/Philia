@@ -16,26 +16,18 @@ export class Tui {
 
   async main() {
     while (true) {
-      if (this.client.socket?.open) {
-        await inquirer.input({ message: "" })
+      if (this.client.socket?.open)
         await this.start()
-      } else {
+      else
         await this.connect()
-      }
+      await inquirer.input({ message: "" })
     }
   }
 
   async connect() {
     if (this.server) {
-      if (this.server.clients[0])
-        return this.client = new Client(this.server.clients[0])
       this.logger.info("等待客户端连接中", this.server.path)
-      return new Promise<void>(resolve => {
-        (this.server as Server).socket.once("connected", client => {
-          this.client = new Client(client)
-          resolve()
-        })
-      })
+      return new Promise(resolve => (this.server as Server).socket.once("connected", resolve))
     }
 
     switch (await inquirer.select({
@@ -67,6 +59,7 @@ export class Tui {
         const answer = await inquirer.input({ message: "请输入服务端地址" })
         if (!answer) break
         this.server = new Server(undefined, { limit: 1 }).listen(answer)
+        this.server.socket.on("connected", client => this.client = new Client(client))
         return
       } case "exit":
         process.exit()

@@ -21,7 +21,7 @@ export class Convert {
         await this.convert(i)
     } else if (typeof data !== "object")
       this.text({ data } as IMSText)
-    else if (typeof this[(data as IMessageSegment).type] === "object")
+    else if (typeof this[(data as IMessageSegment).type] === "function")
       await this[(data as IMessageSegment).type](data as never)
     else this.text({ data: JSON.stringify(data) } as IMSText)
     return this.summary

@@ -75,7 +75,7 @@ export abstract class Contactable {
   }
 
   /** 上传一个语音以备发送(理论上传一次所有群和好友都能发) */
-  async uploadPtt(elem: PttElem, transcoding: boolean = true, brief: string = ''): Promise<PttElem> {
+  async uploadPtt(elem: PttElem, transcoding: boolean = true, brief: string = ""): Promise<PttElem> {
     return { type: "record", file: await this.c.uploadFile(elem.file), transcoding, brief }
   }
 

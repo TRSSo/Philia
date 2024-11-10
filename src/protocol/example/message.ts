@@ -150,3 +150,13 @@ export interface IMSVideo extends AMSFile {
 export type IMessageSegment = IMSText | IMSMention | IMSReply | IMSButton | IMSExtend | IMSPlatform | IMSForward | IMSFile | IMSImage | IMSAudio | IMSVoice | IMSVideo
 /** 消息 */
 export type IMessage = IMSText["data"] | IMessageSegment | (IMSText["data"] | IMessageSegment)[]
+
+/** 发送消息返回 */
+export interface IRSendMsg {
+  /** 发送的消息ID */
+  id: string;
+  /** 事件时间，Unix时间戳(秒) */
+  time: number
+  /** 平台额外字段 */
+  [key: string]: unknown
+}

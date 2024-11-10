@@ -27,15 +27,17 @@ export class Server {
       this.socket = opts.socket
     else
       this.socket = new SocketServer(...args).on("connection", socket => {
-        if (this.limit && this.sockets.length >= this.limit)
+        if (this.limit && this.sockets.length >= this.limit) {
+          this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.length}个连接`)
           return socket.end()
+        }
         new Client(this.handle, this, socket, opts)
       })
   }
 
   listen(path: string, ...args: any[]) {
     if (process.platform === "win32")
-      this.path = Path.join('\\\\?\\pipe', path)
+      this.path = Path.join("\\\\?\\pipe", path)
     else
       this.path = `\0${path}`
     this.socket.listen(this.path, ...args)

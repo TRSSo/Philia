@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "minify": "find lib -type f -name '*.js' -exec uglifyjs {} -cmo {} \\;",
+    "minify": "find lib -type f -name \\*.js -print0 | xargs -0P \"$(nproc)\" -I {} uglifyjs {} -cmo {}",
     "compile": "tsc",
     "eslint": "eslint --fix src",
     "build": "rm -rf lib/* && pnpm eslint && pnpm compile && pnpm minify"

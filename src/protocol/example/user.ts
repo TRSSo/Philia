@@ -1,5 +1,6 @@
+import { ulid } from "ulid"
 import { logger, makeError } from "../../util/index.js"
-import { IMessage } from "./message.js"
+import { IMessage, IRSendMsg } from "./message.js"
 import { ISelf } from "./self.js"
 
 /** 用户信息 */
@@ -21,8 +22,9 @@ export default class User {
    * @param data 消息段
    * @returns 用户消息
    */
-  sendUserMsg(data: { id: IUser["id"], data: IMessage }) {
+  sendUserMsg(data: { id: IUser["id"], data: IMessage }): IRSendMsg {
     logger.info("发送用户消息", data.id, data.data)
+    return { id: ulid(), time: Date.now()/1000 }
   }
 
   /**

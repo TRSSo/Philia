@@ -1,7 +1,7 @@
 import { FaceElem } from "./elements.js"
 
 /** 表情字典 */
-export const facemap:{[key:number]:Omit<FaceElem, 'id'|'type'>} = {
+export const facemap:{[key:number]:Omit<FaceElem, "id"|"type">} = {
   0: { text: "/惊讶" },
   1: { text: "/撇嘴" },
   2: { text: "/色" },

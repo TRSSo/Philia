@@ -143,7 +143,7 @@ export abstract class Message implements Quotable, Forwardable {
       }
       const s = querystring.stringify(c as any, ",", "=", {
         encodeURIComponent: (s) =>
-          s.replace(new RegExp(Object.keys(mCQInside).join("|"), "g"), ((s: '&' | ',' | '[' | ']') => mCQInside[s] || "") as any),
+          s.replace(new RegExp(Object.keys(mCQInside).join("|"), "g"), ((s: "&" | "," | "[" | "]") => mCQInside[s] || "") as any),
       })
       CQCode += `[CQ:${c.type}${s ? "," : ""}${s}]`
     })

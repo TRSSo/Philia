@@ -1,5 +1,6 @@
+import { ulid } from "ulid"
 import { logger, makeError } from "../../util/index.js"
-import { IMessage } from "./message.js"
+import { IMessage, IRSendMsg } from "./message.js"
 import { IUser } from "./user.js"
 
 /** 群信息 */
@@ -39,8 +40,9 @@ export default class Group {
    * @param data 消息段
    * @returns 群消息
    */
-  sendGroupMsg(data: { id: IGroup["id"], data: IMessage }) {
+  sendGroupMsg(data: { id: IGroup["id"], data: IMessage }): IRSendMsg {
     logger.info("发送群消息", data.id, data.data)
+    return { id: ulid(), time: Date.now()/1000 }
   }
 
   /**
@@ -117,8 +119,9 @@ export default class Group {
    * @param data 消息段
    * @returns 群成员消息
    */
-  sendGroupMemberMsg(data: { id: IGroupMember["id"], data: IMessage }) {
+  sendGroupMemberMsg(data: { id: IGroupMember["id"], data: IMessage }): IRSendMsg {
     logger.info("发送群成员消息", data.id, data.data)
+    return { id: ulid(), time: Date.now()/1000 }
   }
 
   /**
