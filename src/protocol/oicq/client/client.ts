@@ -8,8 +8,9 @@ import { Forwardable, ImageElem, Message, Quotable, Sendable } from "./message/i
 import { Client as SocketClient } from "../../../socket/index.js"
 import { IUser } from "../../example/user.js"
 import { IGroup } from "../../example/group.js"
-import handle from "./event/handle.js"
+import Handle from "./event/handle.js"
 import { ISelf } from "../../example/self.js"
+import { IHandle } from "../../../socket/types.js"
 
 /** 一个客户端 */
 export class Client extends events {
@@ -88,7 +89,7 @@ export class Client extends events {
     ver: ""
   }
 
-  handle: { [key: string]: (event: any) => void } = {}
+  handle = new Handle(this) as unknown as IHandle
   socket: SocketClient
   request: SocketClient["request"]
   /** 是否为在线状态 (可以收发业务包的状态) */
@@ -143,7 +144,7 @@ export class Client extends events {
     super()
     if (uin instanceof SocketClient) {
       this.socket = uin
-      this.socket.handles.push(this.handle)
+      this.socket.handle.set(this.handle)
     } else {
       this.socket = new SocketClient(this.handle)
       if (typeof uin === "object") conf = uin
@@ -157,8 +158,6 @@ export class Client extends events {
       reconn_interval: 5,
       ...conf,
     }
-    for (const i in handle)
-      this.handle[i] = handle[i as keyof typeof handle].bind(this)
   }
 
   /**
@@ -195,7 +194,7 @@ export class Client extends events {
       await this.reloadGroupList()
     this.logger.mark(`加载了${this.fl.size}个好友，${this.gl.size}个群，${Array.from(this.gml.values()).reduce((n, i) => n+i.size, 0)}个群成员`)
 
-    await this.request("receiveEvent", Object.keys(this.handle).map(i => ({ type: i, handle: i })))
+    await this.request("receiveEvent", Handle.event.map(i => ({ type: i, handle: i })))
   }
 
   /** 上传文件到缓存目录 */

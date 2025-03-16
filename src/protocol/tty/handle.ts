@@ -7,23 +7,25 @@ import example from "../example/index.js"
 import { IHandle } from "../../socket/types.js"
 import { ulid } from "ulid"
 
-export const handles: { [key: string]: (event: any) => void } = {
-  "sendUserMsg": async function(this: Client, data: { id: IUser["id"], data: IMessage }): Promise<IRSendMsg> {
-    const message = await new Convert(this, data.data).convert()
-    this.logger.info(`发送用户消息 [${data.id}] ${message}`)
-    return { id: ulid(), time: Date.now()/1000 }
-  },
+export class Handle {
+  client: Client
 
-  "sendGroupMsg": async function(this: Client, data: { id: IGroup["id"], data: IMessage }): Promise<IRSendMsg> {
-    const message = await new Convert(this, data.data).convert()
-    this.logger.info(`发送群消息 [${data.id}] ${message}`)
+  constructor(client: Client) {
+    this.client = client
+  }
+  async sendUserMsg(data: { id: IUser["id"], data: IMessage }): Promise<IRSendMsg> {
+    const message = await new Convert(this.client, data.data).convert()
+    this.client.logger.info(`发送用户消息 [${data.id}] ${message}`)
     return { id: ulid(), time: Date.now()/1000 }
-  },
+  }
+
+  async sendGroupMsg(data: { id: IGroup["id"], data: IMessage }): Promise<IRSendMsg> {
+    const message = await new Convert(this.client, data.data).convert()
+    this.client.logger.info(`发送群消息 [${data.id}] ${message}`)
+    return { id: ulid(), time: Date.now()/1000 }
+  }
 }
 
 export default function (client: Client) {
-  const handle: { [key: string]: (event: any) => void } = {}
-  for (const i in handles)
-    handle[i] = handles[i].bind(client)
-  return [handle, ...example()] as IHandle[]
+  return [new Handle(client), ...example()] as unknown as IHandle[]
 }

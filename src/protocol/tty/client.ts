@@ -17,7 +17,7 @@ export default class Client {
 
   constructor(socket: string | SocketClient) {
     if (socket instanceof SocketClient) {
-      socket.handles.push(...handle(this))
+      socket.handle.set(handle(this))
       this.socket = socket
     } else {
       this.socket = new SocketClient(handle(this))

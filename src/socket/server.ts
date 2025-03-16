@@ -15,10 +15,10 @@ export class Server {
     name: "Server",
   }
   path = ""
-  handle: IHandle
+  handle: IHandle | IHandle[]
   limit?: number
 
-  constructor(handle: IHandle = {}, opts: IServerOptions = {}, ...args: any[]) {
+  constructor(handle: IHandle | IHandle[] = {}, opts: IServerOptions = {}, ...args: any[]) {
     this.handle = handle
     if (opts.limit)
       this.limit = opts.limit
@@ -74,7 +74,7 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(handle: IHandle = {}, server: Server, socket: Socket, opts: IServerOptions = {}) {
+  constructor(handle: IHandle | IHandle[], server: Server, socket: Socket, opts: IServerOptions = {}) {
     super(handle, { ...opts, socket })
     this.server = server
     Object.defineProperty(this, "logger", {

@@ -15,12 +15,14 @@ export class Tui {
   }
 
   async main() {
-    while (true) {
+    while (true) try {
       if (this.client.socket?.open)
         await this.start()
       else
         await this.connect()
       await inquirer.input({ message: "" })
+    } catch (err) {
+      this.logger.error("错误", err)
     }
   }
 
@@ -91,7 +93,7 @@ export class Tui {
 
   async sendMsg() {
     const answer = await inquirer.input({ message: "请输入消息" })
-    this.client.request("message.user", {
+    return this.client.request("message.user", {
       id: ulid(),
       type: "message",
       scene: "user",

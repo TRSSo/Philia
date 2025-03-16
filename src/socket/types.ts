@@ -40,7 +40,6 @@ export interface IBase<T extends EStatus> {
 
 export interface IRequest extends IBase<EStatus.Request> {
   name: string
-  data: object
 }
 export type IReceive = IBase<EStatus.Receive>
 export type IAsync = IBase<EStatus.Async>
@@ -48,7 +47,14 @@ export interface IError extends IBase<EStatus.Error> {
   data: {
     name: string
     message: string
-    stack?: string
+    error?: unknown
+  }
+}
+
+export class CError {
+  data: IError["data"]
+  constructor(name: string, message: string, error?: object) {
+    this.data = { name, message, ...error }
   }
 }
 
@@ -58,11 +64,15 @@ export interface ICache {
   promise: Promise<(IReceive | IError)["data"]>
   resolve(data: any): void
   reject(data: any): void
+  finally(): void
   timeout?: NodeJS.Timeout
 }
 
+export type IHandleDefault = (name: IRequest["name"], data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
+
 export type IHandle = {
-  [key: IRequest["name"]]: (data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
+  [key: IRequest["name"]]:
+    ((data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>))
 } & {
-  default?: (name: IRequest["name"], data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
+  default?: IHandleDefault
 }

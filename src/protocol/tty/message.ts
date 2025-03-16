@@ -85,7 +85,7 @@ export class Convert {
           name: data.name,
           data: "binary",
           binary: await (await fetch(data.url as string)).arrayBuffer(),
-        } as IMSFile, name)
+        } as unknown as IMSFile, name)
       case "path": {
         const save_path = path.join(this.client.config.save.path, `${ulid()}-${data.name}`)
         await fs.copyFile(data.path as string, save_path)

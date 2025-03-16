@@ -1,14 +1,15 @@
 import { Socket } from "node:net"
 import Path from "node:path"
-import { isPromise } from "node:util/types"
 import { ulid } from "ulid"
-import { IOptions, IMeta, IMetaInfo, IHandle, EStatus, IRequest, IBase, ICache, IReceive, IAsync, IError } from "./types.js"
-import { encoder, logger, makeError, findArrays, StringOrBuffer, Loging, getAllProps } from "../util/index.js"
+import { IOptions, IMeta, IMetaInfo, IHandle, EStatus, IRequest, IBase, ICache } from "./types.js"
+import { encoder, logger, makeError, findArrays, StringOrBuffer } from "../util/index.js"
 import { promiseEvent } from "../util/common.js"
+import Handle from "./handle.js"
 
 export default class Client {
   logger = logger
   socket: Socket
+  handle: Handle
   timeout = {
     send: 5e3,
     wait: 6e4,
@@ -25,39 +26,14 @@ export default class Client {
   }
   path = ""
   encoder = encoder.JSON
-  handles: IHandle[] = [{
-    heartbeat() {},
-    getKeys: () => Array.from(new Set(this.handles.flatMap(i => getAllProps(i)))),
-  }]
-  handle = new Proxy(this.handles, {
-    get(target, prop: string) {
-      for (const i of target) if (prop in i) {
-        if (typeof i[prop]?.bind === "function")
-          return i[prop].bind(i)
-        else
-          return i[prop]
-      }
-    },
-    has(target, prop: string) {
-      for (const i of target)
-        if (prop in i)
-          return true
-      return false
-    },
-  }) as unknown as IHandle
   buffer = Buffer.alloc(0)
-  reply_cache: { [key: string]: IBase<EStatus> } = {}
   cache: { [key: ICache["data"]["id"]]: ICache } = {}
-  heap: ICache["data"]["id"][] = []
+  queue: ICache["data"]["id"][] = []
   idle = false
   open = false
 
-  constructor(handle?: IHandle | IHandle[], opts: IOptions = {}, ...args: any[]) {
-    if (handle) 
-      if (Array.isArray(handle))
-        this.handles.push(...handle)
-      else
-        this.handles.push(handle)
+  constructor(handle: IHandle | IHandle[], opts: IOptions = {}, ...args: any[]) {
+    this.handle = new Handle(handle, this)
 
     if (opts.meta)
       Object.assign(this.meta.local, opts.meta)
@@ -148,13 +124,13 @@ export default class Client {
 
   async sender(): Promise<ICache["promise"]> {
     if (!this.open) {
-      for (const i of this.heap)
+      for (const i of this.queue)
         this.cache[i].reject(makeError("连接关闭"))
-      this.heap = []
+      this.queue = []
       return this.idle = true
     }
-    if (this.heap.length === 0) return this.idle = true
-    const id = this.heap.shift() as IBase<EStatus>["id"]
+    if (this.queue.length === 0) return this.idle = true
+    const id = this.queue.shift() as IBase<EStatus>["id"]
     const cache = this.cache[id]
     if (!cache?.data) return this.sender()
     const timeout = () => {
@@ -167,23 +143,25 @@ export default class Client {
     }
     cache.timeout = setTimeout(timeout, this.timeout.send)
     this.write(cache.data)
-    return cache.promise.finally(() => {
-      delete this.cache[cache.data.id]
-      this.sender()
-    })
   }
 
   send(data: IBase<EStatus>) {
-    const promise: Promise<IBase<EStatus>["data"]> = new Promise((resolve, reject) =>
-      this.cache[data.id] = { data, retry: 0, resolve, reject } as ICache
-    )
-    this.cache[data.id].promise = promise
-    this.heap.push(data.id)
+    const cache = { data, retry: 0, finally: () => {
+      delete this.cache[data.id]
+      this.sender()
+    }} as ICache
+    cache.promise = new Promise((resolve, reject) => {
+      cache.resolve = resolve
+      cache.reject = reject
+    }).finally(() => cache.finally())
+
+    this.cache[data.id] = cache
+    this.queue.push(data.id)
     if (this.idle) {
       this.idle = false
       this.sender()
     }
-    return promise
+    return cache.promise
   }
 
   getMetaInfo(): Promise<IMetaInfo> {
@@ -205,108 +183,22 @@ export default class Client {
     })
   }
 
-  reply(req: IRequest, code: EStatus, data?: IBase<EStatus>["data"]) {
-    this.reply_cache[req.id] = { id: req.id, code, data }
-    setTimeout(() => delete this.reply_cache[req.id], this.timeout.idle)
-    return this.write(this.reply_cache[req.id])
-  }
-
   request(name: IRequest["name"], data?: IRequest["data"]) {
     return this.send({ id: ulid(), code: EStatus["Request"], name, data })
   }
 
   receive(data: Buffer) {
-    this.buffer = Buffer.concat([this.buffer, data])
-    while (this.buffer.length >= 4) {
-      const length = this.buffer.readInt32BE()+4
-      if (this.buffer.length < length) break
-      this.handleData(this.buffer.subarray(4, length))
-      this.buffer = this.buffer.subarray(length)
-    }
-  }
-
-  handleData(data: Buffer) {
     try {
-      const req: IBase<EStatus> = this.encoder.decode(data)
-      this.logger.trace("接收", req)
-      this.handleSwitch(req)
-    } catch (err) {
-      throw makeError("处理数据错误", { data: StringOrBuffer(data), cause: err })
-    }
-  }
-
-  handleSwitch(req: IBase<EStatus>) {
-    switch (req.code) {
-      case EStatus.Request:
-        if (this.reply_cache[req.id])
-          return this.write(this.reply_cache[req.id])
-        return this.handleRequest(req as IRequest, this.reply.bind(this, req as IRequest))
-      case EStatus.Receive:
-        return this.handleReceive(req as IReceive)
-      case EStatus.Async:
-        return this.handleAsync(req as IAsync)
-      case EStatus.Error:
-        return this.handleError(req as IError)
-      default:
-        throw makeError("不支持的数据类型")
-    }
-  }
-
-  async handleRequest(req: IRequest, reply: (code: EStatus, data?: IBase<EStatus>["data"]) => void) {
-    try {
-      let ret: IReceive["data"]
-      if (req.name in this.handle) {
-        if (typeof this.handle[req.name] !== "function")
-          return reply(EStatus.Receive, this.handle[req.name])
-        this.logger.debug(`执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`)
-        ret = this.handle[req.name](req.data, this)
-      } else if (typeof this.handle.default === "function") {
-        this.logger.debug(`执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`)
-        ret = this.handle.default(req.name, req.data, this)
-      } else {
-        return reply(EStatus.Error, {
-          name: "NotFoundError",
-          message: `处理器 ${req.name} 不存在`,
-        })
+      this.buffer = Buffer.concat([this.buffer, data])
+      while (this.buffer.length >= 4) {
+        const length = this.buffer.readInt32BE()+4
+        if (this.buffer.length < length) break
+        this.handle.data(this.encoder.decode(this.buffer.subarray(4, length)))
+        this.buffer = this.buffer.subarray(length)
       }
-
-      if (isPromise(ret)) {
-        reply(EStatus.Async)
-        ret = await ret
-      }
-      return reply(EStatus.Receive, ret)
     } catch (err) {
-      return reply(EStatus.Error, {
-        ...(err instanceof Error) ?
-          { stack: (err as Error).stack, ...(err as Error) } :
-          { error: err },
-        name: "HandleError",
-        message: `处理器 ${req.name} 错误：${err}`,
-      })
+      this.close()
+      throw makeError("处理数据错误", { data, cause: err })
     }
-  }
-
-  getCache(req: IBase<EStatus>) {
-    const cache = this.cache[req.id]
-    if (!cache) throw makeError(`请求缓存 ${req.id} 不存在`, { req })
-    clearTimeout(cache.timeout)
-    return cache
-  }
-
-  handleReceive(req: IReceive) {
-    const cache = this.getCache(req)
-    cache.resolve(req.data)
-  }
-
-  handleAsync(req: IAsync) {
-    const cache = this.getCache(req)
-    cache.timeout = setTimeout(() =>
-      cache.reject(makeError("等待异步返回超时", { cache, req, timeout: this.timeout.wait }))
-    , this.timeout.wait)
-  }
-
-  handleError(req: IError) {
-    const cache = this.getCache(req)
-    cache.reject(makeError(req.data.message, { ...req.data, request: cache.data }))
   }
 }
