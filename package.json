@@ -6,9 +6,9 @@
   "main": "index.js",
   "scripts": {
     "minify": "find lib -type f -name \\*.js -print0 | xargs -0P \"$(nproc)\" -I {} uglifyjs {} -cmo {}",
-    "compile": "tsc",
+    "compile": "rm -rf lib/* && tsc",
     "eslint": "eslint --fix src",
-    "build": "rm -rf lib/* && pnpm eslint && pnpm compile && pnpm minify"
+    "build": "pnpm eslint && pnpm compile && pnpm minify"
   },
   "keywords": [],
   "author": "TimeRainStarSky",
@@ -16,6 +16,7 @@
   "devDependencies": {
     "@eslint/js": "^9.22.0",
     "@types/node": "^22.13.10",
+    "@types/ws": "^8.18.0",
     "eslint": "^9.22.0",
     "globals": "^16.0.0",
     "tsx": "^4.19.3",
@@ -27,7 +28,8 @@
     "@inquirer/prompts": "^7.4.0",
     "chalk": "^5.4.1",
     "log4js": "^6.9.1",
-    "ulid": "^2.3.0"
+    "ulid": "^2.3.0",
+    "ws": "^8.18.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

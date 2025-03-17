@@ -140,9 +140,11 @@ export function Loging(data: any, opts: InspectOptions = {}): string {
  * @param props 属性列表
  * @returns 属性列表
  */
-export function getAllProps(data: any, props: string[] = []): string[] {
-  if ([null, undefined].includes(data)) return props
-  props.push(...Object.getOwnPropertyNames(data))
+export function getAllProps(data: any, props: Set<string> = new Set): Set<string> {
+  if ([Object.prototype, undefined, null].includes(data))
+    return props
+  for (const i of Object.getOwnPropertyNames(data))
+    props.add(i)
   return getAllProps(Object.getPrototypeOf(data), props)
 }
 

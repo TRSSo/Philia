@@ -1,14 +1,14 @@
 import { Socket } from "node:net"
 import Path from "node:path"
 import { ulid } from "ulid"
-import { IOptions, IMeta, IMetaInfo, IHandle, EStatus, IRequest, IBase, ICache } from "./types.js"
+import { IClientOptions, IMeta, IMetaInfo, IHandles, EStatus, IRequest, IBase, ICache } from "./type.js"
 import { encoder, logger, makeError, findArrays, StringOrBuffer } from "../util/index.js"
 import { promiseEvent } from "../util/common.js"
 import Handle from "./handle.js"
 
 export default class Client {
   logger = logger
-  socket: Socket
+  socket: Socket & { path?: string }
   handle: Handle
   timeout = {
     send: 5e3,
@@ -32,17 +32,19 @@ export default class Client {
   idle = false
   open = false
 
-  constructor(handle: IHandle | IHandle[], opts: IOptions = {}, ...args: any[]) {
+  constructor(handle: IHandles, opts: IClientOptions = {}) {
     this.handle = new Handle(handle, this)
 
     if (opts.meta)
       Object.assign(this.meta.local, opts.meta)
     if (opts.timeout)
       Object.assign(this.timeout, opts.timeout)
-    if (opts.socket)
+    if (opts.path)
+      this.path = opts.path
+    if (opts.socket instanceof Socket)
       this.socket = opts.socket as Socket
     else
-      this.socket = new Socket(...args)
+      this.socket = new Socket(opts.socket)
         .on("connect", this.onconnect)
     this.socket.setTimeout(this.timeout.idle)
 
@@ -50,13 +52,13 @@ export default class Client {
       this.listener[i] = this.listener[i].bind(this)
   }
 
-  connect(path: string, listener?: () => void) {
+  connect(path = this.path, listener?: () => void) {
     if (process.platform === "win32")
-      this.path = Path.join("\\\\?\\pipe", path)
+      this.socket.path = Path.join("\\\\?\\pipe", path)
     else
-      this.path = `\0${path}`
-    this.socket.connect(this.path, listener)
-    return promiseEvent(this.socket, "connected", "error")
+      this.socket.path = `\0${path}`
+    this.socket.connect(this.socket.path as string, listener)
+    return promiseEvent(this.socket, "connected", "error") as Promise<Client | Error>
   }
 
   onconnect = async () => {
@@ -201,4 +203,12 @@ export default class Client {
       throw makeError("处理数据错误", { data, cause: err })
     }
   }
+}
+
+export function createClient(path: string | Client, handle: ConstructorParameters<typeof Client>[0], opts?: ConstructorParameters<typeof Client>[1]) {
+  if (path instanceof Client) {
+    path.handle.set(handle)
+    return path
+  }
+  return new Client(handle, { ...opts, path })
 }

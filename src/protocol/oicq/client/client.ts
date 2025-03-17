@@ -10,7 +10,6 @@ import { IUser } from "../../example/user.js"
 import { IGroup } from "../../example/group.js"
 import Handle from "./event/handle.js"
 import { ISelf } from "../../example/self.js"
-import { IHandle } from "../../../socket/types.js"
 
 /** 一个客户端 */
 export class Client extends events {
@@ -89,7 +88,7 @@ export class Client extends events {
     ver: ""
   }
 
-  handle = new Handle(this) as unknown as IHandle
+  handle = new Handle(this)
   socket: SocketClient
   request: SocketClient["request"]
   /** 是否为在线状态 (可以收发业务包的状态) */

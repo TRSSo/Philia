@@ -1,5 +1,5 @@
-import Client from "./client.js"
+import Client, { createClient } from "./client.js"
 import Server from "./server.js"
-import * as types from "./types.js"
+import * as type from "./type.js"
 
-export { Client, Server, types }
+export { Client, createClient, Server, type }

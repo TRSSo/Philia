@@ -4,12 +4,12 @@ import { IGroup } from "../example/group.js"
 import { IMessage, IRSendMsg } from "../example/message.js"
 import { Convert } from "./message.js"
 import example from "../example/index.js"
-import { IHandle } from "../../socket/types.js"
+import { type as SocketType } from "../../socket/index.js"
 import { ulid } from "ulid"
 
-export class Handle {
+export class Handle implements SocketType.OHandle {
+  [key: string]: ((data: unknown) => unknown) | unknown;
   client: Client
-
   constructor(client: Client) {
     this.client = client
   }
@@ -27,5 +27,5 @@ export class Handle {
 }
 
 export default function (client: Client) {
-  return [new Handle(client), ...example()] as unknown as IHandle[]
+  return [new Handle(client), ...example()]
 }

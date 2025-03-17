@@ -1,8 +1,10 @@
-import { IEMGroup, IEMUser } from "../../../example/event.js";
-import { Client } from "../client.js";
-import { GroupMessage, PrivateMessage } from "../message/message.js";
+import { type as SocketType } from "../../../../socket/index.js"
+import { IEMGroup, IEMUser } from "../../../example/event.js"
+import { Client } from "../client.js"
+import { GroupMessage, PrivateMessage } from "../message/message.js"
 
-export default class Handle {
+export default class Handle implements SocketType.OHandle {
+  [key: string]: ((data: unknown) => unknown) | unknown;
   static event = ["message.user", "message.group"]
   client: Client
   constructor(client: Client) {

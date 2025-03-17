@@ -3,7 +3,6 @@ import Client from "./client.js"
 import { ulid } from "ulid"
 import Server from "../../socket/server.js"
 import { logger } from "../../util/logger.js"
-import { promiseEvent } from "../../util/common.js"
 
 export class Tui {
   logger = logger
@@ -56,13 +55,13 @@ export class Tui {
         const answer = await inquirer.input({ message: "请输入服务端地址" })
         if (!answer) break
         this.client = new Client(answer)
-        return promiseEvent(this.client.socket.socket, "connected")
+        return this.client.connect()
       } case "server": {
         const answer = await inquirer.input({ message: "请输入服务端地址" })
         if (!answer) break
-        this.server = new Server(undefined, { limit: 1 }).listen(answer)
+        this.server = new Server(undefined, { limit: 1, path: answer })
         this.server.socket.on("connected", client => this.client = new Client(client))
-        return
+        return this.server.listen()
       } case "exit":
         process.exit()
     }

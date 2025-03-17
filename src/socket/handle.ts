@@ -1,23 +1,23 @@
 import { isPromise } from "util/types"
 import { makeError, Loging, getAllProps } from "../util/common.js"
-import { CError, EStatus, IAsync, IBase, IError, IHandle, IHandleDefault, IReceive, IRequest } from "./types.js"
+import { CError, EStatus, IAsync, IBase, IError, IHandle, OHandle, IHandles, IHandleDefault, IReceive, IRequest } from "./type.js"
 import Client from "./client.js"
 
 export default class Handle {
   client: Client
-  map: Map<keyof IHandle, IHandle[keyof IHandle]> = new Map([
+  map: Map<keyof OHandle, IHandle | IHandleDefault> = new Map([
     ["heartbeat", function() {}],
     ["getKeys", () => Array.from(this.map.keys())],
-    ["default", function(name): void { throw new CError("NotFoundError", `处理器 ${name} 不存在`) }],
+    ["default", function(name: string): void { throw new CError("NotFoundError", `处理器 ${name} 不存在`) }],
   ])
   reply_cache: { [key: string]: IBase<EStatus> } = {}
 
-  constructor(handle: IHandle | IHandle[], client: Client) {
+  constructor(handle: IHandles, client: Client) {
     this.client = client
     this.set(handle)
   }
 
-  set(handle: IHandle | IHandle[]) {
+  set(handle: IHandles) {
     for (const i of Array.isArray(handle) ? handle : [handle])
       for (const k of getAllProps(i))
         if (typeof i[k] === "function")
@@ -57,7 +57,7 @@ export default class Handle {
       let ret: IReceive["data"]
       if (this.map.has(req.name)) {
         this.client.logger.debug(`执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`)
-        ret = (this.map.get(req.name) as IHandle[keyof IHandle])(req.data, this.client)
+        ret = (this.map.get(req.name) as IHandle)(req.data, this.client)
       } else {
         this.client.logger.debug(`执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`)
         ret = (this.map.get("default") as IHandleDefault)(req.name, req.data, this.client)

@@ -1,13 +1,14 @@
 import { Server as SocketServer, Socket } from "node:net"
 import Path from "node:path"
 import { ulid } from "ulid"
-import { IHandle, IServerOptions } from "./types.js"
+import { IHandles, IServerOptions } from "./type.js"
 import OClient from "./client.js"
 import { logger } from "../util/index.js"
+import { promiseEvent } from "../util/common.js"
 
 export class Server {
   logger = logger
-  socket: SocketServer
+  socket: SocketServer & { path?: string }
   sockets: Socket[] = []
   clients: Client[] = []
   meta = {
@@ -15,18 +16,20 @@ export class Server {
     name: "Server",
   }
   path = ""
-  handle: IHandle | IHandle[]
+  handle: IHandles
   limit?: number
 
-  constructor(handle: IHandle | IHandle[] = {}, opts: IServerOptions = {}, ...args: any[]) {
+  constructor(handle: IHandles = {}, opts: IServerOptions = {}) {
     this.handle = handle
     if (opts.limit)
       this.limit = opts.limit
+    if (opts.path)
+      this.path = opts.path
 
-    if (opts.socket)
+    if (opts.socket instanceof SocketServer)
       this.socket = opts.socket
     else
-      this.socket = new SocketServer(...args).on("connection", socket => {
+      this.socket = new SocketServer(opts.socket).on("connection", socket => {
         if (this.limit && this.sockets.length >= this.limit) {
           this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.length}个连接`)
           return socket.end()
@@ -35,13 +38,13 @@ export class Server {
       })
   }
 
-  listen(path: string, ...args: any[]) {
+  listen(path = this.path, ...args: any[]) {
     if (process.platform === "win32")
-      this.path = Path.join("\\\\?\\pipe", path)
+      this.socket.path = Path.join("\\\\?\\pipe", path)
     else
-      this.path = `\0${path}`
-    this.socket.listen(this.path, ...args)
-    return this
+      this.socket.path = `\0${path}`
+    this.socket.listen(this.socket.path, ...args)
+    return promiseEvent(this.socket, "listening", "error") as Promise<Server | Error>
   }
 
   add(client: Client) {
@@ -74,7 +77,7 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(handle: IHandle | IHandle[], server: Server, socket: Socket, opts: IServerOptions = {}) {
+  constructor(handle: IHandles, server: Server, socket: Socket, opts: IServerOptions = {}) {
     super(handle, { ...opts, socket })
     this.server = server
     Object.defineProperty(this, "logger", {

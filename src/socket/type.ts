@@ -21,11 +21,13 @@ export interface IOptions {
     idle?: number
     retry?: number
   }
-  socket?: Socket | Server
+  path?: string
 }
-
+export interface IClientOptions extends IOptions {
+  socket?: Socket | ConstructorParameters<typeof Socket>[0]
+}
 export interface IServerOptions extends IOptions {
-  socket?: Server
+  socket?: Server | ConstructorParameters<typeof Server>[0]
   limit?: number
 }
 
@@ -69,10 +71,9 @@ export interface ICache {
 }
 
 export type IHandleDefault = (name: IRequest["name"], data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
-
-export type IHandle = {
-  [key: IRequest["name"]]:
-    ((data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>))
-} & {
+export type IHandle = ((data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>))
+export type OHandle = {
+  [key: IRequest["name"]]: IHandle | unknown
   default?: IHandleDefault
 }
+export type IHandles = OHandle | OHandle[]

@@ -1,5 +1,5 @@
 import path from "node:path"
-import { Client as SocketClient } from "../../socket/index.js"
+import { createClient, Client as SocketClient } from "../../socket/index.js"
 import { logger } from "../../util/logger.js"
 import handle from "./handle.js"
 
@@ -15,14 +15,12 @@ export default class Client {
     }
   }
 
-  constructor(socket: string | SocketClient) {
-    if (socket instanceof SocketClient) {
-      socket.handle.set(handle(this))
-      this.socket = socket
-    } else {
-      this.socket = new SocketClient(handle(this))
-      this.socket.connect(socket)
-    }
+  constructor(socket: Parameters<typeof createClient>[0]) {
+    this.socket = createClient(socket, handle(this))
     this.request = this.socket.request.bind(this.socket)
+  }
+
+  connect() {
+    return this.socket.connect()
   }
 }
