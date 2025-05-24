@@ -11,6 +11,7 @@ import {
 } from "../event/types.js"
 import { FriendInfo } from "./types.js"
 import { Contactable } from "./contactable.js"
+import { Event as PhiliaEvent } from "../../../type/index.js"
 
 type Client = import("../client.js").Client
 
@@ -75,21 +76,43 @@ export class User extends Contactable {
    * @param times 点赞次数，默认1次
    */
   async thumbUp(times = 1) {
-    return this.c.request("sendUserLike", { id: this.uid, times })
+    return this.c.api.sendUserLike(this.uid, times)
   }
 
   /** 查看资料 */
   async getSimpleInfo() {
+    return this.info
   }
 
   /**
    * 获取`time`往前的`cnt`条聊天记录
    * @param time 默认当前时间，为时间戳的分钟数（`Date.now() / 1000`）
-   * @param cnt 聊天记录条数，默认`20`，超过`20`按`20`处理
+   * @param cnt 聊天记录条数，默认`20`
    * @returns 私聊消息列表，服务器记录不足`cnt`条则返回能获取到的最多消息记录
    */
   async getChatHistory(time = timestamp(), count = 20) {
-    return this.c.request("getUserChatHistory", { id: this.uid, time, count })
+    let mid: string | undefined = (
+      await this.c.api.getChatHistory("user", this.uid, 1).catch(() => [])
+    )[0]?.id
+    if (!mid) return []
+
+    const ret: PrivateMessage[] = []
+    for (let i = 0; i < 100; i++) {
+      const msg = (await this.c.api
+        .getChatHistory("message", mid, 11)
+        .catch(() => [])) as PhiliaEvent.UserMessage[]
+      mid = msg.length > 1 ? msg.pop()?.id : undefined
+
+      for (const i of msg)
+        try {
+          if (i.time <= time) {
+            ret.push(await new PrivateMessage(this.c, i).parse())
+            if (ret.length >= count) return ret
+          }
+        } catch {}
+      if (!mid) break
+    }
+    return ret
   }
 
   /**
@@ -97,7 +120,7 @@ export class User extends Contactable {
    * @param time 默认当前时间，为时间戳的分钟数（`Date.now() / 1000`）
    */
   async markRead(time = timestamp()) {
-    return this.c.request("setUserReaded", { id: this.uid, time })
+    return this.c.api.setReaded((await this.getChatHistory(time, 1))[0].message_id)
   }
 
   /**
@@ -106,7 +129,7 @@ export class User extends Contactable {
    * @param remark 好友备注
    */
   async addFriendBack(seq: number, remark = "") {
-    return this.c.request("setUserFriendBack", { id: this.uid, seq, remark })
+    return this.c.api.addUserBack(this.uid, seq, remark)
   }
 
   /**
@@ -117,7 +140,10 @@ export class User extends Contactable {
    * @param block 是否屏蔽来自此用户的申请
    */
   async setFriendReq(seq: number, yes = true, remark = "", block = false) {
-    return this.c.request("setUserFriendReq", { id: this.uid, seq, yes, remark, block })
+    const requests = await this.c.api.getRequestArray()
+    const request = requests.find(i => i.user?.id === this.uid && i.seq === seq)
+    if (!request) throw Error("请求不存在")
+    return this.c.api.setRequest(request.id, yes, remark, block)
   }
 
   /**
@@ -129,7 +155,12 @@ export class User extends Contactable {
    * @param block 是否屏蔽来自此用户的申请
    */
   async setGroupReq(gid: string, seq: number, yes = true, reason = "", block = false) {
-    return this.c.request("setUserGroupReq", { id: this.uid, gid, seq, yes, reason, block })
+    const requests = await this.c.api.getRequestArray()
+    const request = requests.find(
+      i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
+    )
+    if (!request) throw Error("请求不存在")
+    return this.c.api.setRequest(request.id, yes, reason, block)
   }
 
   /**
@@ -140,10 +171,15 @@ export class User extends Contactable {
    * @param block 是否屏蔽来自此群的邀请
    */
   async setGroupInvite(gid: string, seq: number, yes = true, block = false) {
-    return this.c.request("setUserGroupInvite", { id: this.uid, gid, seq, yes, block })
+    const requests = await this.c.api.getRequestArray()
+    const request = requests.find(
+      i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
+    )
+    if (!request) throw Error("请求不存在")
+    return this.c.api.setRequest(request.id, yes, undefined, block)
   }
 
-/** 好友 */
+  /** 好友 */
 
   /** 好友资料 */
   get info() {
@@ -173,12 +209,12 @@ export class User extends Contactable {
 
   /** 设置分组(注意：如果分组id不存在也会成功) */
   async setClass(cid: number) {
-    return this.c.request("setUserClass", { id: this.uid, cid })
+    return this.c.api.setUserClass(cid, this.uid)
   }
 
   /** 戳一戳 */
   async poke(self = false) {
-    return this.c.request("sendUserPoke", { id: this.uid, self })
+    return this.c.api.sendPoke("user", this.uid, self ? this.c.uin : this.uid)
   }
 
   /**
@@ -186,7 +222,7 @@ export class User extends Contactable {
    * @param block 屏蔽此好友的申请，默认为`true`
    */
   async delete(block = true) {
-    return this.c.request("delUser", { id: this.uid, block })
+    return this.c.api.delUser(this.uid, block)
   }
 
   /**
@@ -194,7 +230,11 @@ export class User extends Contactable {
    * @returns
    */
   async searchSameGroup() {
-    return this.c.request("searchUserSameGroup", { id: this.uid })
+    return (await this.c.api.searchUserSameGroup(this.uid)).map(i => ({
+      ...i,
+      groupName: i.name,
+      Group_Id: i.id,
+    }))
   }
 
   /**
@@ -203,7 +243,7 @@ export class User extends Contactable {
    * @param name 对方看到的文件名，`file`为`Buffer`时，若留空则自动以md5命名
    */
   async sendFile(file: string | Buffer, name?: string) {
-    return (await (this.sendMsg(segment.file(file, name)))).message_id
+    return (await this.sendMsg(segment.file(file, name))).message_id
   }
 }
 
@@ -246,8 +286,8 @@ export interface FriendRequestEventMap {
 /** 所有的好友事件 */
 export interface FriendEventMap
   extends PrivateMessageEventMap,
-  FriendNoticeEventMap,
-  FriendRequestEventMap { }
+    FriendNoticeEventMap,
+    FriendRequestEventMap {}
 
 export const Friend = User
 export type Friend = User

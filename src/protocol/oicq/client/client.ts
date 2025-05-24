@@ -1,15 +1,22 @@
 import events from "node:events"
 import { timestamp } from "./common.js"
-import { Domain, FriendInfo, GroupInfo, MemberInfo, StrangerInfo, Gender, OnlineStatus } from "./contact/types.js"
+import {
+  Domain,
+  FriendInfo,
+  GroupInfo,
+  MemberInfo,
+  StrangerInfo,
+  Gender,
+  OnlineStatus,
+} from "./contact/types.js"
 import { User, Friend } from "./contact/friend.js"
 import { Group } from "./contact/group.js"
 import { Member } from "./contact/member.js"
-import { Forwardable, ImageElem, Message, Quotable, Sendable } from "./message/index.js"
+import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
 import { Client as SocketClient } from "../../../socket/index.js"
-import { IUser } from "../../example/user.js"
-import { IGroup } from "../../example/group.js"
+import { Contact, Message as PhiliaMessage } from "../../type/index.js"
 import Handle from "./event/handle.js"
-import { ISelf } from "../../example/self.js"
+import API from "../../example/api.js"
 
 /** 一个客户端 */
 export class Client extends events {
@@ -40,8 +47,12 @@ export class Client extends events {
   readonly pickMember = Member.as.bind(this)
 
   /** 日志记录器 */
-  get logger() { return this.socket.logger }
-  set logger(value) { this.socket.logger = value }
+  get logger() {
+    return this.socket.logger
+  }
+  set logger(value) {
+    this.socket.logger = value
+  }
   /** 配置 */
   readonly config: Required<Config>
 
@@ -64,15 +75,21 @@ export class Client extends events {
 
   /** 勿手动修改这些属性 */
   /** 自己信息 */
-  self_info: ISelf = { id: "", name: "" }
+  self_info: Contact.Self = { id: "", name: "" }
   /** 在线状态 */
   status: OnlineStatus = OnlineStatus.Offline
   /** 昵称 */
-  get nickname() { return this.self_info.name }
+  get nickname() {
+    return this.self_info.name
+  }
   /** 性别 */
-  get sex() { return this.self_info.sex as Gender }
+  get sex() {
+    return this.self_info.sex as Gender
+  }
   /** 年龄 */
-  get age() { return this.self_info.age as number }
+  get age() {
+    return this.self_info.age as number
+  }
 
   protected readonly statistics = {
     start_time: timestamp(),
@@ -85,14 +102,16 @@ export class Client extends events {
     msg_cnt_per_min: 0,
     remote_ip: "",
     remote_port: 0,
-    ver: ""
+    ver: "",
   }
 
   handle = new Handle(this)
+  api: API
   socket: SocketClient
-  request: SocketClient["request"]
   /** 是否为在线状态 (可以收发业务包的状态) */
-  isOnline() { return this.socket.open }
+  isOnline() {
+    return this.socket.open
+  }
   path?: string
 
   /** 下线 */
@@ -102,26 +121,32 @@ export class Client extends events {
 
   /** 发送一个业务包不等待返回 */
   writeUni(cmd: string, body: Uint8Array, seq = 0) {
-    return this.request("writeUni", { cmd, body, seq })
+    return this.api.writeUni(cmd, body, seq)
   }
 
   /** dont use it if not clear the usage */
   sendOidb(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.request("sendOidb", { cmd, body, timeout })
+    return this.api.sendOidb(cmd, body, timeout)
   }
 
   sendPacket(type: string, cmd: string, body: any) {
-    return this.request("sendPacket", { type, cmd, body }) as Promise<Buffer>
+    return this.api.sendPacket(type, cmd, body)
   }
 
   /** 发送一个业务包并等待返回 */
   sendUni(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.request("sendUni", { cmd, body, timeout })
+    return this.api.sendUni(cmd, body, timeout)
   }
 
   sendOidbSvcTrpcTcp(cmd: string, body: Uint8Array | object) {
-    return this.request("sendOidbSvcTrpcTcp", { cmd, body })
+    return this.api.sendOidbSvcTrpcTcp(cmd, body)
   }
+
+  /** csrf token */
+  bkn?: number
+
+  /** @todo 未知属性 */
+  cookies?: { [domain in Domain]: string }
 
   /** 数据统计 */
   get stat() {
@@ -149,7 +174,7 @@ export class Client extends events {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
     }
-    this.request = this.socket.request.bind(this.socket)
+    this.api = new API(this.socket)
 
     this.config = {
       ignore_self: true,
@@ -182,33 +207,45 @@ export class Client extends events {
       return this.em("system.login.error", err)
     }
 
-    this.self_info = await this.request("getSelfInfo") as ISelf
+    this.self_info = await this.api.getSelfInfo()
     this.uin = this.self_info.id
     this.logger.mark(`欢迎 ${this.nickname}(${this.uin})！正在加载资源……`)
 
     await this.reloadFriendList()
-    if (this.config.cache_group_member)
-      await this.reloadGroupMemberList()
-    else
-      await this.reloadGroupList()
-    this.logger.mark(`加载了${this.fl.size}个好友，${this.gl.size}个群，${Array.from(this.gml.values()).reduce((n, i) => n+i.size, 0)}个群成员`)
+    if (this.config.cache_group_member) await this.reloadGroupMemberList()
+    else await this.reloadGroupList()
+    this.logger.mark(
+      `加载了${this.fl.size}个好友，${this.gl.size}个群，${Array.from(this.gml.values()).reduce(
+        (n, i) => n + i.size,
+        0,
+      )}个群成员`,
+    )
 
-    await this.request("receiveEvent", Handle.event.map(i => ({ type: i, handle: i })))
+    this.api
+      .getSelfCookie()
+      .then(d => (this.cookies = d as { [domain in Domain]: string }))
+      .catch(() => {})
+    this.api
+      .getSelfCSRFToken()
+      .then(d => (this.bkn = d))
+      .catch(() => {})
+
+    await this.api.receiveEvent(Handle.event.map(i => ({ type: i, handle: i })))
   }
 
   /** 上传文件到缓存目录 */
   uploadFile(file: string | Buffer) {
-    return this.request("uploadFile", { file }) as Promise<string>
+    return this.api.uploadCacheFile(file)
   }
 
   /** 设置在线状态 */
-  setOnlineStatus(status = this.status || OnlineStatus.Online) {
-    return this.request("setSelfOnlineStatus", { status })
+  setOnlineStatus(online_status = this.status || OnlineStatus.Online) {
+    return this.api.setSelfInfo({ online_status })
   }
 
   /** 设置昵称 */
   setNickname(name: string) {
-    return this.request("setSelfName", { name })
+    return this.api.setSelfInfo({ name })
   }
 
   /**
@@ -216,7 +253,7 @@ export class Client extends events {
    * @param gender 0：未知，1：男，2：女
    */
   setGender(gender: 0 | 1 | 2) {
-    return this.request("setSelfGender", { gender })
+    return this.api.setSelfInfo({ gender })
   }
 
   /**
@@ -225,62 +262,62 @@ export class Client extends events {
    * */
   setBirthday(birthday: string | number) {
     birthday = String(birthday).replace(/[^\d]/g, "")
-    return this.request("setSelfBirthday", { birthday })
+    return this.api.setSelfInfo({ birthday })
   }
 
   /** 设置个人说明 */
   setDescription(description = "") {
-    return this.request("setSelfDescription", { description })
+    return this.api.setSelfInfo({ description })
   }
 
   /** 设置个性签名 */
   setSignature(signature = "") {
-    return this.request("setSelfSignature", { signature })
+    return this.api.setSelfInfo({ signature })
   }
 
   /** 获取用户资料卡信息 */
   getProfile(id: string) {
-    return this.request("getUserProfile", { id })
+    return this.api.getUserInfo(id)
   }
 
   /** 设置头像 */
   setAvatar(avatar: ImageElem["file"]) {
-    return this.request("setSelfAvatar", { avatar })
+    return this.api.setSelfInfo({ avatar })
   }
 
   /** 获取漫游表情 */
   getRoamingStamp(no_cache = false) {
-    return this.request("getSelfRoamingStamp", { no_cache })
+    return this.api.getRoamingStamp(!no_cache)
   }
 
   /** 删除表情(支持批量) */
   deleteStamp(id: string | string[]) {
-    return this.request("delSelfRoamingStamp", { id })
+    return this.api.delRoamingStamp(id)
   }
 
   /** 获取系统消息 */
   getSystemMsg() {
-    return this.request("getSelfSystemMsg")
+    return this.api.getRequestArray()
   }
 
   /** 添加好友分组 */
   addClass(name: string) {
-    return this.request("addSelfClass", { name })
+    return this.api.addUserClass(name)
   }
 
   /** 删除好友分组 */
   deleteClass(id: number) {
-    return this.request("delSelfClass", { id })
+    return this.api.delUserClass(id)
   }
 
   /** 重命名好友分组 */
   renameClass(id: number, name: string) {
-    return this.request("renameSelfClass", { id, name })
+    return this.api.renameUserClass(id, name)
   }
 
   /** 重载好友列表 */
   async reloadFriendList() {
-    const array = await this.request("getUserArray") as IUser[]
+    const array = await this.api.getUserArray()
     const map = new Map<string, FriendInfo>()
     for (const i of array)
       map.set(i.id, {
@@ -289,7 +326,7 @@ export class Client extends events {
         nickname: i.name,
         remark: i.mark || "",
       } as unknown as FriendInfo)
-    return this.fl = map
+    return (this.fl = map)
   }
 
   /** 重载陌生人列表 */
@@ -299,7 +336,7 @@ export class Client extends events {
 
   /** 重载群列表 */
   async reloadGroupList() {
-    const array = await this.request("getGroupArray") as IGroup[]
+    const array = await this.api.getGroupArray()
     const map = new Map<string, GroupInfo>()
     for (const i of array)
       map.set(i.id, {
@@ -309,13 +346,12 @@ export class Client extends events {
         avatar: i.avatar || "",
         remark: i.mark || "",
       } as unknown as GroupInfo)
-    return this.gl = map
+    return (this.gl = map)
   }
 
   /** 重载群成员列表 */
   async reloadGroupMemberList() {
-    for (const i of (await this.reloadGroupList()).keys())
-      await this.pickGroup(i).getMemberMap()
+    for (const i of (await this.reloadGroupList()).keys()) await this.pickGroup(i).getMemberMap()
     return this.gml
   }
 
@@ -326,23 +362,23 @@ export class Client extends events {
 
   /** 清空缓存文件 */
   cleanCache() {
-    return this.request("delCache")
+    return this.api.clearCache()
   }
 
   /**
    * 获取视频下载地址
    * use {@link Friend.getVideoUrl}
    */
-  getVideoUrl(fid: string, md5: string | Buffer) {
-    return this.pickFriend(this.uin).getVideoUrl(fid, md5)
+  getVideoUrl(fid: string) {
+    return this.pickFriend(this.uin).getVideoUrl(fid)
   }
 
   /**
    * 获取转发消息
    * use {@link Friend.getForwardMsg}
    */
-  getForwardMsg(resid: string, fileName?: string) {
-    return this.pickFriend(this.uin).getForwardMsg(resid, fileName)
+  getForwardMsg(resid: string) {
+    return this.pickFriend(this.uin).getForwardMsg(resid)
   }
   /**
    * 制作转发消息
@@ -353,18 +389,22 @@ export class Client extends events {
   }
 
   /** Ocr图片转文字 */
-  imageOcr(image: ImageElem["file"]) {
-    return this.request("getImageOcr", { image })
+  async imageOcr(file: ImageElem["file"]) {
+    const image = await OICQtoPhilia.prototype._prepareFile<PhiliaMessage.Image>({
+      type: "image",
+      file,
+    })
+    return this.api.getImageOCR(image)
   }
 
   /** @cqhttp (cqhttp遗留方法) use {@link cookies[domain]} */
   getCookies(domain: Domain = "") {
-    return this.request("getSelfCookies", { domain })
+    return this.cookies?.[domain]
   }
 
   /** @cqhttp use {@link bkn} */
   getCsrfToken() {
-    return this.request("getSelfCsrfToken")
+    return this.bkn
   }
 
   /** @cqhttp use {@link fl} */
@@ -380,19 +420,19 @@ export class Client extends events {
   /**
    * 添加群精华消息
    * use {@link Group.addEssence}
-   * @param mid 消息id
+   * @param id 消息id
    */
-  setEssenceMessage(mid: string) {
-    return this.request("addGroupEssence", { mid })
+  setEssenceMessage(id: string) {
+    return this.api.addGroupEssence(id)
   }
 
   /**
    * 移除群精华消息
    * use {@link Group.removeEssence}
-   * @param mid 消息id
+   * @param id 消息id
    */
-  removeEssenceMessage(mid: string) {
-    return this.request("delGroupEssence", { mid })
+  removeEssenceMessage(id: string) {
+    return this.api.delGroupEssence(id)
   }
 
   /** @cqhttp use {@link sl} */
@@ -446,22 +486,22 @@ export class Client extends events {
 
   /** @cqhttp use {@link User.recallMsg} or {@link Group.recallMsg} */
   deleteMsg(id: string) {
-    return this.request("delMsg", { id })
+    return this.api.delMsg(id)
   }
 
   /** @cqhttp use {@link User.markRead} or {@link Group.markRead} */
   reportReaded(id: string) {
-    return this.request("setReaded", { id })
+    return this.api.setReaded(id)
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
-  async getMsg(message_id: string) {
-    return (await this.getChatHistory(message_id, 1)).pop()
+  getMsg(message_id: string) {
+    return this.api.getMsg(message_id)
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
   getChatHistory(id: string, count = 20) {
-    return this.request("getChatHistory", { id, count }) as Promise<Message[]>
+    return this.api.getChatHistory("message", id, count)
   }
 
   /** @cqhttp use {@link Group.muteAll} */
@@ -495,12 +535,7 @@ export class Client extends events {
   }
 
   /** @cqhttp use {@link Group.setTitle} or {@link Member.setTitle} */
-  setGroupSpecialTitle(
-    group_id: string,
-    user_id: string,
-    special_title: string,
-    duration = -1,
-  ) {
+  setGroupSpecialTitle(group_id: string, user_id: string, special_title: string, duration = -1) {
     return this.pickMember(group_id, user_id).setTitle(special_title, duration)
   }
 
@@ -510,12 +545,7 @@ export class Client extends events {
   }
 
   /** @cqhttp use {@link Group.kickMember} or {@link Member.kick} */
-  setGroupKick(
-    group_id: string,
-    user_id: string,
-    reject_add_request = false,
-    message?: string,
-  ) {
+  setGroupKick(group_id: string, user_id: string, reject_add_request = false, message?: string) {
     return this.pickMember(group_id, user_id).kick(message, reject_add_request)
   }
 
@@ -532,11 +562,6 @@ export class Client extends events {
   /** @cqhttp use {@link Group.pokeMember} or {@link Member.poke} */
   sendGroupPoke(group_id: string, user_id: string) {
     return this.pickMember(group_id, user_id).poke()
-  }
-
-  /** @cqhttp use {@link Member.addFriend} */
-  addFriend(group_id: string, user_id: string, comment = "") {
-    return this.pickMember(group_id, user_id).addFriend(comment)
   }
 
   /** @cqhttp use {@link Friend.delete} */
@@ -571,12 +596,12 @@ export class Client extends events {
 
   /** @cqhttp use {@link User.setFriendReq} or {@link User.addFriendBack} */
   setFriendAddRequest(flag: string, approve = true, remark = "", block = false) {
-    return this.request("getUserAddRequest", { flag, approve, remark, block })
+    return this.api.setRequest(flag, approve, remark, block)
   }
 
   /** @cqhttp use {@link User.setGroupInvite} or {@link User.setGroupReq} */
   setGroupAddRequest(flag: string, approve = true, reason = "", block = false) {
-    return this.request("getGroupAddRequest", { flag, approve, reason, block })
+    return this.api.setRequest(flag, approve, reason, block)
   }
 
   /** emit an event */
@@ -587,7 +612,7 @@ export class Client extends events {
       enumerable: true,
       configurable: true,
     })
-    
+
     while (true) {
       this.emit(name, data)
       const i = name.lastIndexOf(".")

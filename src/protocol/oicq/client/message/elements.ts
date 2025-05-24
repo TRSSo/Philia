@@ -1,4 +1,4 @@
-import { IButton } from "../../../example/message.js"
+import { ButtonType as IButton } from "../../../type/message.js"
 
 /** LongMsg */
 export interface LongMsgElem {
@@ -80,7 +80,7 @@ export interface ImageElem {
   /** 图片概要 */
   summary?: string
   /** 从服务端拿到fid，发送时有效 */
-  fid?: string | number
+  fid?: string
 
   /** 图片file_id，接收时有效(QQNT) */
   file_id?: string
@@ -92,7 +92,6 @@ export interface ImageElem {
   width?: number
   /** 图片大小，接收时有效 */
   size?: number
-
 }
 
 /** 闪照 */
@@ -111,6 +110,7 @@ export interface PttElem {
   file: string | Buffer
   /** 语音url地址，接收时有效 */
   url?: string
+  fid?: string
   md5?: string
   /** 文件大小，接收时有效 */
   size?: number
@@ -195,7 +195,7 @@ export interface PokeElem {
 /** Markdown消息 */
 export interface MarkdownElem {
   type: "markdown"
-  content: string,
+  content: string
   config?: {
     /** 未知的参数 */
     unknown?: number
@@ -209,7 +209,7 @@ export interface ButtonElem {
   type: "button"
   content?: {
     /** 机器人appid */
-    appid: number,
+    appid: number
     /** rows 数组的每个元素表示每一行按钮 */
     rows: {
       buttons: Button[]
@@ -220,40 +220,40 @@ export interface ButtonElem {
 
 export interface Button {
   /** 按钮ID：在一个keyboard消息内设置唯一 */
-  id?: string,
+  id?: string
   render_data: {
     /** 按钮上的文字 */
-    label: string,
+    label: string
     /** 点击后按钮的上文字 */
-    visited_label: string,
+    visited_label: string
     /** 按钮样式：0 灰色线框，1 蓝色线框 */
     style: number
-  },
+  }
   action: {
     /** 设置 0 跳转按钮：http 或 小程序 客户端识别 scheme，设置 1 回调按钮：回调后台接口, data 传给后台，设置 2 指令按钮：自动在输入框插入 @bot data */
-    type: number,
+    type: number
     permission: {
       /** 0 指定用户可操作，1 仅管理者可操作，2 所有人可操作，3 指定身份组可操作（仅频道可用） */
-      type: number,
+      type: number
       /** 有权限的用户 id 的列表 */
-      specify_user_ids?: Array<string>,
+      specify_user_ids?: Array<string>
       /** 有权限的身份组 id 的列表（仅频道可用） */
-      specify_role_ids?: Array<string>,
-    },
+      specify_role_ids?: Array<string>
+    }
     /** 操作相关的数据 */
-    data: string,
+    data: string
     /** 指令按钮可用，指令是否带引用回复本消息，默认 false。支持版本 8983 */
-    reply?: boolean,
+    reply?: boolean
     /** 指令按钮可用，点击按钮后直接自动发送 data，默认 false。支持版本 8983 */
-    enter?: boolean,
+    enter?: boolean
     /** 本字段仅在指令按钮下有效，设置后后会忽略 action.enter 配置。
     设置为 1 时 ，点击按钮自动唤起启手Q选图器，其他值暂无效果。
     （仅支持手机端版本 8983+ 的单聊场景，桌面端不支持） */
-    anchor?: number,
+    anchor?: number
     /**【已弃用】可操作点击的次数，默认不限 */
     click_limit?: number
     /** 【已弃用】指令按钮可用，弹出子频道选择器，默认 false */
-    at_bot_show_channel_list?: boolean,
+    at_bot_show_channel_list?: boolean
     /** 客户端不支持本action的时候，弹出的toast文案 */
     unsupport_tips: string
   }
@@ -282,6 +282,13 @@ export interface FileElem {
   pid?: string
 }
 
+/** 文件ID */
+export interface FileIDElem {
+  type: "file" | "image" | "record" | "video"
+  fid: string
+  [key: string]: unknown
+}
+
 /** @cqhttp 旧版引用回复，仅做一定程度的兼容 */
 export interface ReplyElem {
   type: "reply"
@@ -304,7 +311,7 @@ export interface Quotable {
   user_id: string
   message_id: string
   time: number
-  seq: number
+  seq: number | string
   /** 私聊回复必须包含此属性 */
   rand: number
   /** 收到的引用回复永远是字符串 */
@@ -355,13 +362,49 @@ export interface PlatformElem {
 }
 
 export const ExtendType: ExtendMessageElem["type"][] = [
-  "long_msg", "face", "sface", "bface", "dice", "rps", "flash",
-  "location", "music", "share", "json", "xml", "poke", "mirai"
+  "long_msg",
+  "face",
+  "sface",
+  "bface",
+  "dice",
+  "rps",
+  "flash",
+  "location",
+  "music",
+  "share",
+  "json",
+  "xml",
+  "poke",
+  "mirai",
 ]
-export type BaseMessageElem = TextElem | ImageElem | AtElem | ReplyElem | FileElem | PttElem |
-  VideoElem | ForwardNode | MarkdownElem | ButtonElem | QuoteElem | ExtendElem | PlatformElem
-export type ExtendMessageElem = FaceElem | BfaceElem | MfaceElem | MiraiElem | FlashElem |
-  JsonElem | XmlElem | PokeElem | LocationElem | ShareElem | MusicElem | LongMsgElem
+export type BaseMessageElem =
+  | TextElem
+  | ImageElem
+  | AtElem
+  | ReplyElem
+  | FileElem
+  | FileIDElem
+  | PttElem
+  | VideoElem
+  | ForwardNode
+  | MarkdownElem
+  | ButtonElem
+  | QuoteElem
+  | ExtendElem
+  | PlatformElem
+export type ExtendMessageElem =
+  | FaceElem
+  | BfaceElem
+  | MfaceElem
+  | MiraiElem
+  | FlashElem
+  | JsonElem
+  | XmlElem
+  | PokeElem
+  | LocationElem
+  | ShareElem
+  | MusicElem
+  | LongMsgElem
 export type MessageElem = BaseMessageElem | ExtendMessageElem
 
 /** 可通过`sendMsg`发送的类型集合 (字符串、元素对象，或它们的数组) */
@@ -373,7 +416,7 @@ export const segment = {
     return { type: "long_msg", resid }
   },
   /** 文本，建议直接使用字符串 */
-  text(text: string, markdown?: string): TextElem {
+  text(text: any, markdown?: string): TextElem {
     return { type: "text", text: String(text), markdown }
   },
   /** 经典表情(id=0~324) */
@@ -403,11 +446,21 @@ export const segment = {
     return { type: "at", qq, text, dummy }
   },
   /** 图片，支持http://,base64:// */
-  image(file: ImageElem["file"], cache?: boolean, timeout?: number, headers?: import("http").OutgoingHttpHeaders): ImageElem {
+  image(
+    file: ImageElem["file"],
+    cache?: boolean,
+    timeout?: number,
+    headers?: import("http").OutgoingHttpHeaders,
+  ): ImageElem {
     return { type: "image", file, cache, timeout, headers }
   },
   /** 闪照，支持http://,base64:// */
-  flash(file: ImageElem["file"], cache?: boolean, timeout?: number, headers?: import("http").OutgoingHttpHeaders): FlashElem {
+  flash(
+    file: ImageElem["file"],
+    cache?: boolean,
+    timeout?: number,
+    headers?: import("http").OutgoingHttpHeaders,
+  ): FlashElem {
     return { type: "flash", file, cache, timeout, headers }
   },
   /** 语音，支持http://,base64:// */
@@ -428,8 +481,7 @@ export const segment = {
     return { type: "markdown", content, config }
   },
   button(content: ButtonElem["content"] | ButtonElem["data"]): ButtonElem {
-    if (Array.isArray(content))
-      return { type: "button", data: content }
+    if (Array.isArray(content)) return { type: "button", data: content }
     return { type: "button", content }
   },
   /** 一种特殊消息(官方客户端无法解析) */
@@ -462,18 +514,16 @@ export const segment = {
     let prev_index = 0
     for (const v of res) {
       const text = str.slice(prev_index, v.index).replace(/&#91;|&#93;|&amp;/g, unescapeCQ)
-      if (text)
-        elems.push({ type: "text", text })
+      if (text) elems.push({ type: "text", text })
       const element = v[0]
       let cq = element.replace("[CQ:", "type=")
       cq = cq.substr(0, cq.length - 1)
       elems.push(qs(cq))
-      prev_index = v.index as number + element.length
+      prev_index = (v.index as number) + element.length
     }
     if (prev_index < str.length) {
       const text = str.slice(prev_index).replace(/&#91;|&#93;|&amp;/g, unescapeCQ)
-      if (text)
-        elems.push({ type: "text", text })
+      if (text) elems.push({ type: "text", text })
     }
     return elems
   },
@@ -482,7 +532,7 @@ export const segment = {
   },
   reply(id: string, text?: string): ReplyElem {
     return { type: "reply", id, text }
-  }
+  },
 }
 
 function unescapeCQ(s: string) {
@@ -508,9 +558,8 @@ function qs(s: string, sep = ",", equal = "=") {
   }
   for (const k in ret) {
     try {
-      if (k !== "text")
-        ret[k] = JSON.parse(ret[k])
-    } catch { }
+      if (k !== "text") ret[k] = JSON.parse(ret[k])
+    } catch {}
   }
   return ret as MessageElem
 }

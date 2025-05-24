@@ -1,7 +1,7 @@
 import { FaceElem } from "./elements.js"
 
 /** 表情字典 */
-export const facemap:{[key:number]:Omit<FaceElem, "id"|"type">} = {
+export const facemap: { [key: number]: Omit<FaceElem, "id" | "type"> } = {
   0: { text: "/惊讶" },
   1: { text: "/撇嘴" },
   2: { text: "/色" },
@@ -230,7 +230,7 @@ export const facemap:{[key:number]:Omit<FaceElem, "id"|"type">} = {
   392: { text: "/龙年快乐", stickerId: "38", stickerType: 3 },
   393: { text: "/新年中龙", stickerId: "39", stickerType: 3 },
   394: { text: "/新年大龙", stickerId: "40", stickerType: 3 },
-  395: { text: "/略略略", stickerId: "41", stickerType: 1 }
+  395: { text: "/略略略", stickerId: "41", stickerType: 1 },
 }
 
 /** 戳一戳字典 */
@@ -251,5 +251,5 @@ export const pokemap: { [k: number]: string } = {
   2006: "召唤术",
   2007: "玫瑰花",
   2009: "让你皮",
-  2011: "宝贝球"
+  2011: "宝贝球",
 }

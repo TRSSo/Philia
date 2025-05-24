@@ -8,7 +8,7 @@ type Client = import("../client.js").Client
 const weakmap = new WeakMap<MemberInfo, Member>()
 
 /** 群员事件(= {@link GroupEventMap}) */
-export interface MemberEventMap extends GroupEventMap { }
+export interface MemberEventMap extends GroupEventMap {}
 
 /** @ts-expect-error ts(2415) 群员 */
 export class Member extends User {
@@ -85,7 +85,13 @@ export class Member extends User {
 
   /** 强制刷新群员资料 */
   async renew(): Promise<MemberInfo> {
-    let info = await this.c.request("getGroupMemberInfo", { id: this.gid, uid: this.uid }) as MemberInfo
+    const i = await this.c.api.getGroupMemberInfo(this.gid, this.uid, true)
+    let info = {
+      group_id: this.gid,
+      user_id: i.id,
+      remark: i.mark,
+      ...i,
+    } as unknown as MemberInfo
     info = Object.assign(this.c.gml.get(this.gid)?.get(this.uid) || this._info || {}, info)
     this.c.gml.get(this.gid)?.set(this.uid, info)
     this._info = info
@@ -98,7 +104,7 @@ export class Member extends User {
    * @param yes 是否设为管理员
    */
   setAdmin(yes = true) {
-    return this.c.request("setGroupAdmin", { id: this.gid, uid: this.uid, yes }) as Promise<MemberInfo>
+    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { role: yes ? "admin" : "member" })
   }
 
   /**
@@ -106,8 +112,8 @@ export class Member extends User {
    * @param title 头衔名
    * @param duration 持续时间，默认`-1`，表示永久
    */
-  async setTitle(title = "", duration = -1) {
-    return this.c.request("setGroupMemberTitle", { id: this.gid, uid: this.uid, title, duration })
+  setTitle(title = "", duration = -1) {
+    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { title, title_expire_time: duration })
   }
 
   /**
@@ -115,16 +121,16 @@ export class Member extends User {
    * @param card 名片
    */
   async setCard(card = "") {
-    return this.c.request("setGroupMemberCard", { id: this.gid, uid: this.uid, card })
+    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { card })
   }
 
   /**
    * 踢出群
-   * @param msg @todo 未知参数
+   * @param _msg @todo 未知参数
    * @param block 是否屏蔽群员
    */
-  async kick(msg?: string, block = false) {
-    return this.c.request("delGroupMember", { id: this.gid, uid: this.uid, msg, block })
+  async kick(_msg?: string, block = false) {
+    return this.c.api.delGroupMember(this.gid, this.uid, block)
   }
 
   /**
@@ -132,27 +138,21 @@ export class Member extends User {
    * @param duration 禁言时长（秒），默认`1800`
    */
   async mute(duration = 1800) {
-    return this.c.request("setGroupMemberMute", { id: this.gid, uid: this.uid, duration })
+    return this.c.api.setGroupMemberInfo(this.gid, this.uid, {
+      shutup_time: duration,
+    })
   }
 
   /** 戳一戳 */
   async poke() {
-    return this.c.request("sendGroupMemberPoke", { id: this.gid, uid: this.uid })
+    return this.c.api.sendPoke("group", this.gid, this.uid)
   }
 
   /**
    * 是否屏蔽该群成员消息
    * @param yes
    */
-  async setScreenMsg(yes: boolean = true) {
-    return this.c.request("setGroupMemberBlack", { id: this.gid, uid: this.uid, yes })
-  }
-
-  /**
-   * 加为好友
-   * @param comment 申请消息
-   */
-  async addFriend(comment = "") {
-    return this.c.request("sendGroupMemberAddFriend", { id: this.gid, uid: this.uid, comment })
+  async setScreenMsg(yes = true) {
+    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { block: yes })
   }
 }

@@ -1,15 +1,33 @@
 import { isPromise } from "util/types"
-import { makeError, Loging, getAllProps } from "../util/common.js"
-import { CError, EStatus, IAsync, IBase, IError, IHandle, OHandle, IHandles, IHandleDefault, IReceive, IRequest } from "./type.js"
+import { makeError, Loging, getAllProps } from "../util/index.js"
+import {
+  CError,
+  EStatus,
+  IAsync,
+  IBase,
+  IError,
+  IHandle,
+  OHandle,
+  IHandles,
+  IHandleDefault,
+  IReceive,
+  IRequest,
+} from "./type.js"
 import Client from "./client.js"
 
 export default class Handle {
   client: Client
-  map: Map<keyof OHandle, IHandle | IHandleDefault> = new Map([
-    ["heartbeat", function() {}],
-    ["getKeys", () => Array.from(this.map.keys())],
-    ["default", function(name: string): void { throw new CError("NotFoundError", `处理器 ${name} 不存在`) }],
-  ])
+  default_handle: [keyof OHandle, IHandle | IHandleDefault][] = [
+    ["heartbeat", () => {}],
+    ["getHandleList", () => Array.from(this.map.keys())],
+    [
+      "default",
+      (name: string) => {
+        throw new CError("NotFoundError", `处理器 ${name} 不存在`)
+      },
+    ],
+  ]
+  map = new Map(this.default_handle)
   reply_cache: { [key: string]: IBase<EStatus> } = {}
 
   constructor(handle: IHandles, client: Client) {
@@ -19,21 +37,22 @@ export default class Handle {
 
   set(handle: IHandles) {
     for (const i of Array.isArray(handle) ? handle : [handle])
-      for (const k of getAllProps(i))
-        if (typeof i[k] === "function")
-          this.map.set(k, i[k].bind(i))
+      for (const k of getAllProps(i)) if (typeof i[k] === "function") this.map.set(k, i[k].bind(i))
   }
 
   del(name: keyof IHandle) {
     return this.map.delete(name)
   }
 
+  clear() {
+    this.map = new Map(this.default_handle)
+  }
+
   data(req: IBase<EStatus>) {
     this.client.logger.trace("接收", req)
     switch (req.code) {
       case EStatus.Request:
-        if (this.reply_cache[req.id])
-          return this.client.write(this.reply_cache[req.id])
+        if (this.reply_cache[req.id]) return this.client.write(this.reply_cache[req.id])
         return this.request(req as IRequest, this.reply.bind(this, req as IRequest))
       case EStatus.Receive:
         return this.receive(req as IReceive)
@@ -56,10 +75,14 @@ export default class Handle {
     try {
       let ret: IReceive["data"]
       if (this.map.has(req.name)) {
-        this.client.logger.debug(`执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`)
+        this.client.logger.debug(
+          `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
+        )
         ret = (this.map.get(req.name) as IHandle)(req.data, this.client)
       } else {
-        this.client.logger.debug(`执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`)
+        this.client.logger.debug(
+          `执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`,
+        )
         ret = (this.map.get("default") as IHandleDefault)(req.name, req.data, this.client)
       }
 
@@ -101,9 +124,17 @@ export default class Handle {
     const cache = this.getCache(req)
     cache.finally()
     cache.finally = () => delete this.client.cache[req.id]
-    cache.timeout = setTimeout(() =>
-      cache.reject(makeError("等待异步返回超时", { cache, req, timeout: this.client.timeout.wait }))
-    , this.client.timeout.wait)
+    cache.timeout = setTimeout(
+      () =>
+        cache.reject(
+          makeError("等待异步返回超时", {
+            cache,
+            req,
+            timeout: this.client.timeout.wait,
+          }),
+        ),
+      this.client.timeout.wait,
+    )
     this.client.cache[req.id] = cache
   }
 

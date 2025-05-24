@@ -8,7 +8,7 @@ log4js.configure({
       layout: {
         type: "pattern",
         pattern: "%[[%d{hh:mm:ss.SSS}][%4.4p]%]%m",
-      }
+      },
     },
   },
   categories: {
@@ -19,4 +19,8 @@ log4js.configure({
 export const chalk = new Chalk({ level: 3 })
 export const logger = log4js.getLogger()
 const _log = logger._log.bind(logger)
-logger._log = (level, args) => _log(level, args.map((i: any) => Loging(i, { string: true })))
+logger._log = (level, args) =>
+  _log(
+    level,
+    args.map((i: any) => Loging(i, { string: true })),
+  )

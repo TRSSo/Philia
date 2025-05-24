@@ -9,8 +9,9 @@ import {
   PttElem,
   ForwardNode,
   Message,
-  FileElem,
-  OICQtoTRSS,
+  OICQtoPhilia,
+  GroupMessage,
+  FileIDElem,
 } from "../message/index.js"
 
 type Client = import("../client.js").Client
@@ -32,8 +33,8 @@ export abstract class Contactable {
     return !!this.uid
   }
 
-  get key() {
-    return this.dm ? "User" : "Group"
+  get scene() {
+    return this.dm ? "user" : "group"
   }
 
   /** 返回所属的客户端对象 */
@@ -53,30 +54,42 @@ export abstract class Contactable {
 
   /** 发送网址分享 */
   shareUrl(content: any, config?: any) {
-    return this.c.request(`send${this.key}ShareUrl`, { id: this.target, content, config })
+    return this.sendMsg({ type: "share", ...content, config })
   }
   /** 发送音乐分享 */
-  shareMusic(platform: any, mid: string) {
-    return this.c.request(`send${this.key}ShareMusic`, { id: this.target, platform, mid })
+  shareMusic(platform: string, id: string) {
+    return this.sendMsg({ type: "music", platform, id })
   }
 
   /** 上传一批图片以备发送(无数量限制)，理论上传一次所有群和好友都能发 */
   async uploadImages(images: ImageElem[]) {
-    return images.map(i => this.uploadImage(i))
+    return Promise.all(images.map(this.uploadImage.bind(this)))
   }
 
-  async uploadImage(elem: ImageElem): Promise<ImageElem> {
-    return { type: "image", file: await this.c.uploadFile(elem.file) }
+  async uploadImage(elem: ImageElem): Promise<FileIDElem> {
+    if (elem.fid) return elem as unknown as FileIDElem
+    return { type: "image", fid: await this.c.uploadFile(elem.file) }
   }
 
   /** 上传一个视频以备发送(理论上传一次所有群和好友都能发) */
-  async uploadVideo(elem: VideoElem): Promise<VideoElem> {
-    return { type: "video", file: await this.c.uploadFile(elem.file) }
+  async uploadVideo(elem: VideoElem): Promise<FileIDElem> {
+    if (elem.fid) return elem as unknown as FileIDElem
+    return { type: "video", fid: await this.c.uploadFile(elem.file) }
   }
 
   /** 上传一个语音以备发送(理论上传一次所有群和好友都能发) */
-  async uploadPtt(elem: PttElem, transcoding: boolean = true, brief: string = ""): Promise<PttElem> {
-    return { type: "record", file: await this.c.uploadFile(elem.file), transcoding, brief }
+  async uploadPtt(
+    elem: PttElem,
+    transcoding: boolean = true,
+    brief: string = "",
+  ): Promise<FileIDElem> {
+    if (elem.fid) return elem as unknown as FileIDElem
+    return {
+      type: "record",
+      fid: await this.c.uploadFile(elem.file),
+      transcoding,
+      brief,
+    }
   }
 
   /**
@@ -89,13 +102,22 @@ export abstract class Contactable {
   }
 
   /** 下载并解析合并转发 */
-  getForwardMsg(resid: string, fileName: string = "MultiMsg") {
-    return this.c.request(`get${this.key}ForwardMsg`, { id: this.target, resid, fileName })
+  async getForwardMsg(resid: string) {
+    return Promise.all(
+      (await this.c.api.getForwardMsg(resid)).map(i => {
+        i.user ||= {} as NonNullable<typeof i.user>
+        i.group ||= {} as NonNullable<typeof i.group>
+        return new GroupMessage(
+          this.client,
+          i as ConstructorParameters<typeof GroupMessage>[1],
+        ).parse()
+      }),
+    )
   }
 
   /** 获取视频下载地址 */
-  getVideoUrl(fid: string, md5: string | Buffer) {
-    return this.c.request(`get${this.key}VideoUrl`, { id: this.target, fid, md5 })
+  getVideoUrl(fid: string) {
+    return this.getFileUrl(fid)
   }
 
   /**
@@ -103,11 +125,18 @@ export abstract class Contactable {
    * @param content 消息内容
    * @param source 引用回复的消息
    */
-  async sendMsg(content: Sendable, source?: Quotable) {
-    return this.c.request(`send${this.key}Msg`, {
-      id: this.target,
-      data: await (new OICQtoTRSS(this, content, source)).convert(),
-    }) as Promise<MessageRet>
+  async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
+    const ret = await this.c.api.sendMsg(
+      this.scene,
+      this.target,
+      await new OICQtoPhilia(this, content, source).convert(),
+    )
+    return {
+      message_id: ret.id,
+      time: ret.time,
+      rand: ret.rand as number,
+      seq: ret.seq as number,
+    }
   }
 
   /**
@@ -120,19 +149,14 @@ export abstract class Contactable {
    * @param message 私聊消息对象
    */
   recallMsg(message: Message): Promise<boolean>
-  recallMsg(param: string | Message) {
-    return this.c.request(`del${this.key}Msg`, {
-      id: this.target,
-      mid: typeof param === "string" ? param : param.message_id,
-    })
+  async recallMsg(param: string | Message) {
+    await this.c.api.delMsg(typeof param === "string" ? param : param.message_id)
+    return true
   }
 
   /** 转发消息 */
   forwardMsg(mid: string) {
-    return this.c.request(`send${this.key}MsgForward`, {
-      id: this.target,
-      mid,
-    })
+    return this.c.api.sendMsgForward(this.scene, this.target, mid)
   }
 
   /**
@@ -140,7 +164,7 @@ export abstract class Contactable {
    * @param fid 文件消息ID
    */
   getFileInfo(fid: string) {
-    return this.c.request(`get${this.key}FileInfo`, { id: this.target, fid }) as Promise<Omit<FileElem, "type"> & Record<"url", string>>
+    return this.c.api.getFile(fid)
   }
 
   /**
@@ -165,21 +189,21 @@ export abstract class Contactable {
    * @returns 转发成功后新文件的消息ID
    */
   forwardFile(fid: string) {
-    return this.forwardMsg(fid)
+    return this.sendMsg({ type: "file", fid })
   }
 
   /** 设置群名 */
   setName(name: string) {
-    return this.c.request(`set${this.key}Name`, { id: this.target, name })
+    return this.c.api.setInfo(this.scene, this.target, { name })
   }
 
   /** 设置备注 */
   setRemark(mark: string) {
-    return this.c.request(`set${this.key}Mark`, { id: this.target, mark })
+    return this.c.api.setInfo(this.scene, this.target, { mark })
   }
 
   /** 设置群头像 */
   setAvatar(avatar: ImageElem["file"]) {
-    return this.c.request(`set${this.key}Avatar`, { id: this.target, avatar })
+    return this.c.api.setInfo(this.scene, this.target, { avatar })
   }
 }

@@ -71,7 +71,16 @@ export class Gfs {
 
   /** 获取使用空间和文件数 */
   df() {
-    return this.c.request("getGroupFSdf", { id: this.gid })
+    return this.c.api.getGroupFSDf(this.gid) as Promise<
+      {
+        total: number
+        used: number
+        free: number
+      } & {
+        file_count: number
+        max_file_count: number
+      }
+    >
   }
 
   /**
@@ -79,7 +88,7 @@ export class Gfs {
    * @param fid 目标文件id
    */
   async stat(fid: string) {
-    return this.c.request("getGroupFSstat", { id: this.gid, fid })
+    return this.c.api.getGroupFSStat(this.gid, fid) as Promise<GfsFileStat | GfsDirStat>
   }
 
   /**
@@ -90,7 +99,9 @@ export class Gfs {
    * @returns 文件和目录列表
    */
   dir(pid = "/", start = 0, limit = 100) {
-    return this.c.request("getGroupFSdir", { id: this.gid, pid, start, limit })
+    return this.c.api.getGroupFSDir(this.gid, pid, start, limit) as Promise<
+      (GfsFileStat | GfsDirStat)[]
+    >
   }
   /** {@link dir} 的别名 */
   get ls() {
@@ -99,12 +110,12 @@ export class Gfs {
 
   /** 创建目录(只能在根目录下创建) */
   async mkdir(name: string) {
-    return this.c.request("sendGroupFSmkdir", { id: this.gid, name })
+    return this.c.api.addGroupFSDir(this.gid, name) as Promise<GfsDirStat>
   }
 
   /** 删除文件/目录(删除目录会删除下面的所有文件) */
   async rm(fid: string) {
-    return this.c.request("sendGroupFSrm", { id: this.gid, fid })
+    return this.c.api.delGroupFSFile(this.gid, fid)
   }
 
   /**
@@ -113,7 +124,7 @@ export class Gfs {
    * @param name 新命名
    */
   async rename(fid: string, name: string) {
-    return this.c.request("sendGroupFSrename", { id: this.gid, fid, name })
+    return this.c.api.renameGroupFSFile(this.gid, fid, name)
   }
 
   /**
@@ -122,7 +133,7 @@ export class Gfs {
    * @param pid 目标目录id
    */
   async mv(fid: string, pid: string) {
-    return this.c.request("sendGroupFSmv", { id: this.gid, fid, pid })
+    return this.c.api.moveGroupFSFile(this.gid, fid, pid)
   }
 
   /**
@@ -132,12 +143,8 @@ export class Gfs {
    * @param name 上传的文件名，`file`为`Buffer`时，若留空则自动以md5命名
    * @returns 上传的文件属性
    */
-  async upload(
-    file: string | Buffer,
-    pid = "/",
-    name?: string,
-  ) {
-    return this.c.request("sendGroupFSupload", { id: this.gid, file, pid, name })
+  async upload(file: string | Buffer, pid = "/", name?: string) {
+    return this.c.api.uploadGroupFSFile(file, pid, name) as Promise<GfsFileStat>
   }
 
   /**
@@ -148,7 +155,7 @@ export class Gfs {
    * @returns 转发的文件在当前群的属性
    */
   async forward(stat: GfsFileStat, pid = "/", name?: string) {
-    return this.c.request("sendGroupFSforward", { id: this.gid, stat, pid, name })
+    return this.c.api.forwardGroupFSFile(stat, pid, name) as Promise<GfsFileStat>
   }
 
   /**
@@ -158,7 +165,7 @@ export class Gfs {
    * @returns 转发的文件在当前群的属性
    */
   async forwardOfflineFile(fid: string, name?: string) {
-    return this.c.request("sendGroupFSforward", { id: this.gid, fid, name })
+    return this.c.api.forwardGroupFSFile(fid, undefined, name) as Promise<GfsFileStat>
   }
 
   /**
@@ -166,6 +173,6 @@ export class Gfs {
    * @param fid 文件id
    */
   download(fid: string) {
-    return this.c.request("getGroupFSdownload", { id: this.gid, fid }) as Promise<Omit<FileElem, "type"> & { url: string }>
+    return this.c.api.getGroupFSFile(fid) as Promise<Omit<FileElem, "type"> & { url: string }>
   }
 }

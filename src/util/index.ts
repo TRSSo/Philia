@@ -1,5 +1,4 @@
-import encoder from "./encoder.js"
-
+export { encoder, verify, Encoder } from "./encoder.js"
 export { logger, chalk } from "./logger.js"
 export {
   makeError,
@@ -9,5 +8,5 @@ export {
   String,
   Loging,
   getAllProps,
+  promiseEvent,
 } from "./common.js"
-export { encoder }

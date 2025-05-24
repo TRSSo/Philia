@@ -88,30 +88,31 @@ export interface MemberInfo extends FriendInfo {
   uid: string
 }
 
-export type Domain = "aq.qq.com"
-    | "buluo.qq.com"
-    | "connect.qq.com"
-    | "docs.qq.com"
-    | "game.qq.com"
-    | "gamecenter.qq.com"
-    // | "graph.qq.com"
-    | "haoma.qq.com"
-    | "id.qq.com"
-    // | "imgcache.qq.com"
-    | "kg.qq.com"
-    | "mail.qq.com"
-    | "mma.qq.com"
-    | "office.qq.com"
-    // | "om.qq.com"
-    | "openmobile.qq.com"
-    | "qqweb.qq.com"
-    | "qun.qq.com"
-    | "qzone.qq.com"
-    | "ti.qq.com"
-    | "v.qq.com"
-    | "vip.qq.com"
-    | "y.qq.com"
-    | ""
+export type Domain =
+  | "aq.qq.com"
+  | "buluo.qq.com"
+  | "connect.qq.com"
+  | "docs.qq.com"
+  | "game.qq.com"
+  | "gamecenter.qq.com"
+  // | "graph.qq.com"
+  | "haoma.qq.com"
+  | "id.qq.com"
+  // | "imgcache.qq.com"
+  | "kg.qq.com"
+  | "mail.qq.com"
+  | "mma.qq.com"
+  | "office.qq.com"
+  // | "om.qq.com"
+  | "openmobile.qq.com"
+  | "qqweb.qq.com"
+  | "qun.qq.com"
+  | "qzone.qq.com"
+  | "ti.qq.com"
+  | "v.qq.com"
+  | "vip.qq.com"
+  | "y.qq.com"
+  | ""
 
 /** 性别 */
 export type Gender = "male" | "female" | "unknown"
@@ -120,7 +121,7 @@ export type Gender = "male" | "female" | "unknown"
 export type GroupRole = "owner" | "admin" | "member"
 
 /** 可设置的在线状态 */
-export enum OnlineStatus {
+export const enum OnlineStatus {
   /** 离线 */
   Offline,
   /** 在线 */

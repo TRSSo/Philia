@@ -1,6 +1,7 @@
 import globals from "globals"
 import pluginJs from "@eslint/js"
 import tseslint from "typescript-eslint"
+import prettier from "eslint-config-prettier/flat"
 
 tseslint.configs.recommended[2].rules = {
   ...tseslint.configs.recommended[2].rules,
@@ -19,4 +20,5 @@ export default [
     "no-constant-condition": ["error", { "checkLoops": false }],
   }},
   ...tseslint.configs.recommended,
+  prettier,
 ]

@@ -1,27 +1,49 @@
-import { AtElem, Quotable, TextElem, ImageElem, ReplyElem, PttElem, Sendable, VideoElem, FileElem, ForwardNode, MarkdownElem, ButtonElem, Button, BaseMessageElem, ExtendMessageElem, ExtendType, PlatformElem, MessageElem, segment
+import {
+  AtElem,
+  Quotable,
+  TextElem,
+  ImageElem,
+  ReplyElem,
+  PttElem,
+  Sendable,
+  VideoElem,
+  FileElem,
+  ForwardNode,
+  MarkdownElem,
+  ButtonElem,
+  Button,
+  BaseMessageElem,
+  ExtendMessageElem,
+  ExtendType,
+  PlatformElem,
+  MessageElem,
+  segment,
 } from "./elements.js"
 import { lock } from "../common.js"
-import { AMSFile, IButton, IMSAudio, IMSButton, IMSExtend, IMSFile, IMSForward, IMSImage, IMSMention, IMSPlatform, IMSReply, IMSText, IMSVideo, IMSVoice, IMessage, IMessageSegment } from "../../../example/message.js"
+import * as PhiliaType from "../../../type/message.js"
 import { Contactable } from "../contact/contactable.js"
 import { MemberInfo } from "../contact/types.js"
 import { Message } from "./message.js"
-import { IUser } from "../../../example/user.js"
+import { Contact } from "../../../type/index.js"
 import { Client } from "../client.js"
-import { ulid } from "ulid"
 import fs from "node:fs/promises"
 
 /** 消息转换器 */
-export class OICQtoTRSS {
+export class OICQtoPhilia {
   /** 转换前的消息 */
   before: (string | MessageElem)[]
   /** 转换后的消息 */
-  after: IMessageSegment[] = []
+  after: PhiliaType.MessageSegment[] = []
   /** 长度(字符) */
   length = 0
   /** 预览文字 */
   brief = ""
 
-  constructor(protected readonly c: Contactable, content: Sendable, source?: Quotable) {
+  constructor(
+    protected readonly c: Contactable,
+    content: Sendable,
+    source?: Quotable,
+  ) {
     lock(this, "c")
     if (source) this.quote(source)
     this.before = Array.isArray(content) ? content : [content]
@@ -29,21 +51,19 @@ export class OICQtoTRSS {
 
   async convert() {
     for (const i of this.before) {
-      if (typeof i !== "object")
-        this._text(i)
+      if (typeof i !== "object") this._text(i)
       else if (typeof this[(i as BaseMessageElem).type] === "function")
         await this[(i as BaseMessageElem).type](i as any)
       else if (ExtendType.includes((i as ExtendMessageElem).type))
         this.extend(i as ExtendMessageElem)
       else this._text(i)
     }
-    if (!this.after.length)
-      throw new Error("空消息")
+    if (!this.after.length) throw new Error("空消息")
     return this.after
   }
 
   extend(data: ExtendMessageElem) {
-    this.after.push({ type: "extend", extend: `icqq.${data.type}`, data })
+    this.after.push({ type: "extend", extend: `OICQ.${data.type}`, data })
     this.brief += `[${data.type}: ${data}]`
   }
 
@@ -66,33 +86,39 @@ export class OICQtoTRSS {
 
   at(elem: AtElem) {
     let { qq, text = "" } = elem
+    if (qq === "all") {
+      this.brief += `[提及全体成员]`
+      this.after.push({ type: "mention", data: "all" })
+      return
+    }
+
     qq = String(qq)
     if (!text) {
-      if (qq === "all") {
-        text = "全体成员"
-      } else {
-        let info
-        if (!this.c.dm && this.c.target)
-          info = this.c.client.gml.get(this.c.target)?.get(qq)
-        info ??= this.c.client.fl.get(qq)
-        if (info) text = (info as MemberInfo).card || info.nickname
-      }
+      let info
+      if (!this.c.dm && this.c.target) info = this.c.client.gml.get(this.c.target)?.get(qq)
+      info ??= this.c.client.fl.get(qq)
+      if (info) text = (info as MemberInfo).card || info.nickname
     }
 
     if (elem.dummy) return this._text(`@${text}`)
     this.brief += `[提及: ${text}(${qq})]`
-    this.after.push({ type: "mention", data: String(qq), name: text })
+    this.after.push({ type: "mention", data: "user", id: qq, name: text })
   }
 
-  async _prepareFile<T extends AMSFile>(elem: { type: string; file: string | Buffer }) {
-    const data: T = {
-      type: elem.type,
-      id: ulid(),
+  async _prepareFile<T extends PhiliaType.AFile>(elem: {
+    type: string
+    file: string | Buffer
+    fid?: string
+  }) {
+    const data = {
+      ...elem,
       data: "binary",
-      name: (elem as unknown as { name: string }).name,
-    } as T
+    } as unknown as T
 
-    if (Buffer.isBuffer(elem.file)) {
+    if (elem.fid) {
+      data.data = "id"
+      data.id = elem.fid
+    } else if (Buffer.isBuffer(elem.file)) {
       data.binary = elem.file
     } else if (elem.file.startsWith("base64://")) {
       data.binary = Buffer.from(elem.file.replace("base64://", ""), "base64")
@@ -110,44 +136,54 @@ export class OICQtoTRSS {
     }
     return data
   }
+
+  async file(elem: FileElem) {
+    this.after.push(await this._prepareFile<PhiliaType.File>(elem))
+    this.brief += "[文件]"
+  }
+
   async image(elem: ImageElem) {
-    this.after.push(await this._prepareFile<IMSImage>(elem))
+    this.after.push(await this._prepareFile<PhiliaType.Image>(elem))
     this.brief += "[图片]"
   }
 
   async record(elem: PttElem) {
-    this.after.push(await this._prepareFile<IMSVoice>({ ...elem, type: "voice" }))
+    this.after.push(await this._prepareFile<PhiliaType.Voice>({ ...elem, type: "voice" }))
     this.brief += "[语音]"
   }
 
   async video(elem: VideoElem) {
-    this.after.push(await this._prepareFile<IMSVideo>(elem))
+    this.after.push(await this._prepareFile<PhiliaType.Video>(elem))
     this.brief += "[视频]"
   }
 
   async node(elem: ForwardNode) {
-    const data: IMSForward["data"] = []
+    const data: PhiliaType.Forward["data"] = []
     for (const i of Array.isArray(elem.data) ? elem.data : [elem.data]) {
       data.push({
-        message: await new OICQtoTRSS(this.c, i.message).convert(),
+        message: await new OICQtoPhilia(this.c, i.message).convert(),
         time: i.time,
-        user: { id: i.user_id, name: i.nickname } as IUser,
+        user: { id: i.user_id, name: i.nickname } as Contact.User,
       })
     }
     this.after.push({ type: "forward", data })
   }
 
   markdown(elem: MarkdownElem) {
-    this.after.push({ type: "text", data: elem.content, markdown: elem.content })
+    this.after.push({
+      type: "text",
+      data: elem.content,
+      markdown: elem.content,
+    })
     this.brief += "[Markdown]"
   }
 
   _button(elem: Button) {
-    const button: IButton = {
+    const button = {
       QQBot: elem,
       text: elem.render_data.label,
       clicked_text: elem.render_data.visited_label,
-    } as unknown as IButton
+    } as unknown as PhiliaType.ButtonType
 
     switch (elem.action.type) {
       case 0:
@@ -163,24 +199,18 @@ export class OICQtoTRSS {
     }
 
     if (elem.action.permission) {
-      if (elem.action.permission.type === 1)
-        button.permission = "admin"
-      else
-        button.permission = elem.action.permission.specify_user_ids
+      if (elem.action.permission.type === 1) button.permission = "admin"
+      else button.permission = elem.action.permission.specify_user_ids
     }
 
     return button
   }
 
   button(elem: ButtonElem) {
-    const data = elem.data || elem.content?.rows.map(row => row.buttons.map(this._button.bind(this))) || []
+    const data =
+      elem.data || elem.content?.rows.map(row => row.buttons.map(this._button.bind(this))) || []
     this.after.push({ type: "button", data })
     this.brief += "[按钮]"
-  }
-
-  async file(elem: FileElem) {
-    this.after.push(await this._prepareFile<IMSFile>(elem))
-    this.brief += "[文件]"
   }
 
   reply(elem: ReplyElem) {
@@ -189,15 +219,18 @@ export class OICQtoTRSS {
 
   quote(elem: Quotable) {
     if (elem.message_id)
-      this.reply({ id: elem.message_id, text: (elem as Message).raw_message || elem.message } as ReplyElem)
+      this.reply({
+        id: elem.message_id,
+        text: (elem as Message).raw_message || elem.message,
+      } as ReplyElem)
   }
 }
 
-const Extends = ExtendType.map(i => `icqq.${i}`)
+const Extends = ExtendType.map(i => `OICQ.${i}`)
 
 /** 消息解析器 */
-export class TRSStoOICQ {
-  before: (string | IMessageSegment)[]
+export class PhiliatoOICQ {
+  before: (string | PhiliaType.MessageSegment)[]
   after: MessageElem[] = []
   brief = ""
   content = ""
@@ -206,41 +239,50 @@ export class TRSStoOICQ {
   atme = false
   atall = false
 
-  constructor(protected readonly c: Client, message: IMessage) {
+  constructor(
+    protected readonly c: Client,
+    message: PhiliaType.Message,
+  ) {
     lock(this, "c")
     this.before = Array.isArray(message) ? message : [message]
   }
 
   async convert() {
     for (const i of this.before) {
-      if (typeof i === "object" && typeof this[(i as IMessageSegment).type] === "function")
-        await this[(i as IMessageSegment).type](i as any)
-      else
-        this.after.push(segment.text(i as string))
+      if (typeof i === "object" && typeof this[i.type] === "function") await this[i.type](i as any)
+      else this.after.push(segment.text(i))
     }
   }
 
-  text(elem: IMSText) {
+  text(elem: PhiliaType.Text) {
     this.after.push(segment.text(elem.data, elem.markdown))
     this.brief += elem.data
   }
 
-  mention(elem: IMSMention) {
-    this.after.push(segment.at(elem.data, elem.name))
-    this.brief += `@${elem.name}(${elem.data})`
-    if (elem.data === this.c.uin)
-      this.atme = true
-    else if (elem.data === "all")
+  mention(elem: PhiliaType.Mention) {
+    if (elem.data === "all") {
+      this.after.push(segment.at("all"))
+      this.brief += "@全体成员"
       this.atall = true
+      return
+    }
+    this.after.push(segment.at(elem.id as string, elem.name))
+    this.brief += elem.name ? `@${elem.name}(${elem.id})` : `@${elem.id}`
+    if (elem.id === this.c.uin) this.atme = true
   }
 
-  async reply(elem: IMSReply) {
+  async reply(elem: PhiliaType.Reply) {
     this.after.push(segment.reply(elem.data, elem.text))
-    this.brief += `[回复: ${elem.text}(${elem.data})]`
-    this.source = await this.c.request("getMsg", { id: elem.data }) as Quotable
+    this.brief += elem.text ? `[回复: ${elem.text}(${elem.data})]` : `[回复: ${elem.data}]`
+    const source = await this.c.api.getMsg(elem.data)
+    this.source = {
+      ...source,
+      user_id: source.user.id,
+      message_id: source.id,
+    } as unknown as Quotable
   }
 
-  _button(button: IButton) {
+  _button(button: PhiliaType.ButtonType) {
     if (button.QQBot) return button.QQBot
 
     const msg: any = {
@@ -248,7 +290,7 @@ export class TRSStoOICQ {
       render_data: {
         label: button.text,
         visited_label: button.clicked_text || "",
-      }
+      },
     }
 
     if (button.input)
@@ -276,22 +318,21 @@ export class TRSStoOICQ {
         msg.action.permission.type = 1
       } else {
         msg.action.permission.type = 0
-        if (!Array.isArray(button.permission))
-          button.permission = [button.permission]
+        if (!Array.isArray(button.permission)) button.permission = [button.permission]
         msg.action.permission.specify_user_ids = button.permission
       }
     }
     return msg
   }
 
-  button(elem: IMSButton) {
-    this.after.push(Object.assign(elem, segment.button(
-      elem.data.map(i => i.map(this._button.bind(this)))
-    )))
+  button(elem: PhiliaType.Button) {
+    this.after.push(
+      Object.assign(elem, segment.button(elem.data.map(i => i.map(this._button.bind(this))))),
+    )
     this.brief += "[按钮]"
   }
 
-  extend(elem: IMSExtend) {
+  extend(elem: PhiliaType.Extend) {
     if (Extends.includes(elem.extend)) {
       this.after.push(elem.data as MessageElem)
       this.brief += `[${(elem.data as MessageElem).type}: ${elem.data}]`
@@ -301,41 +342,70 @@ export class TRSStoOICQ {
     }
   }
 
-  platform(elem: IMSPlatform) {
+  platform(elem: PhiliaType.Platform) {
+    this.brief += `[${elem.platform}(${elem.mode}) 平台消息: ${elem.data}]`
+    switch (elem.mode) {
+      case "include":
+        if (
+          Array.isArray(elem.platform) ? elem.platform.includes("OICQ") : elem.platform === "OICQ"
+        )
+          return this.after.push(elem.data as MessageElem)
+        break
+      case "exclude":
+        if (
+          Array.isArray(elem.platform) ? !elem.platform.includes("OICQ") : elem.platform !== "OICQ"
+        )
+          return this.after.push(elem.data as MessageElem)
+        break
+      case "regexp":
+        if (new RegExp(elem.platform as string).test("OICQ"))
+          return this.after.push(elem.data as MessageElem)
+        break
+    }
     this.after.push(elem)
-    this.brief += `[${elem.platform} 平台消息: ${elem.data}]`
   }
 
-  forward(elem: IMSForward) {
+  forward(elem: PhiliaType.Forward) {
     this.after.push(elem as unknown as MessageElem)
     this.brief += "[合并转发]"
   }
 
-  _file(type: BaseMessageElem["type"], elem: AMSFile) {
-    this.after.push({ type, file: elem.data || elem.path || elem.url || "", url: elem.url } as BaseMessageElem)
+  async _file(type: BaseMessageElem["type"], elem: PhiliaType.AFile): Promise<void> {
+    switch (elem.data) {
+      case "id":
+        return this._file(type, await this.c.api.getFile(elem.id))
+      case "path":
+      case "binary":
+        /** 转成 url */
+        break
+      case "url":
+        this.after.push({ ...elem, type } as BaseMessageElem)
+        break
+    }
   }
 
-  file(elem: IMSFile) {
-    this._file("file", elem)
+  file(elem: PhiliaType.File) {
+    this.brief += "[文件]"
+    return this._file("file", elem)
   }
 
-  image(elem: IMSImage) {
-    this._file("image", elem)
+  image(elem: PhiliaType.Image) {
     this.brief += "[图片]"
+    return this._file("image", elem)
   }
 
-  voice(elem: IMSVoice) {
-    this._file("record", elem)
+  voice(elem: PhiliaType.Voice) {
     this.brief += "[语音]"
+    return this._file("record", elem)
   }
 
-  audio(elem: IMSAudio) {
-    this._file("record", elem)
+  audio(elem: PhiliaType.Audio) {
     this.brief += "[音频]"
+    return this._file("file", elem)
   }
 
-  video(elem: IMSFile) {
-    this._file("video", elem)
+  video(elem: PhiliaType.File) {
     this.brief += "[视频]"
+    return this._file("video", elem)
   }
 }

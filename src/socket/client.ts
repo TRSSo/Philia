@@ -1,9 +1,25 @@
 import { Socket } from "node:net"
 import Path from "node:path"
 import { ulid } from "ulid"
-import { IClientOptions, IMeta, IMetaInfo, IHandles, EStatus, IRequest, IBase, ICache } from "./type.js"
-import { encoder, logger, makeError, findArrays, StringOrBuffer } from "../util/index.js"
-import { promiseEvent } from "../util/common.js"
+import {
+  IClientOptions,
+  IMeta,
+  IMetaInfo,
+  IHandles,
+  EStatus,
+  IRequest,
+  IBase,
+  ICache,
+} from "./type.js"
+import {
+  encoder,
+  verify,
+  Encoder,
+  logger,
+  makeError,
+  StringOrBuffer,
+  promiseEvent,
+} from "../util/index.js"
 import Handle from "./handle.js"
 
 export default class Client {
@@ -22,10 +38,11 @@ export default class Client {
       name: "Client",
       version: 1,
       encode: Object.keys(encoder),
+      verify: Object.keys(verify),
     },
   }
   path = ""
-  encoder = encoder.JSON
+  encoder = new Encoder()
   buffer = Buffer.alloc(0)
   cache: { [key: ICache["data"]["id"]]: ICache } = {}
   queue: ICache["data"]["id"][] = []
@@ -35,52 +52,35 @@ export default class Client {
   constructor(handle: IHandles, opts: IClientOptions = {}) {
     this.handle = new Handle(handle, this)
 
-    if (opts.meta)
-      Object.assign(this.meta.local, opts.meta)
-    if (opts.timeout)
-      Object.assign(this.timeout, opts.timeout)
-    if (opts.path)
-      this.path = opts.path
-    if (opts.socket instanceof Socket)
-      this.socket = opts.socket as Socket
-    else
-      this.socket = new Socket(opts.socket)
-        .on("connect", this.onconnect)
+    if (opts.meta) Object.assign(this.meta.local, opts.meta)
+    if (opts.timeout) Object.assign(this.timeout, opts.timeout)
+    if (opts.path) this.path = opts.path
+    if (opts.socket instanceof Socket) this.socket = opts.socket as Socket
+    else this.socket = new Socket(opts.socket).on("connect", this.onconnect)
     this.socket.setTimeout(this.timeout.idle)
 
-    for (const i in this.listener)
-      this.listener[i] = this.listener[i].bind(this)
+    for (const i in this.listener) this.listener[i] = this.listener[i].bind(this)
   }
 
   connect(path = this.path, listener?: () => void) {
-    if (process.platform === "win32")
-      this.socket.path = Path.join("\\\\?\\pipe", path)
-    else
-      this.socket.path = `\0${path}`
+    if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
+    else this.socket.path = `\0${path}`
     this.socket.connect(this.socket.path as string, listener)
-    return promiseEvent(this.socket, "connected", "error") as Promise<Client | Error>
+    return promiseEvent(this.socket, "connected", "error") as Promise<this | Error>
   }
 
   onconnect = async () => {
     try {
-      this.meta.remote = await this.getMetaInfo() as IMetaInfo
+      this.meta.remote = (await this.getMetaInfo()) as IMetaInfo
       if (this.meta.local.version !== this.meta.remote.version)
-        throw makeError("两端版本不匹配", this.meta)
-      const encode = findArrays(this.meta.local.encode, this.meta.remote.encode) as string
-      if (!encode)
-        throw makeError("两端编码不匹配", this.meta)
-      const decode = findArrays(this.meta.remote.encode, this.meta.local.encode) as string
-      this.encoder = {
-        encode: encoder[encode].encode,
-        decode: encoder[decode].decode,
-      }
+        throw makeError("协议版本不支持", this.meta)
+      this.encoder = new Encoder(this.meta.local, this.meta.remote)
     } catch (err) {
       this.socket.destroy()
       throw err
     }
 
-    for (const i in this.listener)
-      this.socket.on(i, this.listener[i])
+    for (const i in this.listener) this.socket.on(i, this.listener[i])
     this.socket.emit("connected", this)
   }
 
@@ -92,8 +92,7 @@ export default class Client {
     close(this: Client) {
       this.open = false
       this.buffer = Buffer.alloc(0)
-      for (const i in this.listener)
-        this.socket.off(i, this.listener[i])
+      for (const i in this.listener) this.socket.off(i, this.listener[i])
       this.logger.info(`${this.meta.remote?.id} 已断开连接`)
     },
     timeout(this: Client) {
@@ -115,23 +114,37 @@ export default class Client {
     return promiseEvent(this.socket, "close", "error").finally(() => clearTimeout(timeout))
   }
 
+  encode(data: any) {
+    const buffer = this.encoder.encode(data)
+    const length = Buffer.alloc(4)
+    length.writeUint32BE(buffer.length)
+    return Buffer.concat([length, buffer])
+  }
+
+  decode_empty = Symbol("decode_empty")
+  decode() {
+    if (this.buffer.length < 4) return this.decode_empty
+    const length = this.buffer.readUint32BE() + 4
+    if (this.buffer.length < length) return this.decode_empty
+
+    const data = this.buffer.subarray(4, length)
+    this.buffer = this.buffer.subarray(length)
+    return this.encoder.decode(data)
+  }
+
   write(data: IBase<EStatus>) {
     if (data.data === undefined) delete data.data
     this.logger.trace("发送", data)
-    const buffer = this.encoder.encode(data)
-    const length = Buffer.alloc(4)
-    length.writeInt32BE(buffer.length)
-    return this.socket.write(Buffer.concat([length, buffer]))
+    return this.socket.write(this.encode(data))
   }
 
   async sender(): Promise<ICache["promise"]> {
     if (!this.open) {
-      for (const i of this.queue)
-        this.cache[i].reject(makeError("连接关闭"))
+      for (const i of this.queue) this.cache[i].reject(makeError("连接关闭"))
       this.queue = []
-      return this.idle = true
+      return (this.idle = true)
     }
-    if (this.queue.length === 0) return this.idle = true
+    if (this.queue.length === 0) return (this.idle = true)
     const id = this.queue.shift() as IBase<EStatus>["id"]
     const cache = this.cache[id]
     if (!cache?.data) return this.sender()
@@ -148,10 +161,14 @@ export default class Client {
   }
 
   send(data: IBase<EStatus>) {
-    const cache = { data, retry: 0, finally: () => {
-      delete this.cache[data.id]
-      this.sender()
-    }} as ICache
+    const cache = {
+      data,
+      retry: 0,
+      finally: () => {
+        delete this.cache[data.id]
+        this.sender()
+      },
+    } as ICache
     cache.promise = new Promise((resolve, reject) => {
       cache.resolve = resolve
       cache.reject = reject
@@ -167,21 +184,33 @@ export default class Client {
   }
 
   getMetaInfo(): Promise<IMetaInfo> {
-    this.socket.write(encoder.JSON.encode(this.meta.local))
+    this.encoder = new Encoder()
+    this.buffer = Buffer.alloc(0)
+    this.socket.write(this.encode(this.meta.local))
+
     return new Promise((resolve, reject) => {
-      const listener = (data: Buffer) => {
-        clearTimeout(timeout)
+      const listener = (buffer: Buffer) => {
         try {
-          resolve(encoder.JSON.decode(data))
+          this.buffer = Buffer.concat([this.buffer, buffer])
+          const data = this.decode()
+          if (data === this.decode_empty) return
+          resolve(data)
         } catch (err) {
-          reject(makeError("解析元数据错误", { data: StringOrBuffer(data), cause: err }))
+          reject(
+            makeError("解析元数据错误", {
+              data: StringOrBuffer(buffer),
+              cause: err,
+            }),
+          )
         }
+        clearTimeout(timeout)
+        this.socket.off("data", listener)
       }
-      this.socket.once("data", listener)
       const timeout = setTimeout(() => {
         reject(makeError("等待元数据超时", { timeout: this.timeout.send }))
         this.socket.off("data", listener)
       }, this.timeout.send)
+      this.socket.on("data", listener)
     })
   }
 
@@ -189,23 +218,23 @@ export default class Client {
     return this.send({ id: ulid(), code: EStatus["Request"], name, data })
   }
 
-  receive(data: Buffer) {
+  receive(buffer: Buffer) {
     try {
-      this.buffer = Buffer.concat([this.buffer, data])
-      while (this.buffer.length >= 4) {
-        const length = this.buffer.readInt32BE()+4
-        if (this.buffer.length < length) break
-        this.handle.data(this.encoder.decode(this.buffer.subarray(4, length)))
-        this.buffer = this.buffer.subarray(length)
-      }
+      this.buffer = Buffer.concat([this.buffer, buffer])
+      let data
+      while ((data = this.decode()) !== this.decode_empty) this.handle.data(data)
     } catch (err) {
       this.close()
-      throw makeError("处理数据错误", { data, cause: err })
+      throw makeError("处理数据错误", { data: buffer, cause: err })
     }
   }
 }
 
-export function createClient(path: string | Client, handle: ConstructorParameters<typeof Client>[0], opts?: ConstructorParameters<typeof Client>[1]) {
+export function createClient(
+  path: string | Client,
+  handle: ConstructorParameters<typeof Client>[0],
+  opts?: ConstructorParameters<typeof Client>[1],
+) {
   if (path instanceof Client) {
     path.handle.set(handle)
     return path

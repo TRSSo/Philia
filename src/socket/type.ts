@@ -6,6 +6,7 @@ export interface IMetaInfo {
   name: string
   version: number
   encode: string[]
+  verify: string[]
 }
 
 export interface IMeta {
@@ -31,8 +32,18 @@ export interface IServerOptions extends IOptions {
   limit?: number
 }
 
-export enum ESocketStatus { New, Idle, Send, Close }
-export enum EStatus { Request, Receive, Async, Error }
+export const enum ESocketStatus {
+  New,
+  Idle,
+  Send,
+  Close,
+}
+export const enum EStatus {
+  Request,
+  Receive,
+  Async,
+  Error,
+}
 export interface IBase<T extends EStatus> {
   id: string
   code: T
@@ -70,8 +81,15 @@ export interface ICache {
   timeout?: NodeJS.Timeout
 }
 
-export type IHandleDefault = (name: IRequest["name"], data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>)
-export type IHandle = ((data: IRequest["data"], client: Client) => (IReceive["data"] | Promise<IReceive["data"]>))
+export type IHandleDefault = (
+  name: IRequest["name"],
+  data: IRequest["data"],
+  client: Client,
+) => IReceive["data"] | Promise<IReceive["data"]>
+export type IHandle = (
+  data: IRequest["data"],
+  client: Client,
+) => IReceive["data"] | Promise<IReceive["data"]>
 export type OHandle = {
   [key: IRequest["name"]]: IHandle | unknown
   default?: IHandleDefault

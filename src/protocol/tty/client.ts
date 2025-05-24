@@ -12,7 +12,7 @@ export default class Client {
   config = {
     save: {
       path: path.join(process.cwd(), "data"),
-    }
+    },
   }
 
   constructor(socket: Parameters<typeof createClient>[0]) {

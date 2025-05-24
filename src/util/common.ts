@@ -28,8 +28,7 @@ export function findArrays<T>(array1: Array<T>, array2: Array<T>): T | void {
  * @returns 字符串
  */
 export function StringOrNull(data: object): string {
-  if (typeof data === "object" && typeof data.toString !== "function")
-    return "[object null]"
+  if (typeof data === "object" && typeof data.toString !== "function") return "[object null]"
   return global.String(data)
 }
 
@@ -41,7 +40,11 @@ export function StringOrNull(data: object): string {
  */
 export function StringOrBuffer(data: Buffer, base64 = false): string | Buffer {
   const string = StringOrNull(data)
-  return string.includes("\ufffd") ? (base64 ? `base64://${data.toString("base64")}` : data) : string
+  return string.includes("\ufffd")
+    ? base64
+      ? `base64://${data.toString("base64")}`
+      : data
+    : string
 }
 
 export function getCircularReplacer() {
@@ -51,23 +54,19 @@ export function getCircularReplacer() {
       case "function":
         return String(value)
       case "object":
-        if (value === null)
-          return null
-        if (value instanceof Map || value instanceof Set)
-          return Array.from(value)
-        if (value instanceof Error)
-          return value.stack
-        if (value.type === "Buffer" && Array.isArray(value.data)) try {
-          return StringOrBuffer(Buffer.from(value), true)
-        } catch {}
+        if (value === null) return null
+        if (value instanceof Map || value instanceof Set) return Array.from(value)
+        if (value instanceof Error) return value.stack
+        if (value.type === "Buffer" && Array.isArray(value.data))
+          try {
+            return StringOrBuffer(Buffer.from(value), true)
+          } catch {}
         break
       default:
         return value
     }
-    while (ancestors.length > 0 && ancestors.at(-1) !== this)
-      ancestors.pop()
-    if (ancestors.includes(value))
-      return `[Circular ${StringOrNull(value)}]`
+    while (ancestors.length > 0 && ancestors.at(-1) !== this) ancestors.pop()
+    if (ancestors.includes(value)) return `[Circular ${StringOrNull(value)}]`
     ancestors.push(value)
     return value
   }
@@ -86,10 +85,8 @@ export function String(data: any, space?: number | string): string {
     case "function":
       return data.toString()
     case "object":
-      if (data instanceof Error)
-        return data.stack || StringOrNull(data)
-      if (Buffer.isBuffer(data))
-        return StringOrBuffer(data, true) as string
+      if (data instanceof Error) return data.stack || StringOrNull(data)
+      if (Buffer.isBuffer(data)) return StringOrBuffer(data, true) as string
   }
 
   try {
@@ -113,24 +110,24 @@ interface InspectOptions extends util.InspectOptions {
  * @returns 终端彩色编码字符串
  */
 export function Loging(data: any, opts: InspectOptions = {}): string {
-  if (opts.string && typeof data === "string") {}
-  else if (!opts)
-    data = StringOrNull(data)
-  else data = util.inspect(data, {
-    depth: 5,
-    colors: true,
-    showHidden: true,
-    showProxy: true,
-    getters: true,
-    breakLength: 100,
-    maxArrayLength: 100,
-    maxStringLength: 1000,
-    ...opts,
-  })
+  if (opts.string && typeof data === "string") {
+  } else if (!opts) data = StringOrNull(data)
+  else
+    data = util.inspect(data, {
+      depth: 5,
+      colors: true,
+      showHidden: true,
+      showProxy: true,
+      getters: true,
+      breakLength: 100,
+      maxArrayLength: 100,
+      maxStringLength: 1000,
+      ...opts,
+    })
 
   const length = opts.length || 10000
   if (data.length > length)
-    data = `${data.slice(0, length)}${chalk.gray(`... ${data.length-length} more characters`)}`
+    data = `${data.slice(0, length)}${chalk.gray(`... ${data.length - length} more characters`)}`
   return data
 }
 
@@ -140,11 +137,9 @@ export function Loging(data: any, opts: InspectOptions = {}): string {
  * @param props 属性列表
  * @returns 属性列表
  */
-export function getAllProps(data: any, props: Set<string> = new Set): Set<string> {
-  if ([Object.prototype, undefined, null].includes(data))
-    return props
-  for (const i of Object.getOwnPropertyNames(data))
-    props.add(i)
+export function getAllProps(data: any, props: Set<string> = new Set()): Set<string> {
+  if ([Object.prototype, undefined, null].includes(data)) return props
+  for (const i of Object.getOwnPropertyNames(data)) props.add(i)
   return getAllProps(Object.getPrototypeOf(data), props)
 }
 
@@ -156,26 +151,29 @@ export function getAllProps(data: any, props: Set<string> = new Set): Set<string
  * @param timeout 超时时间
  * @returns Promise
  */
-export function promiseEvent(event: EventEmitter, resolve: string | symbol, reject?: string | symbol, timeout?: number) {
+export function promiseEvent(
+  event: EventEmitter,
+  resolve: string | symbol,
+  reject?: string | symbol,
+  timeout?: number,
+) {
   let listener: {
-    resolve: (value: unknown) => void
-    reject: (reason?: any) => void
+    resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0]
+    reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1]
     timeout?: NodeJS.Timeout
   }
   return new Promise((...args) => {
     listener = { resolve: args[0], reject: args[1] }
     event.once(resolve, listener.resolve)
-    if (reject)
-      event.once(reject, listener.reject)
+    if (reject) event.once(reject, listener.reject)
     if (timeout)
-      listener.timeout = setTimeout(() => listener.reject(
-        makeError("等待事件超时", { event, resolve, reject, timeout })
-      ), timeout)
+      listener.timeout = setTimeout(
+        () => listener.reject(makeError("等待事件超时", { event, resolve, reject, timeout })),
+        timeout,
+      )
   }).finally(() => {
     event.off(resolve, listener.resolve)
-    if (reject)
-      event.off(reject, listener.reject)
-    if (timeout)
-      clearTimeout(listener.timeout)
+    if (reject) event.off(reject, listener.reject)
+    if (timeout) clearTimeout(listener.timeout)
   })
 }

@@ -1,14 +1,14 @@
 import { lock } from "../common.js"
-import { TRSStoOICQ } from "./converter.js"
+import { PhiliatoOICQ } from "./converter.js"
 import { Quotable, Forwardable, MessageElem } from "./elements.js"
 import querystring from "querystring"
-import { IEMUser, IEMGroup, IEMessage } from "../../../example/event.js"
+import { Event } from "../../../type/index.js"
 import { Gender, GroupRole } from "../contact/types.js"
 import { Client } from "../client.js"
 
 /** 一条消息 */
 export abstract class Message implements Quotable, Forwardable {
-  protected readonly parsed: TRSStoOICQ
+  protected readonly parsed: PhiliatoOICQ
 
   /**
    * 私聊永远指向对方，群聊指向消息发送者。
@@ -34,7 +34,7 @@ export abstract class Message implements Quotable, Forwardable {
   /** @cqhttp cqhttp方法用 */
   message_id = ""
   /** 消息编号，在群消息中是唯一的 (私聊消息建议至少使用time,seq,rand中的两个判断唯一性) */
-  seq: number
+  seq: number | string
   /** 消息随机数 */
   rand: number
   /** 发送方信息 */
@@ -69,7 +69,7 @@ export abstract class Message implements Quotable, Forwardable {
   source?: Quotable
 
   /** 反序列化一条消息 (私聊消息需要你的uin) */
-  deserialize(event: IEMessage) {
+  deserialize(event: Event.Message) {
     switch (event.scene) {
       case "group":
         return new GroupMessage(this.c, event)
@@ -78,21 +78,24 @@ export abstract class Message implements Quotable, Forwardable {
     }
   }
 
-  constructor(protected readonly c: Client, protected event: IEMessage) {
+  constructor(
+    protected readonly c: Client,
+    protected event: Event.Message,
+  ) {
     lock(this, "c")
     this.sender = {
       user_id: event.user.id,
       nickname: event.user.name,
       avatar: event.user.avatar,
       remark: event.user.mark,
-      ...event.user
+      ...event.user,
     } as unknown as typeof this.sender
     this.time = event.time
-    this.seq = event.seq as number || 0
-    this.rand = event.rand as number || 0
-    this.font = event.font as string || "unknown"
+    this.seq = (event.seq as number) || this.message_id
+    this.rand = (event.rand as number) || 0
+    this.font = (event.font as string) || "unknown"
     this.raw_message = event.summary
-    this.parsed = new TRSStoOICQ(this.c, event.message)
+    this.parsed = new PhiliatoOICQ(this.c, event.message)
     lock(this, "parsed")
   }
 
@@ -100,8 +103,7 @@ export abstract class Message implements Quotable, Forwardable {
     await this.parsed.convert()
     this.message = this.parsed.after
     this.raw_message ??= this.parsed.brief
-    if (this.parsed.source)
-      this.source = this.parsed.source
+    if (this.parsed.source) this.source = this.parsed.source
     return this
   }
 
@@ -115,11 +117,15 @@ export abstract class Message implements Quotable, Forwardable {
     return this.parsed.content
   }
   toJSON(keys: string[]): Record<string, any> {
-    return Object.fromEntries(Object.keys(this).filter((key) => {
-      return typeof this[key as keyof this] !== "function" && !keys.includes(key as any)
-    }).map(key => {
-      return [key, this[key as keyof this]]
-    }))
+    return Object.fromEntries(
+      Object.keys(this)
+        .filter(key => {
+          return typeof this[key as keyof this] !== "function" && !keys.includes(key as any)
+        })
+        .map(key => {
+          return [key, this[key as keyof this]]
+        }),
+    )
   }
 
   /** @deprecated 转换为CQ码 */
@@ -136,14 +142,17 @@ export abstract class Message implements Quotable, Forwardable {
       CQCode += `[CQ:reply,id=${this.source.message_id}]`
     }
 
-    (this.message || []).forEach((c) => {
+    ;(this.message || []).forEach(c => {
       if ("text" === c.type) {
         CQCode += c.text
         return
       }
       const s = querystring.stringify(c as any, ",", "=", {
-        encodeURIComponent: (s) =>
-          s.replace(new RegExp(Object.keys(mCQInside).join("|"), "g"), ((s: "&" | "," | "[" | "]") => mCQInside[s] || "") as any),
+        encodeURIComponent: s =>
+          s.replace(
+            new RegExp(Object.keys(mCQInside).join("|"), "g"),
+            ((s: "&" | "," | "[" | "]") => mCQInside[s] || "") as any,
+          ),
       })
       CQCode += `[CQ:${c.type}${s ? "," : ""}${s}]`
     })
@@ -167,11 +176,11 @@ export class PrivateMessage extends Message {
   to_id: string
 
   /** 反序列化一条私聊消息，你需要传入你的`uin`，否则无法知道你是发送者还是接收者 */
-  deserialize(event: IEMUser) {
+  deserialize(event: Event.UserMessage) {
     return new PrivateMessage(this.c, event)
   }
 
-  constructor(c: Client, event: IEMUser) {
+  constructor(c: Client, event: Event.UserMessage) {
     super(c, event)
     this.from_id = event.is_self ? this.c.uin : event.user.id
     this.to_id = event.is_self ? event.user.id : this.c.uin
@@ -193,11 +202,11 @@ export class GroupMessage extends Message {
   atall: boolean
 
   /** 反序列化一条群消息 */
-  deserialize(event: IEMGroup) {
+  deserialize(event: Event.GroupMessage) {
     return new GroupMessage(this.c, event)
   }
 
-  constructor(c: Client, event: IEMGroup) {
+  constructor(c: Client, event: Event.GroupMessage) {
     super(c, event)
     this.group_id = event.group.id
     this.group_name = event.group.name

@@ -252,18 +252,13 @@ export type PushStrToNextStr<
 export type MessageEventMap = {
   "message"(event: PrivateMessageEvent | GroupMessageEvent): void
 } & {
-  [P in keyof PrivateMessageEventMap as PushStrToNextStr<
-    "private",
-    P
-  >]: PrivateMessageEventMap[P]
+  [P in keyof PrivateMessageEventMap as PushStrToNextStr<"private", P>]: PrivateMessageEventMap[P]
 } & {
   [P in keyof GroupMessageEventMap as PushStrToNextStr<"group", P>]: GroupMessageEventMap[P]
 }
 export type NoticeEventMap = {
   "notice"(
-    ...event:
-      | Parameters<MergeEventMap["notice.friend"]>
-      | Parameters<MergeEventMap["notice.group"]>
+    ...event: Parameters<MergeEventMap["notice.friend"]> | Parameters<MergeEventMap["notice.group"]>
   ): void
 } & {
   [P in keyof FriendNoticeEventMap as PushStrToNextStr<"friend", P>]: FriendNoticeEventMap[P]
@@ -320,5 +315,5 @@ export interface EventMap extends MergeEventMap {
   "internal.input": (event: { user_id: string; end: boolean }) => void
 
   /** @todo 未知事件 */
-  "send": (messageRet: MessageRet) => void
+  send: (messageRet: MessageRet) => void
 }

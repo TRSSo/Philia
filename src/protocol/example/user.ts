@@ -1,18 +1,11 @@
 import { ulid } from "ulid"
 import { logger, makeError } from "../../util/index.js"
-import { IMessage, IRSendMsg } from "./message.js"
-import { ISelf } from "./self.js"
-
-/** 用户信息 */
-export interface IUser extends ISelf {
-  /** 用户备注 */
-  mark?: string
-}
+import { Contact, Message } from "../type/index.js"
 
 /** 用户类 */
 export default class User {
   /** 示例用户对象 */
-  user: { [key: IUser["id"]]: IUser } = {
+  user: { [key: Contact.User["id"]]: Contact.User } = {
     example: { id: "example", name: "示例" },
   }
 
@@ -22,9 +15,9 @@ export default class User {
    * @param data 消息段
    * @returns 用户消息
    */
-  sendUserMsg(data: { id: IUser["id"], data: IMessage }): IRSendMsg {
+  sendUserMsg(data: { id: Contact.User["id"]; data: Message.Message }): Message.RSendMsg {
     logger.info("发送用户消息", data.id, data.data)
-    return { id: ulid(), time: Date.now()/1000 }
+    return { id: ulid(), time: Date.now() / 1000 }
   }
 
   /**
@@ -32,7 +25,7 @@ export default class User {
    * @param id 用户ID
    * @returns 用户信息
    */
-  getUserInfo(data: { id: IUser["id"] }): IUser {
+  getUserInfo(data: { id: Contact.User["id"] }): Contact.User {
     return this.user[data.id]
   }
 
@@ -40,7 +33,7 @@ export default class User {
    * 获取用户列表
    * @returns 用户ID列表
    */
-  getUserList(): IUser["id"][] {
+  getUserList(): Contact.User["id"][] {
     return Object.keys(this.user)
   }
 
@@ -48,7 +41,7 @@ export default class User {
    * 获取用户信息列表
    * @returns 用户信息列表
    */
-  getUserArray(): IUser[] {
+  getUserArray(): Contact.User[] {
     return Object.values(this.user)
   }
 
@@ -57,19 +50,21 @@ export default class User {
    * @param id 用户ID
    * @param mark 用户备注
    */
-  setUserMark(data: { id: IUser["id"], mark: IUser["mark"] }) {
+  setUserMark(data: { id: Contact.User["id"]; mark: Contact.User["mark"] }) {
     this.user[data.id].mark = data.mark
     if (this.user[data.id].mark !== data.mark)
-      throw makeError("设置失败", { current: this.user[data.id].mark, target: data.mark })
+      throw makeError("设置失败", {
+        current: this.user[data.id].mark,
+        target: data.mark,
+      })
   }
 
   /**
    * 删除用户
    * @param id 用户ID
    */
-  delUser(data: { id: IUser["id"] }) {
+  delUser(data: { id: Contact.User["id"] }) {
     delete this.user[data.id]
-    if (data.id in this.user)
-      throw makeError("删除失败", { target: data.id })
+    if (data.id in this.user) throw makeError("删除失败", { target: data.id })
   }
 }
