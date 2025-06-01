@@ -76,7 +76,7 @@ export class User extends Contactable {
    * @param times 点赞次数，默认1次
    */
   async thumbUp(times = 1) {
-    return this.c.api.sendUserLike(this.uid, times)
+    return this.c.api.sendUserLike({ id: this.uid, times })
   }
 
   /** 查看资料 */
@@ -92,14 +92,14 @@ export class User extends Contactable {
    */
   async getChatHistory(time = timestamp(), count = 20) {
     let mid: string | undefined = (
-      await this.c.api.getChatHistory("user", this.uid, 1).catch(() => [])
+      await this.c.api.getChatHistory({ type: "user", id: this.uid, count: 1 }).catch(() => [])
     )[0]?.id
     if (!mid) return []
 
     const ret: PrivateMessage[] = []
     for (let i = 0; i < 100; i++) {
       const msg = (await this.c.api
-        .getChatHistory("message", mid, 11)
+        .getChatHistory({ type: "message", id: mid, count: 11 })
         .catch(() => [])) as PhiliaEvent.UserMessage[]
       mid = msg.length > 1 ? msg.pop()?.id : undefined
 
@@ -120,63 +120,65 @@ export class User extends Contactable {
    * @param time 默认当前时间，为时间戳的分钟数（`Date.now() / 1000`）
    */
   async markRead(time = timestamp()) {
-    return this.c.api.setReaded((await this.getChatHistory(time, 1))[0].message_id)
+    return this.c.api.setReaded({ id: (await this.getChatHistory(time, 1))[0].message_id })
   }
 
   /**
    * 回添双向好友
    * @param seq 申请消息序号
-   * @param remark 好友备注
+   * @param mark 好友备注
    */
   async addFriendBack(seq: number, remark = "") {
-    return this.c.api.addUserBack(this.uid, seq, remark)
+    return this.c.api.addUserBack({ id: this.uid, seq, remark })
   }
 
   /**
    * 处理好友申请
    * @param seq 申请消息序号
-   * @param yes 是否同意
+   * @param result 是否同意
    * @param remark 好友备注
    * @param block 是否屏蔽来自此用户的申请
    */
-  async setFriendReq(seq: number, yes = true, remark = "", block = false) {
+  async setFriendReq(seq: number, result = true, remark = "", block = false) {
     const requests = await this.c.api.getRequestArray()
     const request = requests.find(i => i.user?.id === this.uid && i.seq === seq)
     if (!request) throw Error("请求不存在")
-    return this.c.api.setRequest(request.id, yes, remark, block)
+    const ret = await this.c.api.setRequest({ id: request.id, result, block })
+    if (remark) this.setRemark(remark)
+    return ret
   }
 
   /**
    * 处理入群申请
    * @param gid 群号
    * @param seq 申请消息序号
-   * @param yes 是否同意
+   * @param result 是否同意
    * @param reason 若拒绝，拒绝的原因
    * @param block 是否屏蔽来自此用户的申请
    */
-  async setGroupReq(gid: string, seq: number, yes = true, reason = "", block = false) {
+  async setGroupReq(gid: string, seq: number, result = true, reason = "", block = false) {
     const requests = await this.c.api.getRequestArray()
     const request = requests.find(
       i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
     )
     if (!request) throw Error("请求不存在")
-    return this.c.api.setRequest(request.id, yes, reason, block)
+    return this.c.api.setRequest({ id: request.id, result, reason, block })
   }
 
   /**
    * 处理群邀请
    * @param gid 群号
    * @param seq 申请消息序号
-   * @param yes 是否同意
+   * @param result 是否同意
    * @param block 是否屏蔽来自此群的邀请
    */
-  async setGroupInvite(gid: string, seq: number, yes = true, block = false) {
+  async setGroupInvite(gid: string, seq: number, result = true, block = false) {
     const requests = await this.c.api.getRequestArray()
     const request = requests.find(
       i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
     )
     if (!request) throw Error("请求不存在")
-    return this.c.api.setRequest(request.id, yes, undefined, block)
+    return this.c.api.setRequest({ id: request.id, result, block })
   }
 
   /** 好友 */
@@ -208,13 +210,13 @@ export class User extends Contactable {
   }
 
   /** 设置分组(注意：如果分组id不存在也会成功) */
-  async setClass(cid: number) {
-    return this.c.api.setUserClass(cid, this.uid)
+  async setClass(name: number) {
+    return this.c.api.setUserClass({ name, id: this.uid })
   }
 
   /** 戳一戳 */
   async poke(self = false) {
-    return this.c.api.sendPoke("user", this.uid, self ? this.c.uin : this.uid)
+    return this.c.api.sendPoke({ scene: "user", id: this.uid, tid: self ? this.c.uin : this.uid })
   }
 
   /**
@@ -222,7 +224,7 @@ export class User extends Contactable {
    * @param block 屏蔽此好友的申请，默认为`true`
    */
   async delete(block = true) {
-    return this.c.api.delUser(this.uid, block)
+    return this.c.api.delUser({ id: this.uid, block })
   }
 
   /**
@@ -230,7 +232,7 @@ export class User extends Contactable {
    * @returns
    */
   async searchSameGroup() {
-    return (await this.c.api.searchUserSameGroup(this.uid)).map(i => ({
+    return (await this.c.api.searchUserSameGroup({ id: this.uid })).map(i => ({
       ...i,
       groupName: i.name,
       Group_Id: i.id,

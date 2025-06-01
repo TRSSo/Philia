@@ -115,15 +115,11 @@ export interface Button extends AMessage {
 }
 
 /** 合并转发消息 */
-export interface Forward extends AMessage {
-  type: "forward"
-  /** 消息内容 */
-  data: {
-    message: Message
-    time?: number
-    user?: IUser
-    group?: IGroup
-  }[]
+export interface Forward {
+  message: Message
+  time?: number
+  user?: IUser
+  group?: IGroup
 }
 
 /** 扩展消息 */
@@ -154,7 +150,6 @@ export type MessageSegment =
   | Button
   | Extend
   | Platform
-  | Forward
   | File
   | Image
   | Audio

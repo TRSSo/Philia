@@ -81,14 +81,14 @@ export default class Group {
   /**
    * 设置群备注
    * @param id 群ID
-   * @param mark 群备注
+   * @param remark 群备注
    */
-  setGroupMark(data: { id: Contact.Group["id"]; mark: Contact.Group["mark"] }) {
-    this.group[data.id].mark = data.mark
-    if (this.group[data.id].mark !== data.mark)
+  setGroupRemark(data: { id: Contact.Group["id"]; remark: Contact.Group["remark"] }) {
+    this.group[data.id].remark = data.remark
+    if (this.group[data.id].remark !== data.remark)
       throw makeError("设置失败", {
-        current: this.group[data.id].mark,
-        target: data.mark,
+        current: this.group[data.id].remark,
+        target: data.remark,
       })
   }
 
@@ -157,14 +157,17 @@ export default class Group {
   /**
    * 设置群成员备注
    * @param id 群成员ID
-   * @param mark 群成员备注
+   * @param remark 群成员备注
    */
-  setGroupMemberMark(data: { id: Contact.GroupMember["id"]; mark: Contact.GroupMember["mark"] }) {
-    this.member[data.id].mark = data.mark
-    if (this.member[data.id].mark !== data.mark)
+  setGroupMemberRemark(data: {
+    id: Contact.GroupMember["id"]
+    remark: Contact.GroupMember["remark"]
+  }) {
+    this.member[data.id].remark = data.remark
+    if (this.member[data.id].remark !== data.remark)
       throw makeError("设置失败", {
-        current: this.member[data.id].mark,
-        target: data.mark,
+        current: this.member[data.id].remark,
+        target: data.remark,
       })
   }
 

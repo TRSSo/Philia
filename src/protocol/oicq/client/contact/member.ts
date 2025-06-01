@@ -85,11 +85,10 @@ export class Member extends User {
 
   /** 强制刷新群员资料 */
   async renew(): Promise<MemberInfo> {
-    const i = await this.c.api.getGroupMemberInfo(this.gid, this.uid, true)
+    const i = await this.c.api.getGroupMemberInfo({ id: this.gid, uid: this.uid, refresh: true })
     let info = {
       group_id: this.gid,
       user_id: i.id,
-      remark: i.mark,
       ...i,
     } as unknown as MemberInfo
     info = Object.assign(this.c.gml.get(this.gid)?.get(this.uid) || this._info || {}, info)
@@ -104,7 +103,11 @@ export class Member extends User {
    * @param yes 是否设为管理员
    */
   setAdmin(yes = true) {
-    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { role: yes ? "admin" : "member" })
+    return this.c.api.setGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      data: { role: yes ? "admin" : "member" },
+    })
   }
 
   /**
@@ -113,7 +116,11 @@ export class Member extends User {
    * @param duration 持续时间，默认`-1`，表示永久
    */
   setTitle(title = "", duration = -1) {
-    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { title, title_expire_time: duration })
+    return this.c.api.setGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      data: { title, title_expire_time: duration },
+    })
   }
 
   /**
@@ -121,7 +128,7 @@ export class Member extends User {
    * @param card 名片
    */
   async setCard(card = "") {
-    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { card })
+    return this.c.api.setGroupMemberInfo({ id: this.gid, uid: this.uid, data: { card } })
   }
 
   /**
@@ -130,7 +137,7 @@ export class Member extends User {
    * @param block 是否屏蔽群员
    */
   async kick(_msg?: string, block = false) {
-    return this.c.api.delGroupMember(this.gid, this.uid, block)
+    return this.c.api.delGroupMember({ id: this.gid, uid: this.uid, block })
   }
 
   /**
@@ -138,14 +145,18 @@ export class Member extends User {
    * @param duration 禁言时长（秒），默认`1800`
    */
   async mute(duration = 1800) {
-    return this.c.api.setGroupMemberInfo(this.gid, this.uid, {
-      shutup_time: duration,
+    return this.c.api.setGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      data: {
+        mute_time: duration,
+      },
     })
   }
 
   /** 戳一戳 */
   async poke() {
-    return this.c.api.sendPoke("group", this.gid, this.uid)
+    return this.c.api.sendPoke({ scene: "group", id: this.gid, tid: this.uid })
   }
 
   /**
@@ -153,6 +164,6 @@ export class Member extends User {
    * @param yes
    */
   async setScreenMsg(yes = true) {
-    return this.c.api.setGroupMemberInfo(this.gid, this.uid, { block: yes })
+    return this.c.api.setGroupMemberInfo({ id: this.gid, uid: this.uid, data: { block: yes } })
   }
 }

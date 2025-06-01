@@ -177,3 +177,15 @@ export function promiseEvent(
     if (timeout) clearTimeout(listener.timeout)
   })
 }
+
+/** A是否为B的子集 */
+export function isSubObj<T extends object>(A: Partial<T>, B: T) {
+  for (const i in A) if (A[i] !== undefined && A[i] !== B[i]) return false
+  return true
+}
+
+/** A是否等于B */
+export function isEqualObj<T extends object>(A: T, B: T) {
+  if (Object.keys(A).length !== Object.keys(B).length) return false
+  return isSubObj(A, B)
+}

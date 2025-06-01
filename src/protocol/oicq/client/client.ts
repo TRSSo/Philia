@@ -14,9 +14,9 @@ import { Group } from "./contact/group.js"
 import { Member } from "./contact/member.js"
 import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
 import { Client as SocketClient } from "../../../socket/index.js"
-import { Contact, Message as PhiliaMessage } from "../../type/index.js"
+import { API, Contact, Message as PhiliaMessage } from "../../type/index.js"
 import Handle from "./event/handle.js"
-import API from "../../example/api.js"
+import { createAPI } from "../../common/index.js"
 
 /** 一个客户端 */
 export class Client extends events {
@@ -106,7 +106,7 @@ export class Client extends events {
   }
 
   handle = new Handle(this)
-  api: API
+  api: ReturnType<typeof createAPI<API.ClientAPI>>
   socket: SocketClient
   /** 是否为在线状态 (可以收发业务包的状态) */
   isOnline() {
@@ -121,25 +121,25 @@ export class Client extends events {
 
   /** 发送一个业务包不等待返回 */
   writeUni(cmd: string, body: Uint8Array, seq = 0) {
-    return this.api.writeUni(cmd, body, seq)
+    return this.api.writeUni({ cmd, body, seq })
   }
 
   /** dont use it if not clear the usage */
   sendOidb(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.api.sendOidb(cmd, body, timeout)
+    return this.api.sendOidb({ cmd, body, timeout })
   }
 
   sendPacket(type: string, cmd: string, body: any) {
-    return this.api.sendPacket(type, cmd, body)
+    return this.api.sendPacket({ type, cmd, body })
   }
 
   /** 发送一个业务包并等待返回 */
   sendUni(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.api.sendUni(cmd, body, timeout)
+    return this.api.sendUni({ cmd, body, timeout })
   }
 
   sendOidbSvcTrpcTcp(cmd: string, body: Uint8Array | object) {
-    return this.api.sendOidbSvcTrpcTcp(cmd, body)
+    return this.api.sendOidbSvcTrpcTcp({ cmd, body })
   }
 
   /** csrf token */
@@ -174,7 +174,7 @@ export class Client extends events {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
     }
-    this.api = new API(this.socket)
+    this.api = createAPI<API.ClientAPI>(this.socket)
 
     this.config = {
       ignore_self: true,
@@ -230,22 +230,22 @@ export class Client extends events {
       .then(d => (this.bkn = d))
       .catch(() => {})
 
-    await this.api.receiveEvent(Handle.event.map(i => ({ type: i, handle: i })))
+    await this.api.receiveEvent({ event: Handle.event.map(i => ({ type: i, handle: i })) })
   }
 
   /** 上传文件到缓存目录 */
   uploadFile(file: string | Buffer) {
-    return this.api.uploadCacheFile(file)
+    return this.api.uploadCacheFile({ file })
   }
 
   /** 设置在线状态 */
   setOnlineStatus(online_status = this.status || OnlineStatus.Online) {
-    return this.api.setSelfInfo({ online_status })
+    return this.api.setSelfInfo({ data: { online_status } })
   }
 
   /** 设置昵称 */
   setNickname(name: string) {
-    return this.api.setSelfInfo({ name })
+    return this.api.setSelfInfo({ data: { name } })
   }
 
   /**
@@ -253,7 +253,7 @@ export class Client extends events {
    * @param gender 0：未知，1：男，2：女
    */
   setGender(gender: 0 | 1 | 2) {
-    return this.api.setSelfInfo({ gender })
+    return this.api.setSelfInfo({ data: { gender } })
   }
 
   /**
@@ -262,37 +262,37 @@ export class Client extends events {
    * */
   setBirthday(birthday: string | number) {
     birthday = String(birthday).replace(/[^\d]/g, "")
-    return this.api.setSelfInfo({ birthday })
+    return this.api.setSelfInfo({ data: { birthday } })
   }
 
   /** 设置个人说明 */
   setDescription(description = "") {
-    return this.api.setSelfInfo({ description })
+    return this.api.setSelfInfo({ data: { description } })
   }
 
   /** 设置个性签名 */
   setSignature(signature = "") {
-    return this.api.setSelfInfo({ signature })
+    return this.api.setSelfInfo({ data: { signature } })
   }
 
   /** 获取用户资料卡信息 */
   getProfile(id: string) {
-    return this.api.getUserInfo(id)
+    return this.api.getUserInfo({ id })
   }
 
   /** 设置头像 */
   setAvatar(avatar: ImageElem["file"]) {
-    return this.api.setSelfInfo({ avatar })
+    return this.api.setSelfInfo({ data: { avatar } })
   }
 
   /** 获取漫游表情 */
   getRoamingStamp(no_cache = false) {
-    return this.api.getRoamingStamp(!no_cache)
+    return this.api.getRoamingStamp({ refresh: !no_cache })
   }
 
   /** 删除表情(支持批量) */
   deleteStamp(id: string | string[]) {
-    return this.api.delRoamingStamp(id)
+    return this.api.delRoamingStamp({ id })
   }
 
   /** 获取系统消息 */
@@ -302,17 +302,17 @@ export class Client extends events {
 
   /** 添加好友分组 */
   addClass(name: string) {
-    return this.api.addUserClass(name)
+    return this.api.addUserClass({ name })
   }
 
   /** 删除好友分组 */
-  deleteClass(id: number) {
-    return this.api.delUserClass(id)
+  deleteClass(name: number) {
+    return this.api.delUserClass({ name })
   }
 
   /** 重命名好友分组 */
-  renameClass(id: number, name: string) {
-    return this.api.renameUserClass(id, name)
+  renameClass(name: number, new_name: string) {
+    return this.api.renameUserClass({ name, new_name })
   }
 
   /** 重载好友列表 */
@@ -324,7 +324,6 @@ export class Client extends events {
         ...i,
         user_id: i.id,
         nickname: i.name,
-        remark: i.mark || "",
       } as unknown as FriendInfo)
     return (this.fl = map)
   }
@@ -343,8 +342,6 @@ export class Client extends events {
         ...i,
         group_id: i.id,
         group_name: i.name,
-        avatar: i.avatar || "",
-        remark: i.mark || "",
       } as unknown as GroupInfo)
     return (this.gl = map)
   }
@@ -394,7 +391,7 @@ export class Client extends events {
       type: "image",
       file,
     })
-    return this.api.getImageOCR(image)
+    return this.api.getImageOCR({ image })
   }
 
   /** @cqhttp (cqhttp遗留方法) use {@link cookies[domain]} */
@@ -423,7 +420,7 @@ export class Client extends events {
    * @param id 消息id
    */
   setEssenceMessage(id: string) {
-    return this.api.addGroupEssence(id)
+    return this.api.addGroupEssence({ id })
   }
 
   /**
@@ -432,7 +429,7 @@ export class Client extends events {
    * @param id 消息id
    */
   removeEssenceMessage(id: string) {
-    return this.api.delGroupEssence(id)
+    return this.api.delGroupEssence({ id })
   }
 
   /** @cqhttp use {@link sl} */
@@ -486,22 +483,22 @@ export class Client extends events {
 
   /** @cqhttp use {@link User.recallMsg} or {@link Group.recallMsg} */
   deleteMsg(id: string) {
-    return this.api.delMsg(id)
+    return this.api.delMsg({ id })
   }
 
-  /** @cqhttp use {@link User.markRead} or {@link Group.markRead} */
+  /** @cqhttp use {@link User.remarkRead} or {@link Group.remarkRead} */
   reportReaded(id: string) {
-    return this.api.setReaded(id)
+    return this.api.setReaded({ id })
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
-  getMsg(message_id: string) {
-    return this.api.getMsg(message_id)
+  getMsg(id: string) {
+    return this.api.getMsg({ id })
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
   getChatHistory(id: string, count = 20) {
-    return this.api.getChatHistory("message", id, count)
+    return this.api.getChatHistory({ type: "message", id, count })
   }
 
   /** @cqhttp use {@link Group.muteAll} */
@@ -595,13 +592,13 @@ export class Client extends events {
   }
 
   /** @cqhttp use {@link User.setFriendReq} or {@link User.addFriendBack} */
-  setFriendAddRequest(flag: string, approve = true, remark = "", block = false) {
-    return this.api.setRequest(flag, approve, remark, block)
+  setFriendAddRequest(id: string, result = true, reason = "", block = false) {
+    return this.api.setRequest({ id, result, reason, block })
   }
 
   /** @cqhttp use {@link User.setGroupInvite} or {@link User.setGroupReq} */
-  setGroupAddRequest(flag: string, approve = true, reason = "", block = false) {
-    return this.api.setRequest(flag, approve, reason, block)
+  setGroupAddRequest(id: string, result = true, reason = "", block = false) {
+    return this.api.setRequest({ id, result, reason, block })
   }
 
   /** emit an event */

@@ -13,6 +13,7 @@ import {
   GroupMessage,
   FileIDElem,
 } from "../message/index.js"
+import { Message as PhiliaMessage } from "../../../type/index.js"
 
 type Client = import("../client.js").Client
 
@@ -102,9 +103,9 @@ export abstract class Contactable {
   }
 
   /** 下载并解析合并转发 */
-  async getForwardMsg(resid: string) {
+  async getForwardMsg(id: string) {
     return Promise.all(
-      (await this.c.api.getForwardMsg(resid)).map(i => {
+      (await this.c.api.getForwardMsg({ id })).map(i => {
         i.user ||= {} as NonNullable<typeof i.user>
         i.group ||= {} as NonNullable<typeof i.group>
         return new GroupMessage(
@@ -126,17 +127,57 @@ export abstract class Contactable {
    * @param source 引用回复的消息
    */
   async sendMsg(content: Sendable, source?: Quotable): Promise<MessageRet> {
-    const ret = await this.c.api.sendMsg(
-      this.scene,
-      this.target,
-      await new OICQtoPhilia(this, content, source).convert(),
-    )
+    const message = new OICQtoPhilia(this, content, source)
+    await message.convert()
+    if (message.response) return message.response
+    if (!message.after.length) throw new Error("空消息")
+    const ret = await this.c.api.sendMsg({
+      scene: this.scene,
+      id: this.target,
+      data: message.after,
+    })
     return {
       message_id: ret.id,
       time: ret.time,
       rand: ret.rand as number,
       seq: ret.seq as number,
     }
+  }
+
+  async sendForwardMsg(node: ForwardNode["data"]) {
+    const data: PhiliaMessage.Forward[] = []
+    let ret: MessageRet | undefined = undefined
+    for (const i of Array.isArray(node) ? node : [node]) {
+      const message = new OICQtoPhilia(this, i.message)
+      await message.convert()
+      if (message.response) {
+        ret ??= message.response
+        continue
+      }
+      if (!message.after.length) continue
+      data.push({
+        message: message.after,
+        time: i.time,
+        user: { id: i.user_id, name: i.nickname as string },
+      })
+    }
+    if (data.length) {
+      const res = (
+        await this.c.api.sendMultiMsg({
+          scene: this.scene,
+          id: this.target,
+          data,
+        })
+      )[0]
+      ret = {
+        message_id: res.id,
+        time: res.time,
+        rand: res.rand as number,
+        seq: res.seq as number,
+      }
+    }
+    if (!ret) throw Error("空合并转发消息")
+    return ret
   }
 
   /**
@@ -150,21 +191,21 @@ export abstract class Contactable {
    */
   recallMsg(message: Message): Promise<boolean>
   async recallMsg(param: string | Message) {
-    await this.c.api.delMsg(typeof param === "string" ? param : param.message_id)
+    await this.c.api.delMsg({ id: typeof param === "string" ? param : param.message_id })
     return true
   }
 
   /** 转发消息 */
   forwardMsg(mid: string) {
-    return this.c.api.sendMsgForward(this.scene, this.target, mid)
+    return this.c.api.sendMsgForward({ scene: this.scene, id: this.target, mid })
   }
 
   /**
    * 获取文件信息
-   * @param fid 文件消息ID
+   * @param id 文件消息ID
    */
-  getFileInfo(fid: string) {
-    return this.c.api.getFile(fid)
+  getFileInfo(id: string) {
+    return this.c.api.getFile({ id })
   }
 
   /**
@@ -194,16 +235,16 @@ export abstract class Contactable {
 
   /** 设置群名 */
   setName(name: string) {
-    return this.c.api.setInfo(this.scene, this.target, { name })
+    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { name } })
   }
 
   /** 设置备注 */
-  setRemark(mark: string) {
-    return this.c.api.setInfo(this.scene, this.target, { mark })
+  setRemark(remark: string) {
+    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { remark } })
   }
 
   /** 设置群头像 */
   setAvatar(avatar: ImageElem["file"]) {
-    return this.c.api.setInfo(this.scene, this.target, { avatar })
+    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { avatar } })
   }
 }

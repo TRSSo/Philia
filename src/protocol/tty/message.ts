@@ -61,10 +61,6 @@ export class Convert {
     }
   }
 
-  async forward(data: Message.Forward) {
-    for (const { message } of data.data) await this.convert(message)
-  }
-
   async file(data: Message.AFile, name = "文件"): Promise<void> {
     if (this.client.config.save)
       try {

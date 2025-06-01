@@ -13,7 +13,7 @@ export interface Self {
 /** 用户信息 */
 export interface User extends Self {
   /** 用户备注 */
-  mark?: string
+  remark?: string
 }
 
 /** 群信息 */
@@ -25,7 +25,9 @@ export interface Group {
   /** 群头像 */
   avatar?: string
   /** 群备注 */
-  mark?: string
+  remark?: string
+  /** 全员禁言 */
+  whole_mute?: boolean
   /** 平台扩展字段 */
   [key: string]: unknown
 }
@@ -42,7 +44,7 @@ export interface GroupMember extends User {
    * 获取：禁言到期时间戳
    * 设置：禁言时长
    */
-  shutup_time?: number
+  mute_time?: number
   /** 拉黑 */
   block?: boolean
 }

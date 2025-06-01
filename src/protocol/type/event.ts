@@ -2,7 +2,7 @@ import * as Contact from "./contact.js"
 import { Message as IMessage } from "./message.js"
 
 /** 事件基类 */
-export interface Event {
+export interface AEvent {
   /** 事件ID */
   id: string
   /** 事件类型 */
@@ -20,13 +20,20 @@ export interface Event {
 }
 
 export interface Handle {
-  type: Event["type"]
-  /** 事件处理函数，默认为 handleEvent.${type} */
-  handle?: string
+  /** 事件类型 */
+  type: AEvent["type"]
+  /** 事件处理函数 */
+  handle: string
+  /** 事件场景 */
+  scene?: AEvent["scene"]
+  /** 发起事件用户ID */
+  uid?: Contact.User["id"]
+  /** 发起事件群ID */
+  gid?: Contact.Group["id"]
 }
 
 /** 消息事件基类 */
-export interface AMessage extends Event {
+export interface AMessage extends AEvent {
   type: "message"
   user: Contact.User
   message: IMessage
@@ -40,25 +47,40 @@ export interface UserMessage extends AMessage {
   /** 如果是自己发送给用户，则存在该字段 */
   is_self?: true
 }
-
 /** 群消息事件 */
 export interface GroupMessage extends AMessage {
   scene: "group"
+  user: Contact.GroupMember
   group: Contact.Group
 }
-
 export type Message = UserMessage | GroupMessage
 
 /** 通知事件基类 */
-export interface ANotice extends Event {
+export interface ANotice extends AEvent {
   type: "notice"
 }
-
 export type Notice = ANotice
 
 /** 请求事件基类 */
-export interface ARequest extends Event {
+export interface ARequest extends AEvent {
   type: "request"
+  /** 申请理由 */
+  reason: string
 }
+/** 加好友请求 */
+export interface UserRequest extends ARequest {
+  scene: "user"
+  /** 申请用户 */
+  user: Contact.User
+}
+/** 入群申请、邀请加群 */
+export interface GroupRequest extends ARequest {
+  scene: "group_add" | "group_invite"
+  /** 申请用户 */
+  user: Contact.GroupMember
+  /** 申请群 */
+  group: Contact.Group
+}
+export type Request = UserRequest | GroupRequest
 
-export type Request = ARequest
+export type Event = Message | Notice | Request

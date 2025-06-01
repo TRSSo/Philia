@@ -48,14 +48,14 @@ export default class User {
   /**
    * 设置用户备注
    * @param id 用户ID
-   * @param mark 用户备注
+   * @param remark 用户备注
    */
-  setUserMark(data: { id: Contact.User["id"]; mark: Contact.User["mark"] }) {
-    this.user[data.id].mark = data.mark
-    if (this.user[data.id].mark !== data.mark)
+  setUserRemark(data: { id: Contact.User["id"]; remark: Contact.User["remark"] }) {
+    this.user[data.id].remark = data.remark
+    if (this.user[data.id].remark !== data.remark)
       throw makeError("设置失败", {
-        current: this.user[data.id].mark,
-        target: data.mark,
+        current: this.user[data.id].remark,
+        target: data.remark,
       })
   }
 

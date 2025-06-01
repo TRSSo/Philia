@@ -9,4 +9,6 @@ export {
   Loging,
   getAllProps,
   promiseEvent,
+  isSubObj,
+  isEqualObj,
 } from "./common.js"

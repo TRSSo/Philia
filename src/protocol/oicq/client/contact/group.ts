@@ -159,11 +159,10 @@ export class Group extends Contactable {
 
   /** 强制刷新群资料 */
   async renew(): Promise<GroupInfo> {
-    const i = await this.c.api.getGroupInfo(this.gid, true)
+    const i = await this.c.api.getGroupInfo({ id: this.gid, refresh: true })
     let info = {
       group_id: i.id,
       group_name: i.name,
-      remark: i.mark as string,
       ...i,
     } as unknown as GroupInfo
     info = Object.assign(this.c.gl.get(this.gid) || this._info || {}, info)
@@ -174,13 +173,12 @@ export class Group extends Contactable {
   }
 
   private async _fetchMembers() {
-    const i = await this.c.api.getGroupMemberArray(this.gid)
+    const i = await this.c.api.getGroupMemberArray({ id: this.gid })
     const list: [Member["uid"], MemberInfo][] = i.map(i => [
       i.id,
       {
         user_id: i.id,
         nickname: i.name,
-        remark: i.mark,
         ...i,
       } as unknown as MemberInfo,
     ])
@@ -211,8 +209,8 @@ export class Group extends Contactable {
    * @param rand 消息的随机值
    */
   addEssence(seq: number | string, rand?: number) {
-    if (typeof seq !== "number") return this.c.api.addGroupEssence(seq)
-    return this.c.api.addGroupEssence(this.gid, seq, rand)
+    if (typeof seq !== "number") return this.c.api.addGroupEssence({ id: seq })
+    return this.c.api.addGroupEssence({ id: this.gid, seq, rand })
   }
 
   /**
@@ -221,8 +219,8 @@ export class Group extends Contactable {
    * @param rand 消息的随机值
    */
   removeEssence(seq: number | string, rand?: number) {
-    if (typeof seq !== "number") return this.c.api.delGroupEssence(seq)
-    return this.c.api.delGroupEssence(this.gid, seq, rand)
+    if (typeof seq !== "number") return this.c.api.delGroupEssence({ id: seq })
+    return this.c.api.delGroupEssence({ id: this.gid, seq, rand })
   }
 
   /**
@@ -247,11 +245,11 @@ export class Group extends Contactable {
 
   /** 全员禁言 */
   muteAll(yes = true) {
-    return this.c.api.setGroupMute(this.gid, "all", undefined, yes ? 0xffffffff : 0)
+    return this.c.api.setInfo({ scene: "group", id: this.gid, data: { whole_mute: yes } })
   }
   /** 发送简易群公告 */
   announce(content: string) {
-    return this.c.api.sendGroupNotice(this.gid, content)
+    return this.c.api.sendGroupNotice({ id: this.gid, content })
   }
 
   /**
@@ -262,7 +260,7 @@ export class Group extends Contactable {
    * - 0: 无限制
    */
   setMessageRateLimit(times: number) {
-    return this.c.api.setMessageRate(this.gid, times)
+    return this.c.api.setMessageRate({ id: this.gid, times })
   }
 
   /**
@@ -277,17 +275,17 @@ export class Group extends Contactable {
    * @param {string} [answer] - 在 `type` 为 "Correct" 时需要传入。正确回答的问题答案。
    */
   async setGroupJoinType(type: string, question?: string, answer?: string) {
-    return this.c.api.setGroupJoinType(this.gid, type, question, answer)
+    return this.c.api.setGroupJoinType({ id: this.gid, type, question, answer })
   }
 
   /** 设置群备注 */
-  async setRemark(mark = "") {
-    return this.c.api.setInfo("group", this.gid, { mark })
+  async setRemark(remark = "") {
+    return this.c.api.setInfo({ scene: "group", id: this.gid, data: { remark } })
   }
 
   /** 获取 @全体成员 的剩余次数 */
   getAtAllRemainder() {
-    return this.c.api.getGroupAtAllRemainder(this.gid)
+    return this.c.api.getGroupAtAllRemainder({ id: this.gid })
   }
 
   /**
@@ -295,8 +293,8 @@ export class Group extends Contactable {
    * @param seq 消息序号，默认为`0`，表示标记所有消息
    */
   markRead(seq = 0) {
-    if (typeof seq !== "number") return this.c.api.setReaded(seq)
-    return this.c.api.setReaded(this.gid, seq)
+    if (typeof seq !== "number") return this.c.api.setReaded({ id: seq })
+    return this.c.api.setReaded({ id: this.gid, seq })
   }
 
   /**
@@ -306,16 +304,17 @@ export class Group extends Contactable {
    * @returns 群聊消息列表，服务器记录不足`cnt`条则返回能获取到的最多消息记录
    */
   async getChatHistory(seq = 0, count = 20) {
-    if (typeof seq !== "number") return this.c.api.getChatHistory("message", seq, count)
+    if (typeof seq !== "number")
+      return this.c.api.getChatHistory({ type: "message", id: seq, count })
     let mid: string | undefined = (
-      await this.c.api.getChatHistory("group", this.gid, 1).catch(() => [])
+      await this.c.api.getChatHistory({ type: "group", id: this.gid, count: 1 }).catch(() => [])
     )[0]?.id
     if (!mid) return []
 
     const ret: GroupMessage[] = []
     for (let i = 0; i < 100; i++) {
       const msg = (await this.c.api
-        .getChatHistory("message", mid, 11)
+        .getChatHistory({ type: "message", id: mid, count: 11 })
         .catch(() => [])) as PhiliaEvent.GroupMessage[]
       mid = msg.length > 1 ? msg.pop()?.id : undefined
 
@@ -336,17 +335,17 @@ export class Group extends Contactable {
    * @param uid 好友账号
    */
   invite(uid: string) {
-    return this.c.api.sendGroupUserInvite(this.gid, uid)
+    return this.c.api.sendGroupUserInvite({ id: this.gid, uid })
   }
 
   /** 打卡 */
   sign() {
-    return this.c.api.sendGroupSign(this.gid)
+    return this.c.api.sendGroupSign({ id: this.gid })
   }
 
   /** 退群，若为群主则解散该群 */
   quit() {
-    return this.c.api.delGroup(this.gid)
+    return this.c.api.delGroup({ id: this.gid })
   }
 
   /**
@@ -404,7 +403,7 @@ export class Group extends Contactable {
    * @returns
    */
   async getMuteMemberList() {
-    return this.c.api.getGroupMemberMuteList(this.gid) as Promise<
+    return this.c.api.getGroupMemberMuteList({ id: this.gid }) as Promise<
       ({
         uin: number | null
         unMuteTime: string | null
@@ -415,22 +414,24 @@ export class Group extends Contactable {
   /**
    * 添加表情表态，参考（https://bot.q.qq.com/wiki/develop/api-v2/openapi/emoji/model.html#EmojiType）
    * @param seq 消息序号
-   * @param id 表情ID
-   * @param type 表情类型 EmojiType
+   * @param eid 表情ID
+   * @param etype 表情类型 EmojiType
    */
-  setReaction(seq: number | string, id: string, type = 1) {
-    if (typeof seq !== "number") return this.c.api.setReaction("message", seq, id, type)
-    return this.c.api.setReaction("group", this.gid, id, type, seq)
+  setReaction(seq: number | string, eid: string, etype = 1) {
+    if (typeof seq !== "number")
+      return this.c.api.setReaction({ type: "message", id: seq, eid, etype })
+    return this.c.api.setReaction({ type: "group", id: this.gid, eid, etype, seq })
   }
 
   /**
    * 删除表情表态，参考（https://bot.q.qq.com/wiki/develop/api-v2/openapi/emoji/model.html#EmojiType）
    * @param seq 消息序号
-   * @param id 表情ID
+   * @param eid 表情ID
    * @param type 表情类型 EmojiType
    */
-  delReaction(seq: number, id: string, type = 1) {
-    if (typeof seq !== "number") return this.c.api.delReaction("message", seq, id, type)
-    return this.c.api.delReaction("group", this.gid, id, type, seq)
+  delReaction(seq: number, eid: string, etype = 1) {
+    if (typeof seq !== "number")
+      return this.c.api.delReaction({ type: "message", id: seq, eid, etype })
+    return this.c.api.delReaction({ type: "group", id: this.gid, eid, etype, seq })
   }
 }

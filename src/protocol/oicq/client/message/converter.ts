@@ -24,9 +24,9 @@ import * as PhiliaType from "../../../type/message.js"
 import { Contactable } from "../contact/contactable.js"
 import { MemberInfo } from "../contact/types.js"
 import { Message } from "./message.js"
-import { Contact } from "../../../type/index.js"
 import { Client } from "../client.js"
 import fs from "node:fs/promises"
+import { MessageRet } from "../event/types.js"
 
 /** 消息转换器 */
 export class OICQtoPhilia {
@@ -38,6 +38,8 @@ export class OICQtoPhilia {
   length = 0
   /** 预览文字 */
   brief = ""
+  /** 是否已发出 */
+  response?: MessageRet
 
   constructor(
     protected readonly c: Contactable,
@@ -158,15 +160,7 @@ export class OICQtoPhilia {
   }
 
   async node(elem: ForwardNode) {
-    const data: PhiliaType.Forward["data"] = []
-    for (const i of Array.isArray(elem.data) ? elem.data : [elem.data]) {
-      data.push({
-        message: await new OICQtoPhilia(this.c, i.message).convert(),
-        time: i.time,
-        user: { id: i.user_id, name: i.nickname } as Contact.User,
-      })
-    }
-    this.after.push({ type: "forward", data })
+    this.response = await this.c.sendForwardMsg(elem.data)
   }
 
   markdown(elem: MarkdownElem) {
@@ -229,7 +223,7 @@ export class OICQtoPhilia {
 const Extends = ExtendType.map(i => `OICQ.${i}`)
 
 /** 消息解析器 */
-export class PhiliatoOICQ {
+export class PhiliaToOICQ {
   before: (string | PhiliaType.MessageSegment)[]
   after: MessageElem[] = []
   brief = ""
@@ -274,7 +268,7 @@ export class PhiliatoOICQ {
   async reply(elem: PhiliaType.Reply) {
     this.after.push(segment.reply(elem.data, elem.text))
     this.brief += elem.text ? `[回复: ${elem.text}(${elem.data})]` : `[回复: ${elem.data}]`
-    const source = await this.c.api.getMsg(elem.data)
+    const source = await this.c.api.getMsg({ id: elem.data })
     this.source = {
       ...source,
       user_id: source.user.id,
@@ -365,15 +359,10 @@ export class PhiliatoOICQ {
     this.after.push(elem)
   }
 
-  forward(elem: PhiliaType.Forward) {
-    this.after.push(elem as unknown as MessageElem)
-    this.brief += "[合并转发]"
-  }
-
   async _file(type: BaseMessageElem["type"], elem: PhiliaType.AFile): Promise<void> {
     switch (elem.data) {
       case "id":
-        return this._file(type, await this.c.api.getFile(elem.id))
+        return this._file(type, await this.c.api.getFile({ id: elem.id }))
       case "path":
       case "binary":
         /** 转成 url */

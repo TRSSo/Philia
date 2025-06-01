@@ -1,5 +1,5 @@
 import { lock } from "../common.js"
-import { PhiliatoOICQ } from "./converter.js"
+import { PhiliaToOICQ } from "./converter.js"
 import { Quotable, Forwardable, MessageElem } from "./elements.js"
 import querystring from "querystring"
 import { Event } from "../../../type/index.js"
@@ -8,7 +8,7 @@ import { Client } from "../client.js"
 
 /** 一条消息 */
 export abstract class Message implements Quotable, Forwardable {
-  protected readonly parsed: PhiliatoOICQ
+  protected readonly parsed: PhiliaToOICQ
 
   /**
    * 私聊永远指向对方，群聊指向消息发送者。
@@ -86,8 +86,6 @@ export abstract class Message implements Quotable, Forwardable {
     this.sender = {
       user_id: event.user.id,
       nickname: event.user.name,
-      avatar: event.user.avatar,
-      remark: event.user.mark,
       ...event.user,
     } as unknown as typeof this.sender
     this.time = event.time
@@ -95,7 +93,7 @@ export abstract class Message implements Quotable, Forwardable {
     this.rand = (event.rand as number) || 0
     this.font = (event.font as string) || "unknown"
     this.raw_message = event.summary
-    this.parsed = new PhiliatoOICQ(this.c, event.message)
+    this.parsed = new PhiliaToOICQ(this.c, event.message)
     lock(this, "parsed")
   }
 
