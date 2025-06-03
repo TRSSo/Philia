@@ -8,7 +8,7 @@ type Client = import("../client.js").Client
 const weakmap = new WeakMap<MemberInfo, Member>()
 
 /** 群员事件(= {@link GroupEventMap}) */
-export interface MemberEventMap extends GroupEventMap {}
+export type MemberEventMap = GroupEventMap
 
 /** @ts-expect-error ts(2415) 群员 */
 export class Member extends User {

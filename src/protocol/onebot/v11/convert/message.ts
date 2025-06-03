@@ -1,9 +1,10 @@
-import { Message as PhiliaMessage, Event as PhiliaEvent } from "../../../type/index.js"
+import { Message as PhiliaMessage, Event as PhiliaEvent } from "#protocol/type"
 import { Message as OBv11Message } from "../type/index.js"
 import { ulid } from "ulid"
 import fs from "node:fs/promises"
 import Client from "../server/client.js"
 import * as OBv11Event from "../type/event.js"
+import { modeMatch } from "#util"
 
 /** 消息转换器 */
 export class OBv11toPhilia {
@@ -128,7 +129,8 @@ export class OBv11toPhilia {
   }
 
   reply(ms: OBv11Message.Reply) {
-    this.after.push({ type: "reply", data: ms.data.id, text: ms.data.text })
+    this.after.push({ type: "reply", data: ms.data.id, summary: ms.data.text })
+    this.summary += `[提及: ${ms.data.text ? `${ms.data.text}(${ms.data.id})` : ms.data.id}]`
   }
 }
 
@@ -177,8 +179,8 @@ export class PhiliaToOBv11 {
   }
 
   reply(ms: PhiliaMessage.Reply) {
-    this.after.push({ type: "reply", data: { id: ms.data, text: ms.text } })
-    this.summary += ms.text ? `[回复: ${ms.text}(${ms.data})]` : `[回复: ${ms.data}]`
+    this.after.push({ type: "reply", data: { id: ms.data, text: ms.summary } })
+    this.summary += ms.summary ? `[回复: ${ms.summary}(${ms.data})]` : `[回复: ${ms.data}]`
   }
 
   extend(ms: PhiliaMessage.Extend) {
@@ -189,21 +191,8 @@ export class PhiliaToOBv11 {
   }
 
   platform(ms: PhiliaMessage.Platform) {
-    this.summary += `[${ms.platform}(${ms.mode}) 平台消息: ${ms.data}]`
-    switch (ms.mode) {
-      case "include":
-        if (Array.isArray(ms.platform) ? ms.platform.includes("OICQ") : ms.platform === "OICQ")
-          return this.after.push(ms.data as OBv11Message.MessageSegment)
-        break
-      case "exclude":
-        if (Array.isArray(ms.platform) ? !ms.platform.includes("OICQ") : ms.platform !== "OICQ")
-          return this.after.push(ms.data as OBv11Message.MessageSegment)
-        break
-      case "regexp":
-        if (new RegExp(ms.platform as string).test("OICQ"))
-          return this.after.push(ms.data as OBv11Message.MessageSegment)
-        break
-    }
+    this.summary += `[${ms.list}(${ms.mode}) 平台消息: ${ms.data}]`
+    if (modeMatch(ms, "OneBotv11")) this.after.push(ms.data as OBv11Message.MessageSegment)
   }
 
   _file(type: OBv11Message.MessageBase["type"], ms: PhiliaMessage.AFile) {

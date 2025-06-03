@@ -1,5 +1,6 @@
 import { User as IUser, Group as IGroup } from "./contact.js"
 import * as Event from "./event.js"
+import { IModeMatch } from "#util"
 
 /** 消息基类 */
 export interface AMessage {
@@ -36,8 +37,8 @@ export interface Reply extends AMessage {
   type: "reply"
   /** 消息ID */
   data: string
-  /** 消息内容 */
-  text?: string
+  /** 消息摘要 */
+  summary?: string
 }
 
 /** 文件消息基类 */
@@ -127,18 +128,12 @@ export interface Extend extends AMessage {
   type: "extend"
   /** 扩展消息类型，若目标平台不支持，则忽略该消息段 */
   extend: string
-  /** 消息内容 */
   data: unknown
 }
 
-/** 平台消息 */
-export interface Platform extends AMessage {
+/** 平台消息，使用模式匹配平台名，不匹配则忽略 */
+export interface Platform extends AMessage, IModeMatch {
   type: "platform"
-  /** 消息平台，若非目标平台，则忽略该消息段 */
-  platform: string | string[]
-  /** 匹配平台模式 */
-  mode: "include" | "exclude" | "regexp"
-  /** 消息内容 */
   data: unknown
 }
 

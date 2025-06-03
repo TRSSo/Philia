@@ -1,6 +1,7 @@
 import util from "node:util"
-import { chalk } from "./logger.js"
+import { Chalk } from "chalk"
 import EventEmitter from "node:events"
+export const chalk = new Chalk({ level: 3 })
 
 /**
  * 生成错误对象并赋予一些参数
@@ -179,13 +180,48 @@ export function promiseEvent(
 }
 
 /** A是否为B的子集 */
-export function isSubObj<T extends object>(A: Partial<T>, B: T) {
-  for (const i in A) if (A[i] !== undefined && A[i] !== B[i]) return false
+export function isSubObj<T extends object>(A: Partial<T>, B: T, equal = false) {
+  for (const i in A) {
+    if (A[i] === undefined) continue
+    if (typeof A[i] === "object" && A[i] !== null && typeof B[i] === "object" && B[i] !== null) {
+      if (!(equal ? isEqualObj : isSubObj)(A[i], B[i])) return false
+    } else if (A[i] !== B[i]) return false
+  }
   return true
 }
 
 /** A是否等于B */
 export function isEqualObj<T extends object>(A: T, B: T) {
   if (Object.keys(A).length !== Object.keys(B).length) return false
-  return isSubObj(A, B)
+  return isSubObj(A, B, true)
+}
+
+/** 匹配规则 */
+export interface IModeMatch {
+  /** 匹配模式
+   * include: 目标在匹配列表
+   * exclude: 目标不在匹配列表
+   * regexp : 目标符合匹配列表正则表达式
+   */
+  mode: "include" | "exclude" | "regexp"
+  /** 匹配列表 */
+  list: string | string[]
+}
+
+/**
+ * 模式匹配
+ * @param rule 匹配规则
+ * @param target 匹配目标
+ * @returns 是否匹配
+ */
+export function modeMatch(rule: IModeMatch, target: string) {
+  const list = Array.isArray(rule.list) ? rule.list : [rule.list]
+  switch (rule.mode) {
+    case "exclude":
+      return !list.includes(target)
+    case "regexp":
+      return new RegExp(list.join("|")).test(target)
+    default:
+      return list.includes(target)
+  }
 }

@@ -1,12 +1,13 @@
-import { createClient } from "../../../../socket/index.js"
+import { Client as SocketClient } from "#connect/socket"
 import { WebSocket, WebSocketServer } from "ws"
-import { promiseEvent, logger } from "../../../../util/index.js"
+import { promiseEvent } from "#util"
+import logger from "#logger"
 import { IncomingMessage } from "node:http"
 import Client from "./client.js"
 
 export default class Server {
   logger = logger
-  socket: Parameters<typeof createClient>[0]
+  socket: Parameters<typeof SocketClient.create>[0]
   wss: WebSocketServer
   clients: Map<string, Client> = new Map()
 

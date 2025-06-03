@@ -1,4 +1,4 @@
-import { type } from "../../socket/index.js"
+import { type } from "#connect/common"
 import Event from "./event.js"
 import Group from "./group.js"
 import Meta from "./meta.js"

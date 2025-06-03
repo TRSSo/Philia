@@ -1,4 +1,4 @@
-import { API as PhiliaAPI } from "../../../type/index.js"
+import { API as PhiliaAPI } from "#protocol/type"
 import * as Message from "./message.js"
 import * as Event from "./event.js"
 

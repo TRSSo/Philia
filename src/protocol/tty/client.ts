@@ -1,6 +1,6 @@
 import path from "node:path"
-import { createClient, Client as SocketClient } from "../../socket/index.js"
-import { logger } from "../../util/logger.js"
+import { Client as SocketClient } from "#connect/socket"
+import logger from "#logger"
 import handle from "./handle.js"
 
 export default class Client {
@@ -15,8 +15,8 @@ export default class Client {
     },
   }
 
-  constructor(socket: Parameters<typeof createClient>[0]) {
-    this.socket = createClient(socket, handle(this))
+  constructor(socket: Parameters<typeof SocketClient.create>[0]) {
+    this.socket = SocketClient.create(socket, handle(this))
     this.request = this.socket.request.bind(this.socket)
   }
 

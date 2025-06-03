@@ -2,7 +2,7 @@ import { lock } from "../common.js"
 import { PhiliaToOICQ } from "./converter.js"
 import { Quotable, Forwardable, MessageElem } from "./elements.js"
 import querystring from "querystring"
-import { Event } from "../../../type/index.js"
+import { Event } from "#protocol/type"
 import { Gender, GroupRole } from "../contact/types.js"
 import { Client } from "../client.js"
 

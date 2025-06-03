@@ -1,4 +1,4 @@
-import { makeError } from "../../util/index.js"
+import { makeError } from "#util"
 import { Contact } from "../type/index.js"
 
 /** 自己类 */

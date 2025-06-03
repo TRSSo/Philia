@@ -1,6 +1,6 @@
 import Client from "../server/client.js"
-import { API, Event, Contact, Message } from "../../../type/index.js"
-import { String } from "../../../../util/index.js"
+import { API, Event, Contact, Message } from "#protocol/type"
+import { String } from "#util"
 import * as MessageConverter from "./message.js"
 import { Event as OBv11Event, Message as OBv11Message } from "../type/index.js"
 

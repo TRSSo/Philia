@@ -1,6 +1,6 @@
 import { ulid } from "ulid"
-import Client from "../../socket/client.js"
-import { makeError } from "../../util/index.js"
+import Client from "../../connect/socket/client.js"
+import { makeError } from "#util"
 import { Event as IEvent } from "../type/index.js"
 
 export default class Event {

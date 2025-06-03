@@ -27,6 +27,7 @@ import { Message } from "./message.js"
 import { Client } from "../client.js"
 import fs from "node:fs/promises"
 import { MessageRet } from "../event/types.js"
+import { modeMatch } from "#util"
 
 /** 消息转换器 */
 export class OICQtoPhilia {
@@ -71,7 +72,7 @@ export class OICQtoPhilia {
 
   platform(data: PlatformElem) {
     this.after.push(data)
-    this.brief += `[${data.type}: ${data.platform} ${data}]`
+    this.brief += `[${data.type}: ${data.list} ${data}]`
   }
 
   _text(text: any, markdown?: string) {
@@ -208,7 +209,8 @@ export class OICQtoPhilia {
   }
 
   reply(elem: ReplyElem) {
-    this.after.push({ type: "reply", data: elem.id, text: elem.text })
+    this.after.push({ type: "reply", data: elem.id, summary: elem.text })
+    this.brief += `[提及: ${elem.text ? `${elem.text}(${elem.id})` : elem.id}]`
   }
 
   quote(elem: Quotable) {
@@ -266,8 +268,8 @@ export class PhiliaToOICQ {
   }
 
   async reply(elem: PhiliaType.Reply) {
-    this.after.push(segment.reply(elem.data, elem.text))
-    this.brief += elem.text ? `[回复: ${elem.text}(${elem.data})]` : `[回复: ${elem.data}]`
+    this.after.push(segment.reply(elem.data, elem.summary))
+    this.brief += elem.summary ? `[回复: ${elem.summary}(${elem.data})]` : `[回复: ${elem.data}]`
     const source = await this.c.api.getMsg({ id: elem.data })
     this.source = {
       ...source,
@@ -337,26 +339,9 @@ export class PhiliaToOICQ {
   }
 
   platform(elem: PhiliaType.Platform) {
-    this.brief += `[${elem.platform}(${elem.mode}) 平台消息: ${elem.data}]`
-    switch (elem.mode) {
-      case "include":
-        if (
-          Array.isArray(elem.platform) ? elem.platform.includes("OICQ") : elem.platform === "OICQ"
-        )
-          return this.after.push(elem.data as MessageElem)
-        break
-      case "exclude":
-        if (
-          Array.isArray(elem.platform) ? !elem.platform.includes("OICQ") : elem.platform !== "OICQ"
-        )
-          return this.after.push(elem.data as MessageElem)
-        break
-      case "regexp":
-        if (new RegExp(elem.platform as string).test("OICQ"))
-          return this.after.push(elem.data as MessageElem)
-        break
-    }
-    this.after.push(elem)
+    this.brief += `[${elem.list}(${elem.mode}) 平台消息: ${elem.data}]`
+    if (modeMatch(elem, "OICQ")) this.after.push(elem.data as MessageElem)
+    else this.after.push(elem)
   }
 
   async _file(type: BaseMessageElem["type"], elem: PhiliaType.AFile): Promise<void> {

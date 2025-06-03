@@ -6,9 +6,7 @@ import prettier from "eslint-config-prettier/flat"
 tseslint.configs.recommended[2].rules = {
   ...tseslint.configs.recommended[2].rules,
   "@typescript-eslint/no-explicit-any": "off",
-  "@typescript-eslint/no-empty-object-type": "warn",
-  "@typescript-eslint/no-unsafe-declaration-merging": "warn",
-  "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
+  "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
 }
 
 export default [
@@ -16,8 +14,7 @@ export default [
   { languageOptions: { globals: globals.node } },
   { rules: {
     ...pluginJs.configs.recommended.rules,
-    "no-empty": "warn",
-    "no-constant-condition": ["error", { "checkLoops": false }],
+    "no-empty": "off",
   }},
   ...tseslint.configs.recommended,
   prettier,

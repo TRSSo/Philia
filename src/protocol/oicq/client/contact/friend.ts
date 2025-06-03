@@ -11,18 +11,11 @@ import {
 } from "../event/types.js"
 import { FriendInfo } from "./types.js"
 import { Contactable } from "./contactable.js"
-import { Event as PhiliaEvent } from "../../../type/index.js"
+import { Event as PhiliaEvent } from "#protocol/type"
 
 type Client = import("../client.js").Client
 
 const weakmap = new WeakMap<FriendInfo, User>()
-
-export interface User {
-  /** 撤回消息 */
-  recallMsg(msg: PrivateMessage): Promise<boolean>
-  recallMsg(msgid: string): Promise<boolean>
-  recallMsg(seq: number, rand: number, time: number): Promise<boolean>
-}
 
 /** 用户 */
 export class User extends Contactable {

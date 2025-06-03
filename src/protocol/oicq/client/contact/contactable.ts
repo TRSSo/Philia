@@ -13,7 +13,7 @@ import {
   GroupMessage,
   FileIDElem,
 } from "../message/index.js"
-import { Message as PhiliaMessage } from "../../../type/index.js"
+import { Message as PhiliaMessage } from "#protocol/type"
 
 type Client = import("../client.js").Client
 

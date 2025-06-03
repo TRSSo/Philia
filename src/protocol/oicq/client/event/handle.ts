@@ -1,5 +1,5 @@
-import { type as SocketType } from "../../../../socket/index.js"
-import { Event } from "../../../type/index.js"
+import { type as SocketType } from "#connect/common"
+import { Event } from "#protocol/type"
 import { Client } from "../client.js"
 import { GroupMessage, PrivateMessage } from "../message/message.js"
 

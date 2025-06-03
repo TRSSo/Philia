@@ -1,9 +1,10 @@
-import { Client as SocketClient, createClient } from "../../../../socket/index.js"
+import { Client as SocketClient } from "#connect/socket"
 import { WebSocket } from "ws"
-import { promiseEvent, logger, String } from "../../../../util/index.js"
+import { promiseEvent, String } from "#util"
+import logger from "#logger"
 import Protocol from "./protocol.js"
 import { ulid } from "ulid"
-import { createAPI, Event } from "../../../common/index.js"
+import { createAPI, Event } from "#protocol/common"
 import { API } from "../type/index.js"
 import { API as APIConvert } from "../convert/index.js"
 
@@ -35,11 +36,14 @@ export default class Client {
   }
 
   constructor(
-    socket: Parameters<typeof createClient>[0],
+    socket: Parameters<typeof SocketClient.create>[0],
     ws: string | WebSocket,
     opts?: ConstructorParameters<typeof WebSocket>[2],
   ) {
-    this.socket = createClient(socket, this.handle as unknown as Parameters<typeof createClient>[1])
+    this.socket = SocketClient.create(
+      socket,
+      this.handle as unknown as Parameters<typeof SocketClient.create>[1],
+    )
     this.event_handle = new Event.Handle(this.socket)
     if (ws instanceof WebSocket) {
       this.ws = ws

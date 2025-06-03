@@ -1,6 +1,6 @@
-import { Client } from "../../socket/index.js"
+import { Client } from "#connect/socket"
 import { Event } from "../type/index.js"
-import { isEqualObj } from "../../util/index.js"
+import { isEqualObj, modeMatch } from "#util"
 export class Handle {
   client: Client
   handles: Map<string, [Omit<Event.Handle, "type" | "scene">]> = new Map()
@@ -44,8 +44,8 @@ export class Handle {
       ...(this.handles.get(`${event.type}.${event.scene}`) || []),
     ]
     for (const i of handles) {
-      if ("uid" in i && i.uid !== event.user?.id) continue
-      if ("gid" in i && i.gid !== event.group?.id) continue
+      if (i.uid && !(event.user?.id && modeMatch(i.uid, event.user.id))) continue
+      if (i.gid && !(event.group?.id && modeMatch(i.gid, event.group.id))) continue
       this.client.request(i.handle, event)
     }
   }

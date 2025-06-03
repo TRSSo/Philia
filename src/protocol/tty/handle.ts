@@ -1,8 +1,8 @@
 import Client from "./client.js"
 import { Convert } from "./message.js"
-import example from "../example/index.js"
+import example from "#protocol/example"
 import { Contact, Message } from "../type/index.js"
-import { type as SocketType } from "../../socket/index.js"
+import { type as SocketType } from "#connect/common"
 import { ulid } from "ulid"
 
 export class Handle implements SocketType.OHandle {

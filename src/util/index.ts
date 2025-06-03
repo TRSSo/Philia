@@ -1,6 +1,6 @@
 export { encoder, verify, Encoder } from "./encoder.js"
-export { logger, chalk } from "./logger.js"
 export {
+  chalk,
   makeError,
   findArrays,
   StringOrNull,
@@ -11,4 +11,6 @@ export {
   promiseEvent,
   isSubObj,
   isEqualObj,
+  IModeMatch,
+  modeMatch,
 } from "./common.js"

@@ -13,10 +13,10 @@ import { User, Friend } from "./contact/friend.js"
 import { Group } from "./contact/group.js"
 import { Member } from "./contact/member.js"
 import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
-import { Client as SocketClient } from "../../../socket/index.js"
-import { API, Contact, Message as PhiliaMessage } from "../../type/index.js"
+import { Client as SocketClient } from "#connect/socket"
+import { API, Contact, Message as PhiliaMessage } from "#protocol/type"
 import Handle from "./event/handle.js"
-import { createAPI } from "../../common/index.js"
+import { createAPI } from "#protocol/common"
 
 /** 一个客户端 */
 export class Client extends events {

@@ -3,7 +3,8 @@ import path from "node:path"
 import { ulid } from "ulid"
 import { Message } from "../type/index.js"
 import Client from "./client.js"
-import { logger } from "../../util/logger.js"
+import logger from "#logger"
+import { modeMatch } from "#util"
 
 export class Convert {
   client: Client
@@ -35,7 +36,7 @@ export class Convert {
   }
 
   reply(data: Message.Reply) {
-    this.summary += `[提及: ${data.text ? `${data.text}(${data.data})` : data.data}]`
+    this.summary += `[提及: ${data.summary ? `${data.summary}(${data.data})` : data.data}]`
   }
 
   button(data: Message.Button) {
@@ -47,18 +48,7 @@ export class Convert {
   }
 
   async platform(data: Message.Platform) {
-    const platform = Array.isArray(data.platform) ? data.platform : [data.platform]
-    switch (data.mode) {
-      case "exclude":
-        if (!platform.includes("tty")) await this.convert(data.data as Message.Message)
-        break
-      case "regexp":
-        if (platform.some(i => new RegExp(i).test("tty")))
-          await this.convert(data.data as Message.Message)
-        break
-      default:
-        if (platform.includes("tty")) await this.convert(data.data as Message.Message)
-    }
+    if (modeMatch(data, "tty")) await this.convert(data.data as Message.Message)
   }
 
   async file(data: Message.AFile, name = "文件"): Promise<void> {

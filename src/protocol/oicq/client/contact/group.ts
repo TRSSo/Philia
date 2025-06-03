@@ -16,7 +16,7 @@ import {
   MemberIncreaseEvent,
 } from "../event/types.js"
 import { GroupInfo, MemberInfo } from "./types.js"
-import { Event as PhiliaEvent } from "../../../type/index.js"
+import { Event as PhiliaEvent } from "#protocol/type"
 
 type Client = import("../client.js").Client
 type Member = import("./member.js").Member
@@ -76,13 +76,6 @@ export interface GroupEventMap
     GroupNoticeEventMap,
     GroupRequestEventMap {}
 
-/** 群 */
-export interface Group {
-  /** 撤回消息 */
-  recallMsg(msg: GroupMessage): Promise<boolean>
-  recallMsg(msgid: string): Promise<boolean>
-  recallMsg(seq: number, rand: number, pktnum?: number): Promise<boolean>
-}
 /** 群 */
 export class Group extends Contactable {
   static as(this: Client, gid: string, strict = false) {

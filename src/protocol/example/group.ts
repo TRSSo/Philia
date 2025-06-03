@@ -1,5 +1,6 @@
 import { ulid } from "ulid"
-import { logger, makeError } from "../../util/index.js"
+import { makeError } from "#util"
+import logger from "#logger"
 import { Contact, Message } from "../type/index.js"
 
 /** 群类 */

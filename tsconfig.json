@@ -2,6 +2,7 @@
   "include": ["src"],
   "compilerOptions": {
     "types": ["node"],
+    "rootDir": "src",
     "outDir": "lib",
     "strict": true,
     "module": "nodenext",

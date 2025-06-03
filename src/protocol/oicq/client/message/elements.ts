@@ -1,4 +1,5 @@
 import { ButtonType as IButton } from "../../../type/message.js"
+import { Message } from "#protocol/type"
 
 /** LongMsg */
 export interface LongMsgElem {
@@ -341,25 +342,8 @@ export interface ForwardNode {
   data: Forwardable | Forwardable[]
 }
 
-/** 扩展消息 */
-export interface ExtendElem {
-  type: "extend"
-  /** 扩展消息类型，若目标平台不支持，则忽略该消息段 */
-  extend: string
-  /** 消息内容 */
-  data: any
-}
-
-/** 平台消息 */
-export interface PlatformElem {
-  type: "platform"
-  /** 消息平台，若非目标平台，则忽略该消息段 */
-  platform: string | string[]
-  /** 匹配平台模式 */
-  mode: "include" | "exclude" | "regexp"
-  /** 消息内容 */
-  data: any
-}
+export type ExtendElem = Message.Extend
+export type PlatformElem = Message.Platform
 
 export const ExtendType: ExtendMessageElem["type"][] = [
   "long_msg",

@@ -1,5 +1,6 @@
 import * as Contact from "./contact.js"
 import { Message as IMessage } from "./message.js"
+import { IModeMatch } from "#util"
 
 /** 事件基类 */
 export interface AEvent {
@@ -26,10 +27,10 @@ export interface Handle {
   handle: string
   /** 事件场景 */
   scene?: AEvent["scene"]
-  /** 发起事件用户ID */
-  uid?: Contact.User["id"]
-  /** 发起事件群ID */
-  gid?: Contact.Group["id"]
+  /** 发起事件用户ID匹配 */
+  uid?: IModeMatch
+  /** 发起事件群ID匹配 */
+  gid?: IModeMatch
 }
 
 /** 消息事件基类 */

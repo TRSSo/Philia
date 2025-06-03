@@ -1,0 +1,85 @@
+import { WebSocketServer, WebSocket } from "ws"
+import { ulid } from "ulid"
+import OClient from "./client.js"
+import { promiseEvent } from "#util"
+import logger from "#logger"
+import { type } from "../common/index.js"
+
+export interface ServerOptions extends type.Options {
+  ws?: WebSocketServer | ConstructorParameters<typeof WebSocketServer>[0]
+  limit?: number
+}
+
+export class Server {
+  logger = logger
+  ws!: WebSocketServer
+  ws_opts?: ConstructorParameters<typeof WebSocketServer>[0]
+  wss = new Set<WebSocket>()
+  clients = new Set<Client>()
+  meta = {
+    id: ulid(),
+    name: "Server",
+  }
+  handle: type.Handles
+  limit?: number
+
+  constructor(handle: type.Handles = {}, opts: ServerOptions = {}) {
+    this.handle = handle
+    if (opts.limit) this.limit = opts.limit
+
+    if (opts.ws instanceof WebSocketServer) this.ws = opts.ws
+    else this.ws_opts = opts.ws
+  }
+
+  listen(port?: number) {
+    if (port) this.ws_opts = { ...this.ws_opts, port }
+    this.ws ??= new WebSocketServer(this.ws_opts)
+    this.ws.on("connection", ws => {
+      if (this.limit && this.wss.size >= this.limit) {
+        this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
+        return ws.terminate()
+      }
+      new Client(this.handle, this, ws, this.ws_opts)
+    })
+    return promiseEvent(this.ws, "listening", "error") as Promise<this | Error>
+  }
+
+  add(client: Client) {
+    this.wss.add(client.ws)
+    this.clients.add(client)
+  }
+
+  del(client: Client) {
+    this.wss.delete(client.ws)
+    this.clients.delete(client)
+  }
+
+  listener: { [key: string]: (...args: any[]) => void } = {
+    close(this: Client) {
+      this.onclose()
+      this.server.del(this)
+      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
+    },
+  }
+}
+export default Server
+
+class Client extends OClient {
+  server: Server
+  constructor(handle: type.Handles, server: Server, ws: WebSocket, opts: ServerOptions = {}) {
+    super(handle, { ...opts, ws })
+    this.server = server
+    Object.defineProperty(this, "logger", {
+      get() {
+        return this.server.logger
+      },
+    })
+    Object.assign(this.meta.local, server.meta)
+
+    for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
+    this.onconnect().then(() => {
+      server.add(this)
+      server.ws.emit("connected", this)
+    })
+  }
+}

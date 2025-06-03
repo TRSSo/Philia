@@ -1,8 +1,8 @@
 import * as inquirer from "@inquirer/prompts"
 import Client from "./client.js"
 import { ulid } from "ulid"
-import Server from "../../socket/server.js"
-import { logger } from "../../util/logger.js"
+import Server from "../../connect/socket/server.js"
+import logger from "#logger"
 
 export class Tui {
   logger = logger
@@ -47,7 +47,6 @@ export class Tui {
           {
             name: "退出",
             value: "exit",
-            description: "退出",
           },
         ],
       })
@@ -66,6 +65,9 @@ export class Tui {
         return this.server.listen()
       }
       case "exit":
+        return process.exit()
+      default:
+        this.logger.error(Error("❎ 内部错误"))
         process.exit()
     }
   }

@@ -1,5 +1,5 @@
 import { Event as OBv11Event } from "../type/index.js"
-import { Event as PhiliaEvent } from "../../../type/index.js"
+import { Event as PhiliaEvent } from "#protocol/type"
 import Client from "../server/client.js"
 import * as MessageConvert from "./message.js"
 
