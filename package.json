@@ -9,7 +9,9 @@
     "lint": "prettier --write src && eslint --fix src",
     "compile": "rm -rf lib/* && tsc",
     "minify": "find lib/ -type f -name \\*.js -print0 | xargs -0P \"$(nproc)\" -I {} uglifyjs {} -cmo {}",
-    "build": "pnpm lint && pnpm compile && pnpm minify"
+    "build": "pnpm lint && pnpm compile && pnpm minify",
+    "tui": "node lib/bin/tui",
+    "run": "node lib/bin/run"
   },
   "keywords": [],
   "author": "TimeRainStarSky",

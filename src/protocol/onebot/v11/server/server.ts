@@ -1,4 +1,4 @@
-import { Client as SocketClient } from "#connect/socket"
+import { Philia } from "#project/project"
 import { WebSocket, WebSocketServer } from "ws"
 import { promiseEvent } from "#util"
 import logger from "#logger"
@@ -7,16 +7,16 @@ import Client from "./client.js"
 
 export default class Server {
   logger = logger
-  socket: Parameters<typeof SocketClient.create>[0]
+  philia: Philia.IConfig
   wss: WebSocketServer
   clients: Map<string, Client> = new Map()
 
   constructor(
-    socket: typeof this.socket,
+    philia: Philia.IConfig,
     path: number,
     opts?: ConstructorParameters<typeof WebSocketServer>[0],
   ) {
-    this.socket = socket
+    this.philia = philia
     this.wss = new WebSocketServer({ ...opts, port: path })
       .on("listening", () => {
         this.logger.info(`WebSocket 服务器已监听端口 ${path}`)
@@ -43,7 +43,7 @@ export default class Server {
         client.sendQueue()
       }
     } else {
-      this.clients.set(id, new Client(this.socket, ws))
+      this.clients.set(id, new Client(this.philia, ws))
     }
   }
 

@@ -11,6 +11,7 @@ export class Handle implements SocketType.OHandle {
   constructor(client: Client) {
     this.client = client
   }
+
   async sendUserMsg(data: {
     id: Contact.User["id"]
     data: Message.Message

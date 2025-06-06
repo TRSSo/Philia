@@ -1,4 +1,4 @@
-import { Client as SocketClient } from "#connect/socket"
+import { Philia } from "#project/project"
 import { WebSocket } from "ws"
 import { promiseEvent, String } from "#util"
 import logger from "#logger"
@@ -10,7 +10,7 @@ import { API as APIConvert } from "../convert/index.js"
 
 export default class Client {
   logger = logger
-  socket: SocketClient
+  philia: Philia.Project
   ws: WebSocket
   path?: string
 
@@ -36,21 +36,27 @@ export default class Client {
   }
 
   constructor(
-    socket: Parameters<typeof SocketClient.create>[0],
+    philia: Philia.IConfig,
     ws: string | WebSocket,
     opts?: ConstructorParameters<typeof WebSocket>[2],
   ) {
-    this.socket = SocketClient.create(
-      socket,
-      this.handle as unknown as Parameters<typeof SocketClient.create>[1],
+    this.philia = new Philia.Project(
+      philia,
+      this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
     )
-    this.event_handle = new Event.Handle(this.socket)
+    this.event_handle = new Event.Handle(this.philia)
     if (ws instanceof WebSocket) {
       this.ws = ws
+      this.philia.start()
     } else {
       this.path = ws
       this.logger.info(`WebSocket 正在连接 ${ws}`)
       this.ws = new WebSocket(ws, opts)
+      this.ws.onopen = async () => {
+        this.logger.info(`WebSocket 已连接 ${ws}`)
+        await this.philia.start()
+        this.sendQueue()
+      }
     }
     this.listener()
   }
@@ -61,6 +67,7 @@ export default class Client {
     }
     this.ws.onclose = event => {
       this.logger.info(`WebSocket 已断开 ${event.reason}(${event.code})`)
+      this.philia.stop()
     }
     this.ws.onmessage = this.message.bind(this)
   }

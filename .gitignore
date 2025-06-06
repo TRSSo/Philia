@@ -1,4 +1,5 @@
-lib
-test
-node_modules
-pnpm-lock.yaml
+/lib
+/node_modules
+/project
+/test
+/pnpm-lock.yaml

@@ -1,11 +1,11 @@
-import { Client } from "#connect/socket"
+import { Philia } from "#project/project"
 import { Event } from "../type/index.js"
 import { isEqualObj, modeMatch } from "#util"
 export class Handle {
-  client: Client
+  philia: Philia.Project
   handles: Map<string, [Omit<Event.Handle, "type" | "scene">]> = new Map()
-  constructor(client: Client) {
-    this.client = client
+  constructor(philia: Philia.Project) {
+    this.philia = philia
   }
 
   receive(event: Event.Handle | Event.Handle[]) {
@@ -46,7 +46,7 @@ export class Handle {
     for (const i of handles) {
       if (i.uid && !(event.user?.id && modeMatch(i.uid, event.user.id))) continue
       if (i.gid && !(event.group?.id && modeMatch(i.gid, event.group.id))) continue
-      this.client.request(i.handle, event)
+      this.philia.clients.forEach(c => c.request(i.handle, event))
     }
   }
 }

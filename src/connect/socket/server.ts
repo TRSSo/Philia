@@ -65,6 +65,12 @@ export class Server {
       this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.sockets.size}个连接`)
     },
   }
+
+  async close() {
+    await Promise.allSettled([...this.clients].map(i => i.close()))
+    this.socket.close()
+    return promiseEvent(this.socket, "close", "error")
+  }
 }
 export default Server
 
