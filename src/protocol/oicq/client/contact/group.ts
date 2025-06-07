@@ -147,7 +147,10 @@ export class Group extends Contactable {
    * @returns 头像的url地址
    */
   getAvatarUrl(size: 0 | 40 | 100 | 140 = 0, history = 0) {
-    return `https://p.qlogo.cn/gh/${this.gid}/${this.gid}${history ? "_" + history : ""}/` + size
+    return (
+      this.info?.avatar ||
+      `https://p.qlogo.cn/gh/${this.gid}/${this.gid}${history ? "_" + history : ""}/` + size
+    )
   }
 
   /** 强制刷新群资料 */
@@ -165,8 +168,8 @@ export class Group extends Contactable {
     return info
   }
 
-  private async _fetchMembers() {
-    const i = await this.c.api.getGroupMemberArray({ id: this.gid })
+  private async _fetchMembers(refresh?: boolean) {
+    const i = await this.c.api.getGroupMemberArray({ id: this.gid, refresh })
     const list: [Member["uid"], MemberInfo][] = i.map(i => [
       i.id,
       {
@@ -183,12 +186,12 @@ export class Group extends Contactable {
   }
 
   /** 获取群员列表 */
-  getMemberMap(no_cache = false) {
+  getMemberMap(no_cache?: boolean) {
     const fetching = fetchmap.get(this.gid)
     if (fetching) return fetching
     const mlist = this.c.gml.get(this.gid)
     if (!mlist || no_cache) {
-      const fetching = this._fetchMembers()
+      const fetching = this._fetchMembers(no_cache)
       fetchmap.set(this.gid, fetching)
       return fetching
     } else {

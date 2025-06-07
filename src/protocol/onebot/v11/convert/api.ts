@@ -2,12 +2,18 @@ import Client from "../server/client.js"
 import { API, Event, Contact, Message } from "#protocol/type"
 import { String } from "#util"
 import * as MessageConverter from "./message.js"
-import { Event as OBv11Event, Message as OBv11Message } from "../type/index.js"
+import { API as OBv11API, Event as OBv11Event, Message as OBv11Message } from "../type/index.js"
 
 /** API 转换器 */
 export class PhiliaToOBv11 implements API.ServerAPI {
   client: Client
   cache = new Map<string, unknown>()
+  user_cache = new Map<Contact.User["id"], Contact.User>()
+  group_cache = new Map<Contact.Group["id"], Contact.Group>()
+  group_member_cache = new Map<
+    Contact.Group["id"],
+    Map<Contact.GroupMember["id"], Contact.GroupMember>
+  >()
   constructor(client: Client) {
     this.client = client
   }
@@ -20,9 +26,11 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return this.client.event_handle.unreceive(event)
   }
 
-  async getSelfInfo(req: void | { refresh: boolean }) {
-    if (!req?.refresh && this.cache.has("self_info"))
-      return this.cache.get("self_info") as Contact.Self
+  async getSelfInfo({ refresh }: void | { refresh?: boolean } = {}) {
+    if (!refresh) {
+      const cache = this.cache.get("self_info") as Contact.Self
+      if (cache) return cache
+    }
     const res = await this.client.api.get_login_info()
     const ret: Contact.Self = {
       avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.user_id}`,
@@ -43,32 +51,75 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     if (data.avatar) await this.client.api.set_qq_avatar({ file: String(data.avatar) })
   }
 
+  _convertUserInfo(res: OBv11API.API["get_stranger_info"]["response"] | OBv11Event.Sender) {
+    const id = String(res.user_id)
+    const ret: Contact.User = {
+      ...this.user_cache.get(id),
+      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${id}`,
+      ...res,
+      id,
+      name: res.nickname,
+    }
+    this.user_cache.set(id, ret)
+    return ret
+  }
+
   async getUserInfo({ id, refresh }: { id: Contact.User["id"]; refresh?: boolean }) {
+    if (!refresh) {
+      const cache = this.user_cache.get(id)
+      if (cache) return cache
+    }
     const res = await this.client.api.get_stranger_info({
       user_id: Number(id),
       no_cache: refresh,
     })
-    const ret: Contact.User = {
-      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.user_id}`,
+    return this._convertUserInfo(res)
+  }
+
+  _convertGroupInfo(res: OBv11API.API["get_group_info"]["response"]) {
+    const id = String(res.group_id)
+    const ret: Contact.Group = {
+      ...this.group_cache.get(id),
+      avatar: `https://p.qlogo.cn/gh/${id}/${id}/0`,
       ...res,
-      id: String(res.user_id),
-      name: res.nickname,
+      id,
+      name: res.group_name,
+      remark: res.group_memo,
     }
+    this.group_cache.set(id, ret)
     return ret
   }
 
   async getGroupInfo({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+    if (!refresh) {
+      const cache = this.group_cache.get(id)
+      if (cache) return cache
+    }
     const res = await this.client.api.get_group_info({
       group_id: Number(id),
       no_cache: refresh,
     })
-    const ret: Contact.Group = {
-      avatar: `https://p.qlogo.cn/gh/${res.group_id}/${res.group_id}/0`,
+    return this._convertGroupInfo(res)
+  }
+
+  _convertGroupMemberInfo(
+    gid: Contact.Group["id"],
+    res: OBv11API.API["get_group_member_info"]["response"] | OBv11Event.GroupSender,
+  ) {
+    const id = String(res.user_id)
+    const ret: Contact.GroupMember = {
+      ...this.group_member_cache.get(gid)?.get(id),
+      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.user_id}`,
       ...res,
-      id: String(res.group_id),
-      name: res.group_name,
-      remark: res.group_memo,
+      id,
+      name: res.nickname,
     }
+    let group = this.group_member_cache.get(gid)
+    if (!group) {
+      group = new Map()
+      this.group_member_cache.set(gid, group)
+    }
+    group.set(id, ret)
     return ret
   }
 
@@ -81,18 +132,16 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     uid: Contact.User["id"]
     refresh?: boolean
   }) {
+    if (!refresh) {
+      const cache = this.group_member_cache.get(id)?.get(uid)
+      if (cache) return cache
+    }
     const res = await this.client.api.get_group_member_info({
       group_id: Number(id),
       user_id: Number(uid),
       no_cache: refresh,
     })
-    const ret: Contact.GroupMember = {
-      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.user_id}`,
-      ...res,
-      id: String(res.user_id),
-      name: res.nickname,
-    }
-    return ret
+    return this._convertGroupMemberInfo(id, res)
   }
 
   async setInfo({
@@ -314,19 +363,17 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       id: String(res.message_id),
       type: "message",
       scene: "user",
-      user: {
-        avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.sender.user_id}`,
-        ...res.sender,
-        id: String(res.sender.user_id),
-        name: res.sender.nickname,
-      },
+      user: {} as Event.Message["user"],
       message: message.after,
       summary: message.summary,
     } as Event.Message
 
     if (res.message_type === "group") {
       ret.scene = "group"
+      ret.user = this._convertGroupMemberInfo(String(res.group_id), res.sender)
       ret.group = await this.getGroupInfo({ id: String(res.group_id) })
+    } else {
+      ret.user = this._convertUserInfo(res.sender)
     }
     return ret
   }
@@ -403,54 +450,51 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return Promise.all(res.messages.map(this._convertMsg.bind(this)))
   }
 
-  async getUserList() {
+  async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
+    if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.keys())
     const res = await this.client.api.get_friend_list()
     const ret: Contact.User["id"][] = res.map(i => String(i.user_id))
     return ret
   }
 
-  async getUserArray() {
+  async getUserArray({ refresh }: void | { refresh?: boolean } = {}) {
+    if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.values())
     const res = await this.client.api.get_friend_list()
-    const ret: Contact.User[] = res.map(i => ({
-      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${i.user_id}`,
-      ...i,
-      id: String(i.user_id),
-      name: i.nickname,
-    }))
+    const ret: Contact.User[] = res.map(this._convertUserInfo.bind(this))
     return ret
   }
 
-  async getGroupList() {
+  async getGroupList({ refresh }: void | { refresh?: boolean } = {}) {
+    if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.keys())
     const res = await this.client.api.get_group_list()
     const ret: Contact.Group["id"][] = res.map(i => String(i.group_id))
     return ret
   }
 
-  async getGroupArray() {
+  async getGroupArray({ refresh }: void | { refresh?: boolean } = {}) {
+    if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.values())
     const res = await this.client.api.get_group_list()
-    const ret: Contact.Group[] = res.map(i => ({
-      avatar: `https://p.qlogo.cn/gh/${i.group_id}/${i.group_id}/0`,
-      ...i,
-      id: String(i.group_id),
-      name: i.group_name,
-    }))
+    const ret: Contact.Group[] = res.map(this._convertGroupInfo.bind(this))
     return ret
   }
 
-  async getGroupMemberList({ id }: { id: Contact.Group["id"] }) {
+  async getGroupMemberList({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+    if (!refresh) {
+      const group = this.group_member_cache.get(id)
+      if (group && group.size !== 0) return Array.from(this.group_cache.keys())
+    }
     const res = await this.client.api.get_group_member_list({ group_id: Number(id) })
     const ret: Contact.GroupMember["id"][] = res.map(i => String(i.user_id))
     return ret
   }
 
-  async getGroupMemberArray({ id }: { id: Contact.Group["id"] }) {
+  async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+    if (!refresh) {
+      const group = this.group_member_cache.get(id)
+      if (group && group.size !== 0) return Array.from(this.group_cache.values())
+    }
     const res = await this.client.api.get_group_member_list({ group_id: Number(id) })
-    const ret: Contact.GroupMember[] = res.map(i => ({
-      avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${i.user_id}`,
-      ...i,
-      id: String(i.user_id),
-      name: i.nickname,
-    }))
+    const ret: Contact.GroupMember[] = res.map(i => this._convertGroupMemberInfo(id, i))
     return ret
   }
 

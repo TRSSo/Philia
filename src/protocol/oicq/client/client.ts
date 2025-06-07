@@ -230,7 +230,8 @@ export class Client extends events {
       .then(d => (this.bkn = d))
       .catch(() => {})
 
-    await this.api.receiveEvent({ event: Handle.event.map(i => ({ type: i, handle: i })) })
+    await this.api.receiveEvent({ event: Handle.event })
+    this.em("system.online")
   }
 
   /** 上传文件到缓存目录 */
@@ -317,7 +318,7 @@ export class Client extends events {
 
   /** 重载好友列表 */
   async reloadFriendList() {
-    const array = await this.api.getUserArray()
+    const array = await this.api.getUserArray({ refresh: true })
     const map = new Map<string, FriendInfo>()
     for (const i of array)
       map.set(i.id, {
@@ -335,7 +336,7 @@ export class Client extends events {
 
   /** 重载群列表 */
   async reloadGroupList() {
-    const array = await this.api.getGroupArray()
+    const array = await this.api.getGroupArray({ refresh: true })
     const map = new Map<string, GroupInfo>()
     for (const i of array)
       map.set(i.id, {
@@ -348,7 +349,8 @@ export class Client extends events {
 
   /** 重载群成员列表 */
   async reloadGroupMemberList() {
-    for (const i of (await this.reloadGroupList()).keys()) await this.pickGroup(i).getMemberMap()
+    for (const i of (await this.reloadGroupList()).keys())
+      await this.pickGroup(i).getMemberMap(true)
     return this.gml
   }
 

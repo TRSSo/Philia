@@ -32,13 +32,17 @@ export class Server {
     if (opts.socket instanceof SocketServer) this.socket = opts.socket
     else this.socket = new SocketServer(opts.socket)
 
-    this.socket.on("connection", socket => {
-      if (this.limit && this.sockets.size >= this.limit) {
-        this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.sockets.size}个连接`)
-        return socket.destroy()
-      }
-      new Client(this.handle, this, socket, opts)
-    })
+    this.socket
+      .on("listening", () => {
+        this.logger.info(`Socket 服务器已监听路径 ${this.socket.path}`)
+      })
+      .on("connection", socket => {
+        if (this.limit && this.sockets.size >= this.limit) {
+          this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.sockets.size}个连接`)
+          return socket.destroy()
+        }
+        new Client(this.handle, this, socket, opts)
+      })
   }
 
   listen(path = this.path, ...args: any[]) {

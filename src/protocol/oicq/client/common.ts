@@ -23,7 +23,7 @@ export function unlock(obj: any, prop: string) {
 /** 隐藏一个属性 */
 export function hide(obj: any, prop: string) {
   Reflect.defineProperty(obj, prop, {
-    configurable: false,
+    configurable: true,
     enumerable: false,
     writable: true,
   })

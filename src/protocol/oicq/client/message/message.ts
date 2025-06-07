@@ -1,10 +1,11 @@
 import { lock } from "../common.js"
 import { PhiliaToOICQ } from "./converter.js"
-import { Quotable, Forwardable, MessageElem } from "./elements.js"
+import { Quotable, Forwardable, MessageElem, Sendable } from "./elements.js"
 import querystring from "querystring"
 import { Event } from "#protocol/type"
-import { Gender, GroupRole } from "../contact/types.js"
 import { Client } from "../client.js"
+import { Gender, GroupRole, Friend, Group, Member } from "../contact/index.js"
+import { MessageRet } from "../event/types.js"
 
 /** 一条消息 */
 export abstract class Message implements Quotable, Forwardable {
@@ -67,6 +68,12 @@ export abstract class Message implements Quotable, Forwardable {
 
   /** 引用回复 */
   source?: Quotable
+  /**
+   * 快速回复
+   * @param content 消息内容
+   * @param quote 引用这条消息(默认false)
+   */
+  abstract reply(content: Sendable, quote?: boolean): Promise<MessageRet>
 
   /** 反序列化一条消息 (私聊消息需要你的uin) */
   deserialize(event: Event.Message) {
@@ -172,6 +179,8 @@ export class PrivateMessage extends Message {
   from_id: string
   /** 接收方账号 */
   to_id: string
+  /** 好友对象 */
+  friend: Friend
 
   /** 反序列化一条私聊消息，你需要传入你的`uin`，否则无法知道你是发送者还是接收者 */
   deserialize(event: Event.UserMessage) {
@@ -182,6 +191,11 @@ export class PrivateMessage extends Message {
     super(c, event)
     this.from_id = event.is_self ? this.c.uin : event.user.id
     this.to_id = event.is_self ? event.user.id : this.c.uin
+    this.friend = c.pickFriend(this.user_id)
+  }
+
+  reply(content: Sendable, quote = false) {
+    return this.friend.sendMsg(content, quote ? this : undefined)
   }
 }
 
@@ -198,6 +212,10 @@ export class GroupMessage extends Message {
   atme: boolean
   /** 是否AT全体成员 */
   atall: boolean
+  /** 群对象 */
+  group: Group
+  /** 发送者群员对象 */
+  member: Member
 
   /** 反序列化一条群消息 */
   deserialize(event: Event.GroupMessage) {
@@ -210,5 +228,16 @@ export class GroupMessage extends Message {
     this.group_name = event.group.name
     this.atme = this.parsed.atme
     this.atall = this.parsed.atall
+    this.group = c.pickGroup(this.group_id)
+    this.member = c.pickMember(this.group_id, this.user_id)
+  }
+
+  /** 快速撤回 */
+  recall() {
+    return this.group.recallMsg(this)
+  }
+
+  reply(content: Sendable, quote = false) {
+    return this.group.sendMsg(content, quote ? this : undefined)
   }
 }

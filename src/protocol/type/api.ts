@@ -20,7 +20,7 @@ export interface BaseAPI {
    * @param refresh 是否刷新
    */
   getSelfInfo: {
-    request: void | { refresh: boolean }
+    request: void | { refresh?: boolean }
     response: Contact.Self
   }
 
@@ -234,34 +234,34 @@ export interface BaseAPI {
 
   /** 获取用户ID列表 */
   getUserList: {
-    request: void
+    request: void | { refresh?: boolean }
     response: Contact.User["id"][]
   }
   /** 获取用户信息列表 */
   getUserArray: {
-    request: void
+    request: void | { refresh?: boolean }
     response: Contact.User[]
   }
 
   /** 获取群ID列表 */
   getGroupList: {
-    request: void
+    request: void | { refresh?: boolean }
     response: Contact.Group["id"][]
   }
   /** 获取群信息列表 */
   getGroupArray: {
-    request: void
+    request: void | { refresh?: boolean }
     response: Contact.Group[]
   }
 
   /** 获取群ID列表 */
   getGroupMemberList: {
-    request: { id: Contact.Group["id"] }
+    request: { id: Contact.Group["id"]; refresh?: boolean }
     response: Contact.GroupMember["id"][]
   }
   /** 获取群信息列表 */
   getGroupMemberArray: {
-    request: { id: Contact.Group["id"] }
+    request: { id: Contact.Group["id"]; refresh?: boolean }
     response: Contact.GroupMember[]
   }
 
@@ -338,7 +338,7 @@ export interface OICQExtendAPI {
   }
 
   getRoamingStamp: {
-    request: void | { refresh: boolean }
+    request: void | { refresh?: boolean }
     response: string[]
   }
   delRoamingStamp: {

@@ -61,7 +61,7 @@ export class User extends Contactable {
    * @returns 头像的url地址
    */
   getAvatarUrl(size: 0 | 40 | 100 | 140 = 0) {
-    return `https://q.qlogo.cn/g?b=qq&s=${size}&nk=` + this.uid
+    return this.info?.avatar || `https://q.qlogo.cn/g?b=qq&s=${size}&nk=` + this.uid
   }
 
   /**

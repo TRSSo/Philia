@@ -31,16 +31,20 @@ export class Server {
     else this.ws_opts = opts.ws
   }
 
-  listen(port?: number) {
+  listen(port?: number, ...args: any[]) {
     if (port) this.ws_opts = { ...this.ws_opts, port }
-    this.ws ??= new WebSocketServer(this.ws_opts)
-    this.ws.on("connection", ws => {
-      if (this.limit && this.wss.size >= this.limit) {
-        this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
-        return ws.terminate()
-      }
-      new Client(this.handle, this, ws, this.ws_opts)
-    })
+    this.ws ??= new WebSocketServer(this.ws_opts, ...args)
+    this.ws
+      .on("listening", () => {
+        this.logger.info(`WebSocket 服务器已监听端口 ${port}`)
+      })
+      .on("connection", ws => {
+        if (this.limit && this.wss.size >= this.limit) {
+          this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
+          return ws.terminate()
+        }
+        new Client(this.handle, this, ws, this.ws_opts)
+      })
     return promiseEvent(this.ws, "listening", "error") as Promise<this | Error>
   }
 
