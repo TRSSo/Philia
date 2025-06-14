@@ -6,9 +6,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "lint": "prettier --write src && eslint --fix src",
+    "lint": "prettier --write --list-different src && oxlint --fix src",
     "compile": "rm -rf lib/* && tsc",
-    "minify": "find lib/ -type f -name \\*.js -print0 | xargs -0P \"$(nproc)\" -I {} uglifyjs {} -cmo {}",
+    "minify": "node mod/oxc-minify lib",
     "build": "pnpm lint && pnpm compile && pnpm minify",
     "tui": "node lib/bin/tui",
     "run": "node lib/bin/run"
@@ -16,17 +16,13 @@
   "keywords": [],
   "author": "TimeRainStarSky",
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
-    "@types/node": "^22.15.29",
+    "@oxlint/linux-x64-gnu": "^1.0.0",
+    "@types/node": "^24.0.1",
     "@types/ws": "^8.18.1",
-    "eslint": "^9.28.0",
-    "eslint-config-prettier": "^10.1.5",
-    "globals": "^16.2.0",
+    "oxc-minify": "^0.72.3",
+    "oxlint": "^1.1.0",
     "prettier": "3.5.3",
-    "tsx": "^4.19.4",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.33.0",
-    "uglify-js": "^3.19.3"
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.5.3",
@@ -34,16 +30,18 @@
     "chalk": "^5.4.1",
     "log4js": "^6.9.1",
     "msgpackr": "^1.11.4",
-    "ulid": "^3.0.0",
+    "ulid": "^3.0.1",
     "ws": "^8.18.2",
     "yaml": "^2.8.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "cbor-extract",
-      "esbuild",
       "msgpackr-extract"
-    ]
+    ],
+    "patchedDependencies": {
+      "log4js@6.9.1": "mod/log4js.patch"
+    }
   },
   "imports": {
     "#*": "./lib/*/index.js"

@@ -8,10 +8,6 @@ import { modeMatch } from "#util"
 
 /** 消息转换器 */
 export class OBv11toPhilia {
-  /** 客户端 */
-  client: Client
-  /** 消息事件 */
-  event: OBv11Event.Message
   /** 转换前的消息 */
   before: (string | OBv11Message.MessageSegment)[]
   /** 转换后的消息 */
@@ -19,9 +15,14 @@ export class OBv11toPhilia {
   /** 消息摘要 */
   summary = ""
 
-  constructor(client: Client, event: OBv11Event.Message) {
-    this.client = client
-    this.event = event
+  /**
+   * @param client 客户端
+   * @param event 消息事件
+   */
+  constructor(
+    public client: Client,
+    public event: OBv11Event.Message,
+  ) {
     this.before = Array.isArray(event.message) ? event.message : [event.message]
   }
 
@@ -138,14 +139,13 @@ const Extends = OBv11Message.ExtendArray.map(i => `OneBotv11.${i}`)
 
 /** 消息解析器 */
 export class PhiliaToOBv11 {
-  client: Client
-  event: PhiliaEvent.Message
   before: (string | PhiliaMessage.MessageSegment)[]
   after: OBv11Message.MessageSegment[] = []
   summary = ""
-  constructor(client: Client, event: PhiliaEvent.Message) {
-    this.client = client
-    this.event = event
+  constructor(
+    public client: Client,
+    public event: PhiliaEvent.Message,
+  ) {
     this.before = Array.isArray(event.message) ? event.message : [event.message]
   }
 

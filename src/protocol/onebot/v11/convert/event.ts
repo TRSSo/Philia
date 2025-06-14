@@ -2,20 +2,18 @@ import { Event as OBv11Event } from "../type/index.js"
 import { Event as PhiliaEvent } from "#protocol/type"
 import Client from "../server/client.js"
 import * as MessageConvert from "./message.js"
+import { makeError } from "#util"
 
 /** 事件转换器 */
 export class OBv11toPhilia {
-  /** 客户端 */
-  client: Client
   event_map = new Map<PhiliaEvent.Request["id"], PhiliaEvent.Request>()
 
-  constructor(client: Client) {
-    this.client = client
-  }
+  constructor(public client: Client) {}
 
   convert(event: OBv11Event.Event) {
-    if (typeof this[event.post_type] !== "function") throw Error(`未知事件：${event.post_type}`)
-    return this[event.post_type](event as any) as Promise<PhiliaEvent.Event>
+    if (typeof this[event.post_type] === "function")
+      return this[event.post_type](event as any) as Promise<PhiliaEvent.Event>
+    throw makeError(`未知事件：${event.post_type}`, { event })
   }
 
   async message(data: OBv11Event.Message) {
@@ -76,11 +74,7 @@ export class OBv11toPhilia {
 }
 /*
 export class PhiliaToOBv11 {
-  client: Client
-
-  constructor(client: Client) {
-    this.client = client
-  }
+  constructor(public client: Client) {}
 
   convert(event: PhiliaEvent.Event) {
     if (typeof this[event.type] !== "function") throw Error(`未知事件：${event.type}`)

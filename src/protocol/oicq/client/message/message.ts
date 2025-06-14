@@ -32,7 +32,7 @@ export abstract class Message implements Quotable, Forwardable {
   /** 字符串形式的消息 */
   raw_message: string = ""
   font: string
-  /** @cqhttp cqhttp方法用 */
+  /** @cqhttp 方法用 */
   message_id = ""
   /** 消息编号，在群消息中是唯一的 (私聊消息建议至少使用time,seq,rand中的两个判断唯一性) */
   seq: number | string

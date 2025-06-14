@@ -55,7 +55,7 @@ export interface RequestEvent {
   user_id: string
   /** 昵称 */
   nickname: string
-  /** @cqhttp cqhttp方法用 */
+  /** @cqhttp 方法用 */
   flag: string
   seq: number
   time: number
@@ -129,7 +129,7 @@ export interface FriendRecallEvent extends FriendNoticeEvent {
   sub_type: "recall"
   /** 好友账号 */
   operator_id: string
-  /** @cqhttp cqhttp方法用 */
+  /** @cqhttp 方法用 */
   message_id: string
   seq: number
   rand: number
@@ -196,7 +196,7 @@ export interface GroupRecallEvent extends GroupNoticeEvent {
   user_id: string
   /** 撤回消息的群员账号 */
   operator_id: string
-  /** @cqhttp cqhttp方法用 */
+  /** @cqhttp 方法用 */
   message_id: string
   seq: number
   rand: number

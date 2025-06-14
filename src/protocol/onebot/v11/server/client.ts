@@ -20,10 +20,8 @@ export default class Client {
   event_handle: Event.Handle
 
   cache: {
-    [id: string]: {
+    [id: string]: ReturnType<typeof Promise.withResolvers<API.ResponseOK<string>["data"]>> & {
       request: API.Request<string>
-      resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0]
-      reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1]
       error: Error
       timeout: NodeJS.Timeout
     }
@@ -97,27 +95,27 @@ export default class Client {
     return this.sendQueue()
   }
 
-  request<T extends string>(action: T, params: API.API[T]["request"] = {}) {
+  request<T extends string>(action: T, params: API.Request<T>["params"] = {}) {
     const echo = ulid()
     const request: API.Request<T> = { action, params, echo }
     this.logger.debug("WebSocket 请求", request)
     if (this.open) (this.ws as WebSocket).send(String(request))
     else this.queue.push(echo)
     const error = Error()
-    return new Promise<API.API[T]["response"]>(
-      (resolve, reject) =>
-        (this.cache[echo] = {
-          request,
-          resolve,
-          reject,
-          error,
-          timeout: setTimeout(() => {
-            reject(Object.assign(error, request, { timeout: this.timeout }))
-            delete this.cache[echo]
-            logger.error("WebSocket 请求超时", request)
-            this.close()
-          }, this.timeout),
-        }),
-    )
+    const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK<string>["data"]>()
+    this.cache[echo] = {
+      promise,
+      resolve,
+      reject,
+      request,
+      error,
+      timeout: setTimeout(() => {
+        reject(Object.assign(error, request, { timeout: this.timeout }))
+        delete this.cache[echo]
+        logger.error("WebSocket 请求超时", request)
+        this.close()
+      }, this.timeout),
+    }
+    return promise
   }
 }

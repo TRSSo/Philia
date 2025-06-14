@@ -32,7 +32,7 @@ export const enum ESocketStatus {
 }
 export const enum EStatus {
   Request,
-  Receive,
+  Response,
   Async,
   Error,
 }
@@ -46,7 +46,7 @@ export interface Base<T extends EStatus> {
 export interface Request extends Base<EStatus.Request> {
   name: string
 }
-export type Receive = Base<EStatus.Receive>
+export type Response = Base<EStatus.Response>
 export type Async = Base<EStatus.Async>
 export interface Error extends Base<EStatus.Error> {
   data: {
@@ -66,7 +66,7 @@ export class CError {
 export interface Cache {
   data: Request
   retry: number
-  promise: Promise<(Receive | Error)["data"]>
+  promise: Promise<(Response | Error)["data"]>
   resolve(data: any): void
   reject(data: any): void
   finally(): void
@@ -77,11 +77,11 @@ export type HandleDefault = (
   name: Request["name"],
   data: Request["data"],
   client: Client,
-) => Receive["data"] | Promise<Receive["data"]>
+) => Response["data"] | Promise<Response["data"]>
 export type Handle = (
   data: Request["data"],
   client: Client,
-) => Receive["data"] | Promise<Receive["data"]>
+) => Response["data"] | Promise<Response["data"]>
 export type OHandle = {
   [key: Request["name"]]: Handle | unknown
   default?: HandleDefault

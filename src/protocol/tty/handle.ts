@@ -7,10 +7,7 @@ import { ulid } from "ulid"
 
 export class Handle implements SocketType.OHandle {
   [key: string]: ((data: unknown) => unknown) | unknown
-  client: Client
-  constructor(client: Client) {
-    this.client = client
-  }
+  constructor(public client: Client) {}
 
   async sendUserMsg(data: {
     id: Contact.User["id"]

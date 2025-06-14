@@ -7,12 +7,13 @@ import logger from "#logger"
 import { modeMatch } from "#util"
 
 export class Convert {
-  client: Client
   message: (string | Message.MessageSegment)[]
   summary = ""
 
-  constructor(client: Client, message: Message.Message) {
-    this.client = client
+  constructor(
+    public client: Client,
+    message: Message.Message,
+  ) {
     this.message = Array.isArray(message) ? message : [message]
   }
 

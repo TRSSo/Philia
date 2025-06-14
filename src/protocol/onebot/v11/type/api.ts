@@ -352,19 +352,14 @@ export interface Request<T extends keyof API> {
   echo: string
 }
 
-export interface Response<T extends keyof API> {
+export interface ResponseOK<T extends keyof API> {
   /**
    * 状态, 表示 API 是否调用成功
    * ok 表示操作成功，同时 retcode （返回码）会等于 0
    * async 表示请求已提交异步处理，此时 retcode 为 1，具体成功或失败将无法获知
-   * failed 表示操作失败，此时 retcode 既不是 0 也不是 1，具体错误信息应参考 OneBot 实现的日志
    */
-  status: "ok" | "async" | "failed"
-  retcode: number
-  /** 错误消息, 仅在 API 调用失败时有该字段 */
-  msg?: string
-  /** 对错误的详细解释(中文), 仅在 API 调用失败时有该字段 */
-  wording?: string
+  status: "ok" | "async"
+  retcode: 0 | 1
   /**
    * data 字段为 API 返回数据的内容，对于踢人、禁言等不需要返回数据的操作，这里为 null，
    * 对于获取群成员信息这类操作，这里为所获取的数据的对象，具体的数据内容将会在相应的 API 描述中给出。
@@ -374,6 +369,19 @@ export interface Response<T extends keyof API> {
   /** '回声', 如果请求时指定了 echo, 那么响应也会包含 echo */
   echo: string
 }
+
+export interface ResponseFailed {
+  /** failed 表示操作失败，此时 retcode 既不是 0 也不是 1，具体错误信息应参考 OneBot 实现的日志 */
+  status: "failed"
+  retcode: number
+  /** 错误消息 */
+  msg: string
+  /** 对错误的详细解释(中文) */
+  wording: string
+  echo: string
+}
+
+export type Response<T extends keyof API> = ResponseOK<T> | ResponseFailed
 
 export type IAPI = PhiliaAPI.IAPI<API>
 export type ServerAPI = IAPI["Server"]

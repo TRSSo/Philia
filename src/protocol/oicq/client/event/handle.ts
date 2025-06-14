@@ -10,10 +10,7 @@ export default class Handle implements SocketType.OHandle {
     { type: "message", scene: "user" },
     { type: "message", scene: "group" },
   ].map(i => ({ ...i, handle: `${i.type}.${i.scene || ""}` }))
-  client: Client
-  constructor(client: Client) {
-    this.client = client
-  }
+  constructor(public client: Client) {}
 
   async ["message.user"](raw: Event.UserMessage) {
     const event: types.PrivateMessageEvent = new PrivateMessage(this.client, raw)

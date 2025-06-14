@@ -3,10 +3,8 @@ import { Event as OBv11Event, API as OBv11API } from "../type/index.js"
 import { Event as EventConvert } from "../convert/index.js"
 
 export default class Protocol {
-  client: Client
   convert: EventConvert.OBv11toPhilia
-  constructor(client: Client) {
-    this.client = client
+  constructor(public client: Client) {
     this.convert = new EventConvert.OBv11toPhilia(this.client)
   }
 
@@ -19,8 +17,12 @@ export default class Protocol {
   echo(data: OBv11API.Response<string>) {
     const cache = this.client.cache[data.echo]
     if (!cache) return
-    if ([0, 1].includes(data.retcode)) cache.resolve(data.data)
-    else cache.reject(Object.assign(cache.error, cache.request, { error: data }))
+    if (data.retcode === 0 || data.retcode === 1)
+      cache.resolve((data as OBv11API.ResponseOK<string>).data)
+    else
+      cache.reject(
+        Object.assign(cache.error, cache.request, { error: data as OBv11API.ResponseFailed }),
+      )
     clearTimeout(cache.timeout)
     delete this.client.cache[data.echo]
   }

@@ -6,7 +6,6 @@ import { API as OBv11API, Event as OBv11Event, Message as OBv11Message } from ".
 
 /** API 转换器 */
 export class PhiliaToOBv11 implements API.ServerAPI {
-  client: Client
   cache = new Map<string, unknown>()
   user_cache = new Map<Contact.User["id"], Contact.User>()
   group_cache = new Map<Contact.Group["id"], Contact.Group>()
@@ -14,9 +13,8 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     Contact.Group["id"],
     Map<Contact.GroupMember["id"], Contact.GroupMember>
   >()
-  constructor(client: Client) {
-    this.client = client
-  }
+
+  constructor(public client: Client) {}
 
   receiveEvent({ event }: { event: Event.Handle | Event.Handle[] }) {
     return this.client.event_handle.receive(event)

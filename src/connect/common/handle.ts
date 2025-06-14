@@ -4,7 +4,6 @@ import * as type from "./type.js"
 import Client from "./client.js"
 
 export default class Handle {
-  client: Client
   default_handle: [keyof type.OHandle, type.Handle | type.HandleDefault][] = [
     ["heartbeat", () => {}],
     ["getHandleList", () => Array.from(this.map.keys())],
@@ -18,8 +17,10 @@ export default class Handle {
   map = new Map(this.default_handle)
   reply_cache: { [key: string]: type.Base<type.EStatus> } = {}
 
-  constructor(handle: type.Handles, client: Client) {
-    this.client = client
+  constructor(
+    handle: type.Handles,
+    public client: Client,
+  ) {
     this.set(handle)
   }
 
@@ -42,14 +43,14 @@ export default class Handle {
       case type.EStatus.Request:
         if (this.reply_cache[req.id]) return this.client.write(this.reply_cache[req.id])
         return this.request(req as type.Request, this.reply.bind(this, req as type.Request))
-      case type.EStatus.Receive:
-        return this.receive(req as type.Receive)
+      case type.EStatus.Response:
+        return this.response(req as type.Response)
       case type.EStatus.Async:
         return this.async(req as type.Async)
       case type.EStatus.Error:
         return this.error(req as type.Error)
       default:
-        throw makeError("不支持的数据类型")
+        throw TypeError("不支持的数据类型")
     }
   }
 
@@ -64,7 +65,7 @@ export default class Handle {
     reply: (code: type.EStatus, data?: type.Base<type.EStatus>["data"]) => void,
   ) {
     try {
-      let ret: type.Receive["data"]
+      let ret: type.Response["data"]
       if (this.map.has(req.name)) {
         this.client.logger.debug(
           `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
@@ -81,7 +82,7 @@ export default class Handle {
         reply(type.EStatus.Async)
         ret = await ret
       }
-      return reply(type.EStatus.Receive, ret)
+      return reply(type.EStatus.Response, ret)
     } catch (err) {
       let error: type.Error["data"] = {
         name: "HandleError",
@@ -106,7 +107,7 @@ export default class Handle {
     return cache
   }
 
-  receive(req: type.Receive) {
+  response(req: type.Response) {
     const cache = this.getCache(req)
     cache.resolve(req.data)
   }

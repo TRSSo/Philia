@@ -9,7 +9,7 @@ export const chalk = new Chalk({ level: 3 })
  * @param obj 错误参数
  * @returns 错误对象
  */
-export function makeError(msg = "", obj = {}) {
+export function makeError(msg: string, obj: object) {
   return Object.assign(Error(msg), obj)
 }
 
@@ -158,21 +158,16 @@ export function promiseEvent(
   reject?: string | symbol,
   timeout?: number,
 ) {
-  let listener: {
-    resolve: Parameters<ConstructorParameters<typeof Promise>[0]>[0]
-    reject: Parameters<ConstructorParameters<typeof Promise>[0]>[1]
-    timeout?: NodeJS.Timeout
-  }
-  return new Promise((...args) => {
-    listener = { resolve: args[0], reject: args[1] }
-    event.once(resolve, listener.resolve)
-    if (reject) event.once(reject, listener.reject)
-    if (timeout)
-      listener.timeout = setTimeout(
-        () => listener.reject(makeError("等待事件超时", { event, resolve, reject, timeout })),
-        timeout,
-      )
-  }).finally(() => {
+  const listener: ReturnType<typeof Promise.withResolvers> & { timeout?: NodeJS.Timeout } =
+    Promise.withResolvers()
+  event.once(resolve, listener.resolve)
+  if (reject) event.once(reject, listener.reject)
+  if (timeout)
+    listener.timeout = setTimeout(
+      () => listener.reject(makeError("等待事件超时", { event, resolve, reject, timeout })),
+      timeout,
+    )
+  return listener.promise.finally(() => {
     event.off(resolve, listener.resolve)
     if (reject) event.off(reject, listener.reject)
     if (timeout) clearTimeout(listener.timeout)

@@ -53,7 +53,7 @@ export default abstract class Client {
 
   async sender(): Promise<type.Cache["promise"]> {
     if (!this.open) {
-      for (const i of this.queue) this.cache[i].reject(makeError("连接关闭"))
+      for (const i of this.queue) this.cache[i].reject(Error("连接关闭"))
       this.queue = []
       return (this.idle = true)
     }
@@ -73,19 +73,16 @@ export default abstract class Client {
     this.write(cache.data)
   }
 
-  send(data: type.Base<type.EStatus>) {
+  send(data: type.Request) {
     const cache = {
       data,
       retry: 0,
+      ...Promise.withResolvers(),
       finally: () => {
         delete this.cache[data.id]
         this.sender()
       },
-    } as type.Cache
-    cache.promise = new Promise((resolve, reject) => {
-      cache.resolve = resolve
-      cache.reject = reject
-    }).finally(() => cache.finally())
+    }
 
     this.cache[data.id] = cache
     this.queue.push(data.id)
