@@ -125,7 +125,7 @@ export abstract class Message implements Quotable, Forwardable {
     return Object.fromEntries(
       Object.keys(this)
         .filter(key => {
-          return typeof this[key as keyof this] !== "function" && !keys.includes(key as any)
+          return typeof this[key as keyof this] !== "function" && !keys.includes(key)
         })
         .map(key => {
           return [key, this[key as keyof this]]

@@ -14,7 +14,7 @@ import {
   Button,
   BaseMessageElem,
   ExtendMessageElem,
-  ExtendType,
+  ExtendArray,
   PlatformElem,
   MessageElem,
   segment,
@@ -56,8 +56,8 @@ export class OICQtoPhilia {
     for (const i of this.before) {
       if (typeof i !== "object") this._text(i)
       else if (typeof this[(i as BaseMessageElem).type] === "function")
-        await this[(i as BaseMessageElem).type](i as any)
-      else if (ExtendType.includes((i as ExtendMessageElem).type))
+        await this[(i as BaseMessageElem).type](i as never)
+      else if (ExtendArray.includes((i as ExtendMessageElem).type))
         this.extend(i as ExtendMessageElem)
       else this._text(i)
     }
@@ -83,53 +83,55 @@ export class OICQtoPhilia {
     this.brief += text
   }
 
-  text(elem: TextElem) {
-    this._text(elem.text, elem.markdown)
+  text(ms: TextElem) {
+    this._text(ms.text, ms.markdown)
   }
 
-  at(elem: AtElem) {
-    let { qq, text = "" } = elem
-    if (qq === "all") {
-      this.brief += `[提及全体成员]`
-      this.after.push({ type: "mention", data: "all" })
-      return
-    }
+  at(ms: AtElem) {
+    let { qq, text = "" } = ms
+    switch (qq) {
+      case "user":
+        qq = String(qq)
+        if (!text) {
+          let info
+          if (!this.c.dm && this.c.target) info = this.c.client.gml.get(this.c.target)?.get(qq)
+          info ??= this.c.client.fl.get(qq)
+          if (info) text = (info as MemberInfo).card || info.nickname
+        }
 
-    qq = String(qq)
-    if (!text) {
-      let info
-      if (!this.c.dm && this.c.target) info = this.c.client.gml.get(this.c.target)?.get(qq)
-      info ??= this.c.client.fl.get(qq)
-      if (info) text = (info as MemberInfo).card || info.nickname
+        if (ms.dummy) return this._text(`@${text}`)
+        this.brief += `[提及: ${text}(${qq})]`
+        this.after.push({ type: "mention", data: "user", id: qq, name: text })
+        break
+      case "all":
+        this.brief += `[提及全体成员]`
+        this.after.push({ type: "mention", data: "all" })
+        break
     }
-
-    if (elem.dummy) return this._text(`@${text}`)
-    this.brief += `[提及: ${text}(${qq})]`
-    this.after.push({ type: "mention", data: "user", id: qq, name: text })
   }
 
-  async _prepareFile<T extends PhiliaType.AFile>(elem: {
+  async _prepareFile<T extends PhiliaType.AFile>(ms: {
     type: string
     file: string | Buffer
     fid?: string
   }) {
     const data = {
-      ...elem,
+      ...ms,
       data: "binary",
     } as unknown as T
 
-    if (elem.fid) {
+    if (ms.fid) {
       data.data = "id"
-      data.id = elem.fid
-    } else if (Buffer.isBuffer(elem.file)) {
-      data.binary = elem.file
-    } else if (elem.file.startsWith("base64://")) {
-      data.binary = Buffer.from(elem.file.replace("base64://", ""), "base64")
-    } else if (elem.file.match(/^https?:\/\//)) {
+      data.id = ms.fid
+    } else if (Buffer.isBuffer(ms.file)) {
+      data.binary = ms.file
+    } else if (ms.file.startsWith("base64://")) {
+      data.binary = Buffer.from(ms.file.replace("base64://", ""), "base64")
+    } else if (ms.file.match(/^https?:\/\//)) {
       data.data = "url"
-      data.url = elem.file
+      data.url = ms.file
     } else {
-      const file = elem.file.replace(/^file:\/\//, "")
+      const file = ms.file.replace(/^file:\/\//, "")
       if (await fs.stat(file).catch(() => false)) {
         data.binary = await fs.readFile(file)
       } else {
@@ -140,91 +142,88 @@ export class OICQtoPhilia {
     return data
   }
 
-  async file(elem: FileElem) {
-    this.after.push(await this._prepareFile<PhiliaType.File>(elem))
+  async file(ms: FileElem) {
+    this.after.push(await this._prepareFile<PhiliaType.File>(ms))
     this.brief += "[文件]"
   }
 
-  async image(elem: ImageElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Image>(elem))
+  async image(ms: ImageElem) {
+    this.after.push(await this._prepareFile<PhiliaType.Image>(ms))
     this.brief += "[图片]"
   }
 
-  async record(elem: PttElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Voice>({ ...elem, type: "voice" }))
+  async record(ms: PttElem) {
+    this.after.push(await this._prepareFile<PhiliaType.Voice>({ ...ms, type: "voice" }))
     this.brief += "[语音]"
   }
 
-  async video(elem: VideoElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Video>(elem))
+  async video(ms: VideoElem) {
+    this.after.push(await this._prepareFile<PhiliaType.Video>(ms))
     this.brief += "[视频]"
   }
 
-  async node(elem: ForwardNode) {
-    this.response = await this.c.sendForwardMsg(elem.data)
+  async node(ms: ForwardNode) {
+    this.response = await this.c.sendForwardMsg(ms.data)
   }
 
-  markdown(elem: MarkdownElem) {
+  markdown(ms: MarkdownElem) {
     this.after.push({
       type: "text",
-      data: elem.content,
-      markdown: elem.content,
+      data: ms.content,
+      markdown: ms.content,
     })
     this.brief += "[Markdown]"
   }
 
-  _button(elem: Button) {
+  _button(ms: Button) {
     const button = {
-      QQBot: elem,
-      text: elem.render_data.label,
-      clicked_text: elem.render_data.visited_label,
+      QQBot: ms,
+      text: ms.render_data.label,
+      clicked_text: ms.render_data.visited_label,
     } as unknown as PhiliaType.ButtonType
 
-    switch (elem.action.type) {
+    switch (ms.action.type) {
       case 0:
-        button.link = elem.action.data
+        button.link = ms.action.data
         break
       case 1:
-        button.callback = elem.action.data
+        button.callback = ms.action.data
         break
       case 2:
-        button.input = elem.action.data
-        button.send = elem.action.enter
+        button.input = ms.action.data
+        button.send = ms.action.enter
         break
     }
 
-    if (elem.action.permission) {
-      if (elem.action.permission.type === 1) button.permission = "admin"
-      else button.permission = elem.action.permission.specify_user_ids
+    if (ms.action.permission) {
+      if (ms.action.permission.type === 1) button.permission = "admin"
+      else button.permission = ms.action.permission.specify_user_ids
     }
 
     return button
   }
 
-  button(elem: ButtonElem) {
+  button(ms: ButtonElem) {
     const data =
-      elem.data || elem.content?.rows.map(row => row.buttons.map(this._button.bind(this))) || []
+      ms.data || ms.content?.rows.map(row => row.buttons.map(this._button.bind(this))) || []
     this.after.push({ type: "button", data })
     this.brief += "[按钮]"
   }
 
-  reply(elem: ReplyElem) {
-    this.after.push({ type: "reply", data: elem.id, summary: elem.text })
-    this.brief += `[提及: ${elem.text ? `${elem.text}(${elem.id})` : elem.id}]`
+  reply(ms: ReplyElem) {
+    this.after.push({ type: "reply", data: ms.id, summary: ms.text })
+    this.brief += `[提及: ${ms.text ? `${ms.text}(${ms.id})` : ms.id}]`
   }
 
-  quote(elem: Quotable) {
-    if (elem.message_id)
+  quote(ms: Quotable) {
+    if (ms.message_id)
       this.reply({
-        id: elem.message_id,
-        text: (elem as Message).raw_message || elem.message,
+        id: ms.message_id,
+        text: (ms as Message).raw_message || ms.message,
       } as ReplyElem)
   }
 }
 
-const Extends = ExtendType.map(i => `OICQ.${i}`)
-
-/** 消息解析器 */
 export class PhiliaToOICQ {
   before: (string | PhiliaType.MessageSegment)[]
   after: MessageElem[] = []
@@ -245,32 +244,33 @@ export class PhiliaToOICQ {
 
   async convert() {
     for (const i of this.before) {
-      if (typeof i === "object" && typeof this[i.type] === "function") await this[i.type](i as any)
+      if (typeof i === "object" && typeof this[i.type] === "function")
+        await this[i.type](i as never)
       else this.after.push(segment.text(i))
     }
   }
 
-  text(elem: PhiliaType.Text) {
-    this.after.push(segment.text(elem.data, elem.markdown))
-    this.brief += elem.data
+  text(ms: PhiliaType.Text) {
+    this.after.push(segment.text(ms.data, ms.markdown))
+    this.brief += ms.data
   }
 
-  mention(elem: PhiliaType.Mention) {
-    if (elem.data === "all") {
+  mention(ms: PhiliaType.Mention) {
+    if (ms.data === "all") {
       this.after.push(segment.at("all"))
       this.brief += "@全体成员"
       this.atall = true
       return
     }
-    this.after.push(segment.at(elem.id as string, elem.name))
-    this.brief += elem.name ? `@${elem.name}(${elem.id})` : `@${elem.id}`
-    if (elem.id === this.c.uin) this.atme = true
+    this.after.push(segment.at(ms.id as string, ms.name))
+    this.brief += ms.name ? `@${ms.name}(${ms.id})` : `@${ms.id}`
+    if (ms.id === this.c.uin) this.atme = true
   }
 
-  async reply(elem: PhiliaType.Reply) {
-    this.after.push(segment.reply(elem.data, elem.summary))
-    this.brief += elem.summary ? `[回复: ${elem.summary}(${elem.data})]` : `[回复: ${elem.data}]`
-    const source = await this.c.api.getMsg({ id: elem.data })
+  async reply(ms: PhiliaType.Reply) {
+    this.after.push(segment.reply(ms.data, ms.summary))
+    this.brief += ms.summary ? `[回复: ${ms.summary}(${ms.data})]` : `[回复: ${ms.data}]`
+    const source = await this.c.api.getMsg({ id: ms.data })
     this.source = {
       ...source,
       user_id: source.user.id,
@@ -321,65 +321,67 @@ export class PhiliaToOICQ {
     return msg
   }
 
-  button(elem: PhiliaType.Button) {
+  button(ms: PhiliaType.Button) {
     this.after.push(
-      Object.assign(elem, segment.button(elem.data.map(i => i.map(this._button.bind(this))))),
+      Object.assign(ms, segment.button(ms.data.map(i => i.map(this._button.bind(this))))),
     )
     this.brief += "[按钮]"
   }
 
-  extend(elem: PhiliaType.Extend) {
-    if (Extends.includes(elem.extend)) {
-      this.after.push(elem.data as MessageElem)
-      this.brief += `[${(elem.data as MessageElem).type}: ${elem.data}]`
+  extend(ms: PhiliaType.Extend) {
+    if (ms.extend.startsWith("OICQ.")) {
+      this.after.push(ms.data as MessageElem)
+      this.brief += `[${(ms.data as MessageElem).type}: ${ms.data}]`
     } else {
-      this.after.push(elem)
-      this.brief += `[${elem.extend} 扩展消息: ${elem.data}]`
+      this.after.push(ms)
+      this.brief += `[${ms.extend} 扩展消息: ${ms.data}]`
     }
   }
 
-  platform(elem: PhiliaType.Platform) {
-    this.brief += `[${elem.list}(${elem.mode}) 平台消息: ${elem.data}]`
-    if (modeMatch(elem, "OICQ")) this.after.push(elem.data as MessageElem)
-    else this.after.push(elem)
+  platform(ms: PhiliaType.Platform) {
+    this.brief += `[${ms.list}(${ms.mode}) 平台消息: ${ms.data}]`
+    if (modeMatch(ms, "OICQ"))
+      if (Array.isArray(ms.data)) this.after.push(...(ms.data as MessageElem[]))
+      else this.after.push(ms.data as MessageElem)
+    else this.after.push(ms)
   }
 
-  async _file(type: BaseMessageElem["type"], elem: PhiliaType.AFile): Promise<void> {
-    switch (elem.data) {
+  async _file(type: BaseMessageElem["type"], ms: PhiliaType.AFile): Promise<void> {
+    switch (ms.data) {
       case "id":
-        return this._file(type, await this.c.api.getFile({ id: elem.id }))
+        return this._file(type, await this.c.api.getFile({ id: ms.id as string }))
       case "path":
       case "binary":
         /** 转成 url */
         break
       case "url":
-        this.after.push({ ...elem, type } as BaseMessageElem)
+        this.after.push({ ...ms, type } as BaseMessageElem)
         break
     }
   }
 
-  file(elem: PhiliaType.File) {
-    this.brief += "[文件]"
-    return this._file("file", elem)
+  file(ms: PhiliaType.File) {
+    this.brief += ms.summary ?? `[文件: ${ms.name}]`
+    return this._file("file", ms)
   }
 
-  image(elem: PhiliaType.Image) {
-    this.brief += "[图片]"
-    return this._file("image", elem)
+  image(ms: PhiliaType.Image) {
+    this.brief += ms.summary ?? `[图片: ${ms.name}]`
+    return this._file("image", ms)
   }
 
-  voice(elem: PhiliaType.Voice) {
-    this.brief += "[语音]"
-    return this._file("record", elem)
+  voice(ms: PhiliaType.Voice) {
+    this.brief += ms.summary ?? `[语音: ${ms.name}]`
+    return this._file("record", ms)
   }
 
-  audio(elem: PhiliaType.Audio) {
-    this.brief += "[音频]"
-    return this._file("file", elem)
+  audio(ms: PhiliaType.Audio) {
+    this.brief += ms.summary ?? `[音频: ${ms.name}]`
+    return this._file("file", ms)
   }
 
-  video(elem: PhiliaType.File) {
-    this.brief += "[视频]"
-    return this._file("video", elem)
+  video(ms: PhiliaType.File) {
+    this.brief += ms.summary ?? `[视频: ${ms.name}]`
+    return this._file("video", ms)
   }
 }

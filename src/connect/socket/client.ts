@@ -104,7 +104,7 @@ export default class Client extends AClient {
 
   encode(data: any) {
     const buffer = this.encoder.encode(data)
-    const length = Buffer.alloc(4)
+    const length = Buffer.allocUnsafe(4)
     length.writeUint32BE(buffer.length)
     return Buffer.concat([length, buffer])
   }

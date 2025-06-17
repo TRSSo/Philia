@@ -14,7 +14,7 @@ import { Group } from "./contact/group.js"
 import { Member } from "./contact/member.js"
 import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
 import { Client as SocketClient } from "#connect/socket"
-import { API, Contact, Message as PhiliaMessage } from "#protocol/type"
+import * as Philia from "#protocol/type"
 import Handle from "./event/handle.js"
 import { createAPI } from "#protocol/common"
 
@@ -75,7 +75,7 @@ export class Client extends events {
 
   /** 勿手动修改这些属性 */
   /** 自己信息 */
-  self_info: Contact.Self = { id: "", name: "" }
+  self_info: Philia.Contact.Self = { id: "", name: "" }
   /** 在线状态 */
   status: OnlineStatus = OnlineStatus.Offline
   /** 昵称 */
@@ -106,7 +106,7 @@ export class Client extends events {
   }
 
   handle = new Handle(this)
-  api: ReturnType<typeof createAPI<API.ClientAPI>>
+  api: ReturnType<typeof createAPI<Philia.API.ClientAPI>>
   socket: SocketClient
   /** 是否为在线状态 (可以收发业务包的状态) */
   isOnline() {
@@ -174,7 +174,7 @@ export class Client extends events {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
     }
-    this.api = createAPI<API.ClientAPI>(this.socket)
+    this.api = createAPI<Philia.API.ClientAPI>(this.socket)
 
     this.config = {
       ignore_self: true,
@@ -349,8 +349,9 @@ export class Client extends events {
 
   /** 重载群成员列表 */
   async reloadGroupMemberList() {
-    for (const i of (await this.reloadGroupList()).keys())
-      await this.pickGroup(i).getMemberMap(true)
+    await Promise.allSettled(
+      [...(await this.reloadGroupList()).keys()].map(i => this.pickGroup(i).getMemberMap(true)),
+    )
     return this.gml
   }
 
@@ -389,7 +390,7 @@ export class Client extends events {
 
   /** Ocr图片转文字 */
   async imageOcr(file: ImageElem["file"]) {
-    const image = await OICQtoPhilia.prototype._prepareFile<PhiliaMessage.Image>({
+    const image = await OICQtoPhilia.prototype._prepareFile<Philia.Message.Image>({
       type: "image",
       file,
     })

@@ -67,8 +67,8 @@ export interface Cache {
   data: Request
   retry: number
   promise: Promise<(Response | Error)["data"]>
-  resolve(data: any): void
-  reject(data: any): void
+  resolve(data: Response["data"]): void
+  reject(data: globalThis.Error): void
   finally(): void
   timeout?: NodeJS.Timeout
 }

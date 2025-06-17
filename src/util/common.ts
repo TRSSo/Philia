@@ -9,8 +9,8 @@ export const chalk = new Chalk({ level: 3 })
  * @param obj 错误参数
  * @returns 错误对象
  */
-export function makeError(msg: string, obj: object) {
-  return Object.assign(Error(msg), obj)
+export function makeError(msg: string, ...obj: object[]) {
+  return Object.assign(Error(msg), ...obj)
 }
 
 /**
@@ -50,7 +50,7 @@ export function StringOrBuffer(data: Buffer, base64 = false): string | Buffer {
 
 export function getCircularReplacer() {
   const ancestors: any[] = []
-  return function (this: any, key: string, value: any): any {
+  return function (this: any, _key: string, value: any): any {
     switch (typeof value) {
       case "function":
         return String(value)
@@ -79,7 +79,7 @@ export function getCircularReplacer() {
  * @param space JSON.stringify 的第三个参数
  * @returns 字符串
  */
-export function String(data: any, space?: number | string): string {
+export function String(data: any, space?: Parameters<typeof JSON.stringify>[2]): string {
   switch (typeof data) {
     case "string":
       return data

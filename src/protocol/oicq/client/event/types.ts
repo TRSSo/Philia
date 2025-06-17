@@ -18,6 +18,7 @@ import { MemberInfo, Gender, GroupRole } from "../contact/types.js"
 export interface MessageRet {
   /** 消息id */
   message_id: string
+  file_id?: string[]
   seq: number
   rand: number
   time: number

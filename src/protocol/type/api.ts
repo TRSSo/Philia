@@ -201,17 +201,8 @@ export interface BaseAPI {
    * @returns 文件消息段（只能是 binary 或 url 类型）
    */
   getFile: {
-    request: { id: Message.AFile["id"] }
+    request: { id: NonNullable<Message.AFile["id"]> }
     response: Message.AFile
-  }
-
-  /**
-   * 获取合并转发消息
-   * @param id 转发ID
-   */
-  getForwardMsg: {
-    request: { id: string }
-    response: Message.Forward[]
   }
 
   /**
@@ -222,12 +213,14 @@ export interface BaseAPI {
    * group: 从该群最新消息
    * @param id ID
    * @param count 往前获取消息数量
+   * @param newer 往后获取新消息
    */
   getChatHistory: {
     request: {
       type: "message" | Event.Message["scene"]
       id: (Event.Message | Contact.User | Contact.Group)["id"]
       count?: number
+      newer?: boolean
     }
     response: Event.Message[]
   }
@@ -265,9 +258,16 @@ export interface BaseAPI {
     response: Contact.GroupMember[]
   }
 
-  /** 获取请求列表 */
+  /**
+   * 获取请求列表
+   * @param scene 请求场景，默认全部
+   * @param count 请求数量
+   */
   getRequestArray: {
-    request: void
+    request: void | {
+      scene?: Event.Request["scene"]
+      count?: number
+    }
     response: Event.Request[]
   }
 
@@ -301,6 +301,15 @@ export interface BaseAPI {
 }
 
 export interface OICQExtendAPI {
+  /**
+   * 获取合并转发消息
+   * @param id 转发ID
+   */
+  getForwardMsg: {
+    request: { id: string }
+    response: Message.Forward[]
+  }
+
   /**
    * 发送戳一戳
    * @param scene 发送场景

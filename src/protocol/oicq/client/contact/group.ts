@@ -16,7 +16,7 @@ import {
   MemberIncreaseEvent,
 } from "../event/types.js"
 import { GroupInfo, MemberInfo } from "./types.js"
-import { Event as PhiliaEvent } from "#protocol/type"
+import * as Philia from "#protocol/type"
 
 type Client = import("../client.js").Client
 type Member = import("./member.js").Member
@@ -224,10 +224,11 @@ export class Group extends Contactable {
    * @param file `string`表示从该本地文件路径上传，`Buffer`表示直接上传这段内容
    * @param pid 上传的目标目录id，默认根目录
    * @param name 上传的文件名，`file`为`Buffer`时，若留空则自动以md5命名
-   * @returns 上传的文件属性
+   * @returns 文件ID
    */
-  sendFile(file: string | Buffer, pid = "/", name?: string) {
-    return this.sendMsg(segment.file(file, name, pid))
+  async sendFile(file: string | Buffer, pid = "/", name?: string) {
+    const ret = await this.sendMsg(segment.file(file, name, pid))
+    return ret.file_id?.[0] || ret.message_id
   }
 
   /**
@@ -311,7 +312,7 @@ export class Group extends Contactable {
     for (let i = 0; i < 100; i++) {
       const msg = (await this.c.api
         .getChatHistory({ type: "message", id: mid, count: 11 })
-        .catch(() => [])) as PhiliaEvent.GroupMessage[]
+        .catch(() => [])) as Philia.Event.GroupMessage[]
       mid = msg.length > 1 ? msg.pop()?.id : undefined
 
       for (const i of msg)

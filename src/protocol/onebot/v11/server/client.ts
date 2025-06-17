@@ -1,12 +1,12 @@
 import { Philia } from "#project/project"
 import { WebSocket } from "ws"
-import { promiseEvent, String } from "#util"
+import { makeError, promiseEvent, String } from "#util"
 import logger from "#logger"
 import Protocol from "./protocol.js"
 import { ulid } from "ulid"
 import { createAPI, Event } from "#protocol/common"
 import { API } from "../type/index.js"
-import { API as APIConvert } from "../convert/index.js"
+import * as Convert from "../convert/index.js"
 
 export default class Client {
   logger = logger
@@ -15,17 +15,17 @@ export default class Client {
   path?: string
 
   api = createAPI<API.ClientAPI>(this)
-  handle = new APIConvert.PhiliaToOBv11(this)
+  handle = new Convert.API.PhiliaToOBv11(this)
   protocol = new Protocol(this)
   event_handle: Event.Handle
 
-  cache: {
-    [id: string]: ReturnType<typeof Promise.withResolvers<API.ResponseOK<string>["data"]>> & {
+  cache = new Map<
+    string,
+    ReturnType<typeof Promise.withResolvers<API.ResponseOK<string>["data"]>> & {
       request: API.Request<string>
-      error: Error
       timeout: NodeJS.Timeout
     }
-  } = {}
+  >()
   queue: string[] = []
   timeout = 6e4
 
@@ -87,7 +87,7 @@ export default class Client {
 
   sendQueue(): void {
     if (this.queue.length === 0 || !this.open) return
-    const data = this.cache[this.queue.shift() as string]?.request
+    const data = this.cache.get(this.queue.shift() as string)?.request
     if (data) {
       this.logger.debug("WebSocket 发送", data)
       this.ws.send(JSON.stringify(data))
@@ -99,23 +99,27 @@ export default class Client {
     const echo = ulid()
     const request: API.Request<T> = { action, params, echo }
     this.logger.debug("WebSocket 请求", request)
-    if (this.open) (this.ws as WebSocket).send(String(request))
+    if (this.open) this.ws.send(String(request))
     else this.queue.push(echo)
-    const error = Error()
     const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK<string>["data"]>()
-    this.cache[echo] = {
+    this.cache.set(echo, {
       promise,
       resolve,
       reject,
       request,
-      error,
       timeout: setTimeout(() => {
-        reject(Object.assign(error, request, { timeout: this.timeout }))
-        delete this.cache[echo]
+        reject(makeError("WebSocket 请求超时", request, { timeout: this.timeout }))
         logger.error("WebSocket 请求超时", request)
         this.close()
       }, this.timeout),
-    }
+    })
     return promise
+      .catch((error: API.ResponseFailed) => {
+        throw makeError(error.msg || error.wording, request, { error })
+      })
+      .finally(() => {
+        clearTimeout(this.cache.get(echo)?.timeout)
+        this.cache.delete(echo)
+      })
   }
 }

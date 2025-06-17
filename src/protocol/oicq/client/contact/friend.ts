@@ -11,7 +11,7 @@ import {
 } from "../event/types.js"
 import { FriendInfo } from "./types.js"
 import { Contactable } from "./contactable.js"
-import { Event as PhiliaEvent } from "#protocol/type"
+import * as Philia from "#protocol/type"
 
 type Client = import("../client.js").Client
 
@@ -93,7 +93,7 @@ export class User extends Contactable {
     for (let i = 0; i < 100; i++) {
       const msg = (await this.c.api
         .getChatHistory({ type: "message", id: mid, count: 11 })
-        .catch(() => [])) as PhiliaEvent.UserMessage[]
+        .catch(() => [])) as Philia.Event.UserMessage[]
       mid = msg.length > 1 ? msg.pop()?.id : undefined
 
       for (const i of msg)
@@ -236,9 +236,11 @@ export class User extends Contactable {
    * 发送离线文件
    * @param file `string`表示从该本地文件路径获取，`Buffer`表示直接发送这段内容
    * @param name 对方看到的文件名，`file`为`Buffer`时，若留空则自动以md5命名
+   * @returns 文件ID
    */
   async sendFile(file: string | Buffer, name?: string) {
-    return (await this.sendMsg(segment.file(file, name))).message_id
+    const ret = await this.sendMsg(segment.file(file, name))
+    return ret.file_id?.[0] || ret.message_id
   }
 }
 

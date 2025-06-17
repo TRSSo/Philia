@@ -1,33 +1,28 @@
 import Client from "./client.js"
-import { Event as OBv11Event, API as OBv11API } from "../type/index.js"
-import { Event as EventConvert } from "../convert/index.js"
+import * as OBv11 from "../type/index.js"
+import { Event } from "../convert/index.js"
 
 export default class Protocol {
-  convert: EventConvert.OBv11toPhilia
+  convert: Event.OBv11toPhilia
   constructor(public client: Client) {
-    this.convert = new EventConvert.OBv11toPhilia(this.client)
+    this.convert = new Event.OBv11toPhilia(this.client)
   }
 
   handle(data: object) {
-    if ("echo" in data) this.echo(data as OBv11API.Response<string>)
-    else if ("post_type" in data) this.post(data as OBv11Event.Event)
+    if ("echo" in data) this.echo(data as OBv11.API.Response<string>)
+    else if ("post_type" in data) this.post(data as OBv11.Event.Event)
     else this.client.logger.warn("未知消息", data)
   }
 
-  echo(data: OBv11API.Response<string>) {
-    const cache = this.client.cache[data.echo]
+  echo(data: OBv11.API.Response<string>) {
+    const cache = this.client.cache.get(data.echo)
     if (!cache) return
     if (data.retcode === 0 || data.retcode === 1)
-      cache.resolve((data as OBv11API.ResponseOK<string>).data)
-    else
-      cache.reject(
-        Object.assign(cache.error, cache.request, { error: data as OBv11API.ResponseFailed }),
-      )
-    clearTimeout(cache.timeout)
-    delete this.client.cache[data.echo]
+      cache.resolve((data as OBv11.API.ResponseOK<string>).data)
+    else cache.reject(data)
   }
 
-  async post(data: OBv11Event.Event) {
+  async post(data: OBv11.Event.Event) {
     this.client.event_handle.handle(await this.convert.convert(data))
   }
 }

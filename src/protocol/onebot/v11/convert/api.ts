@@ -2,7 +2,7 @@ import Client from "../server/client.js"
 import { API, Event, Contact, Message } from "#protocol/type"
 import { String } from "#util"
 import * as MessageConverter from "./message.js"
-import { API as OBv11API, Event as OBv11Event, Message as OBv11Message } from "../type/index.js"
+import * as OBv11 from "../type/index.js"
 
 /** API 转换器 */
 export class PhiliaToOBv11 implements API.ServerAPI {
@@ -49,7 +49,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     if (data.avatar) await this.client.api.set_qq_avatar({ file: String(data.avatar) })
   }
 
-  _convertUserInfo(res: OBv11API.API["get_stranger_info"]["response"] | OBv11Event.Sender) {
+  _convertUserInfo(res: OBv11.API.API["get_stranger_info"]["response"] | OBv11.Event.Sender) {
     const id = String(res.user_id)
     const ret: Contact.User = {
       ...this.user_cache.get(id),
@@ -74,7 +74,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return this._convertUserInfo(res)
   }
 
-  _convertGroupInfo(res: OBv11API.API["get_group_info"]["response"]) {
+  _convertGroupInfo(res: OBv11.API.API["get_group_info"]["response"]) {
     const id = String(res.group_id)
     const ret: Contact.Group = {
       ...this.group_cache.get(id),
@@ -102,7 +102,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
 
   _convertGroupMemberInfo(
     gid: Contact.Group["id"],
-    res: OBv11API.API["get_group_member_info"]["response"] | OBv11Event.GroupSender,
+    res: OBv11.API.API["get_group_member_info"]["response"] | OBv11.Event.GroupSender,
   ) {
     const id = String(res.user_id)
     const ret: Contact.GroupMember = {
@@ -274,7 +274,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     id: (Contact.User | Contact.Group)["id"]
     data: Message.Forward[]
   }) {
-    const messages: OBv11Message.ForwardNode[] = []
+    const messages: OBv11.Message.ForwardNode[] = []
     for (const i of data) {
       const message = await new MessageConverter.PhiliaToOBv11(this.client, {
         message: i.message,
@@ -351,34 +351,9 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         })
   }
 
-  async _convertMsg(res: OBv11Event.Message) {
-    const message = await new MessageConverter.OBv11toPhilia(
-      this.client,
-      res as unknown as OBv11Event.Message,
-    ).convert()
-    const ret = {
-      ...res,
-      id: String(res.message_id),
-      type: "message",
-      scene: "user",
-      user: {} as Event.Message["user"],
-      message: message.after,
-      summary: message.summary,
-    } as Event.Message
-
-    if (res.message_type === "group") {
-      ret.scene = "group"
-      ret.user = this._convertGroupMemberInfo(String(res.group_id), res.sender)
-      ret.group = await this.getGroupInfo({ id: String(res.group_id) })
-    } else {
-      ret.user = this._convertUserInfo(res.sender)
-    }
-    return ret
-  }
-
   async getMsg({ id }: { id: Event.Message["id"] }) {
     const res = await this.client.api.get_msg({ message_id: Number(id) })
-    return this._convertMsg(res)
+    return this.client.protocol.convert.message(res)
   }
 
   delMsg({ id }: { id: Event.Message["id"] }) {
@@ -407,26 +382,31 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return ret
   }
 
-  getFile({ id }: { id: Message.AFile["id"] }) {
+  getFile({ id }: { id: NonNullable<Message.AFile["id"]> }) {
     /** TODO: 获取文件 */
     return { id } as Message.AFile
   }
 
   async getForwardMsg({ id }: { id: string }) {
     const res = await this.client.api.get_forward_msg({ message_id: Number(id) })
-    return Promise.all(res.message.map(this._convertMsg.bind(this)))
+    return Promise.all(
+      res.message.map(this.client.protocol.convert.message.bind(this.client.protocol.convert)),
+    )
   }
 
   async getChatHistory({
     type,
     id,
     count,
+    newer,
   }: {
     type: "message" | Event.Message["scene"]
     id: (Event.Message | Contact.User | Contact.Group)["id"]
     count?: number
+    newer?: boolean
   }) {
-    let res: { messages: OBv11Event.Message[] }
+    if (newer) throw new Error("暂不支持获取新消息")
+    let res: { messages: OBv11.Event.Message[] }
     if (type === "message") {
       const msg = await this.client.api.get_msg({ message_id: Number(id) })
       res = await (msg.message_type === "private"
@@ -445,7 +425,9 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         ? this.client.api.get_friend_msg_history({ user_id: Number(id) })
         : this.client.api.get_group_msg_history({ group_id: Number(id) }))
     }
-    return Promise.all(res.messages.map(this._convertMsg.bind(this)))
+    return Promise.all(
+      res.messages.map(this.client.protocol.convert.message.bind(this.client.protocol.convert)),
+    )
   }
 
   async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
@@ -496,13 +478,18 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return ret
   }
 
-  getRequestArray() {
-    const ret: Event.Request[] = Array.from(this.client.protocol.convert.event_map.values())
+  getRequestArray({
+    scene,
+    count,
+  }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
+    let ret: Event.Request[] = Array.from(this.client.protocol.convert.event_map.values())
+    if (scene) ret = ret.filter(i => i.scene === scene)
+    if (count) ret = ret.slice(0, count)
     return ret
   }
 
   async setRequest({ id, result, reason }: { id: string; result: boolean; reason?: string }) {
-    const event = this.getRequestArray().find(i => i.id === id)
+    const event = this.client.protocol.convert.event_map.get(id)
     if (!event) throw Error("未找到请求")
     if (event.scene === "user") {
       await this.client.api.set_friend_add_request({
@@ -516,6 +503,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         reason,
       })
     }
+    this.client.protocol.convert.event_map.delete(id)
   }
 
   async uploadCacheFile({ file }: { file: string | Buffer }) {

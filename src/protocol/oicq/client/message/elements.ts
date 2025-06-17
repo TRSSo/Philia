@@ -345,7 +345,7 @@ export interface ForwardNode {
 export type ExtendElem = Message.Extend
 export type PlatformElem = Message.Platform
 
-export const ExtendType: ExtendMessageElem["type"][] = [
+export const ExtendArray: ExtendMessageElem["type"][] = [
   "long_msg",
   "face",
   "sface",

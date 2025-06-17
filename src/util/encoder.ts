@@ -50,7 +50,7 @@ verify.None = {
 
 verify.CRC32 = {
   encode(data) {
-    const head = Buffer.alloc(4)
+    const head = Buffer.allocUnsafe(4)
     head.writeUint32BE(zlib.crc32(data))
     return Buffer.concat([head, data])
   },

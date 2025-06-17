@@ -13,7 +13,7 @@ import {
   GroupMessage,
   FileIDElem,
 } from "../message/index.js"
-import { Message as PhiliaMessage } from "#protocol/type"
+import * as Philia from "#protocol/type"
 
 type Client = import("../client.js").Client
 
@@ -138,6 +138,7 @@ export abstract class Contactable {
     })
     return {
       message_id: ret.id,
+      file_id: ret.file_id,
       time: ret.time,
       rand: ret.rand as number,
       seq: ret.seq as number,
@@ -145,7 +146,7 @@ export abstract class Contactable {
   }
 
   async sendForwardMsg(node: ForwardNode["data"]) {
-    const data: PhiliaMessage.Forward[] = []
+    const data: Philia.Message.Forward[] = []
     let ret: MessageRet | undefined = undefined
     for (const i of Array.isArray(node) ? node : [node]) {
       const message = new OICQtoPhilia(this, i.message)
@@ -171,6 +172,7 @@ export abstract class Contactable {
       )[0]
       ret = {
         message_id: res.id,
+        file_id: res.file_id,
         time: res.time,
         rand: res.rand as number,
         seq: res.seq as number,

@@ -16,8 +16,7 @@
   "keywords": [],
   "author": "TimeRainStarSky",
   "devDependencies": {
-    "@oxlint/linux-x64-gnu": "^1.0.0",
-    "@types/node": "^24.0.1",
+    "@types/node": "^24.0.3",
     "@types/ws": "^8.18.1",
     "oxc-minify": "^0.72.3",
     "oxlint": "^1.1.0",

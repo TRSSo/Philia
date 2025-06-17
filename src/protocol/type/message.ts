@@ -8,6 +8,8 @@ export interface AMessage {
   type: string
   /** 消息数据 */
   data: unknown
+  /** 平台额外字段 */
+  [key: string]: unknown
 }
 
 /** 文本消息 */
@@ -45,6 +47,8 @@ export interface Reply extends AMessage {
 export interface AFile extends AMessage {
   /** 文件名 */
   name: string
+  /** 文件摘要 */
+  summary?: string
   /** 文件数据类型 */
   data: "id" | "binary" | "url" | "path"
   /** 文件 ID（调用 getFile 接口获取） */
@@ -159,6 +163,8 @@ export interface RSendMsg {
   id: Event.Message["id"]
   /** 事件时间，Unix时间戳(秒) */
   time: Event.Message["time"]
+  /** 文件ID（如果有发送文件） */
+  file_id?: NonNullable<AFile["id"]>[]
   /** 平台额外字段 */
   [key: string]: unknown
 }
