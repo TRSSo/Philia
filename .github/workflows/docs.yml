@@ -1,0 +1,43 @@
+name: Build and Publish TypeDoc
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    # 1. 检出代码
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取所有历史记录（用于分支操作）
+
+    # 2. 安装 pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: latest
+        run_install: true
+
+    # 3. 编译 TypeScript
+    - name: Build project
+      run: pnpx typedoc --entryPointStrategy Expand src --out docs
+
+    # 4. 推送到 docs 分支
+    - name: Push to docs branch
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@users.noreply.github.com"
+        git checkout docs || git checkout --orphan docs
+        cd docs
+        mv ../.git .
+        git add .
+        if git commit -m "$(git log -1 --pretty=%B main)"; then
+          git push origin docs -f
+        fi

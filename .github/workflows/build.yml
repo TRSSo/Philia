@@ -1,0 +1,52 @@
+name: Build and Publish Library
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    # 1. 检出代码
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 获取所有历史记录（用于分支操作）
+
+    # 2. 安装 pnpm
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: latest
+        run_install: true
+
+    # 3. 编译 TypeScript
+    - name: Build project
+      run: pnpm run build
+
+    # 4. 准备发布内容
+    - name: Prepare lib branch
+      run: |
+        mkdir -p temp/mod
+        mv lib temp
+        cp package.json README.md LICENSE temp
+        cp mod/*.patch temp/mod
+        sed "/\/lib/d" .gitignore > temp/.gitignore
+
+    # 5. 推送到 lib 分支
+    - name: Push to lib branch
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@users.noreply.github.com"
+        git checkout lib || git checkout --orphan lib
+        cd temp
+        mv ../.git .
+        git add .
+        if git commit -m "$(git log -1 --pretty=%B main)"; then
+          git push origin lib -f
+        fi
