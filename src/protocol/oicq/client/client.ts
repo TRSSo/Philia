@@ -13,10 +13,11 @@ import { User, Friend } from "./contact/friend.js"
 import { Group } from "./contact/group.js"
 import { Member } from "./contact/member.js"
 import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
-import { Client as SocketClient } from "#connect/socket"
-import * as Philia from "#protocol/type"
 import Handle from "./event/handle.js"
+import * as Philia from "#protocol/type"
 import { createAPI } from "#protocol/common"
+import * as Connect from "#connect"
+import logger from "#logger"
 
 /** 一个客户端 */
 export class Client extends events {
@@ -47,12 +48,7 @@ export class Client extends events {
   readonly pickMember = Member.as.bind(this)
 
   /** 日志记录器 */
-  get logger() {
-    return this.socket.logger
-  }
-  set logger(value) {
-    this.socket.logger = value
-  }
+  logger = logger
   /** 配置 */
   readonly config: Required<Config>
 
@@ -106,17 +102,17 @@ export class Client extends events {
   }
 
   handle = new Handle(this)
-  api: ReturnType<typeof createAPI<Philia.API.ClientAPI>>
-  socket: SocketClient
+  api!: ReturnType<typeof createAPI<Philia.API.ClientAPI>>
+  client!: Connect.Common.Client
   /** 是否为在线状态 (可以收发业务包的状态) */
   isOnline() {
-    return this.socket.open
+    return this.client?.open
   }
   path?: string
 
   /** 下线 */
   logout() {
-    return this.socket.close()
+    return this.client.close()
   }
 
   /** 发送一个业务包不等待返回 */
@@ -166,15 +162,13 @@ export class Client extends events {
   constructor(conf?: Config)
   constructor(uin?: string | Config, conf?: Config) {
     super()
-    if (uin instanceof SocketClient) {
-      this.socket = uin
-      this.socket.handle.set(this.handle)
+    if (uin instanceof Connect.Common.Client) {
+      this.client = uin
+      this.client.handle.set(this.handle)
     } else {
-      this.socket = new SocketClient(this.handle)
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
     }
-    this.api = createAPI<Philia.API.ClientAPI>(this.socket)
 
     this.config = {
       ignore_self: true,
@@ -195,18 +189,29 @@ export class Client extends events {
    */
   login(uin?: string, path?: string): Promise<void>
   async login(uin?: string, path?: string) {
-    if (this.isOnline()) return
+    if (this.isOnline()) return this.online()
     if (this.uin) path = uin || this.path
     else this.uin = String(uin)
     this.path = path
+    return this.connect()
+  }
 
+  async connect(path = this.path) {
+    if (!path) throw new Error("连接地址为空")
     this.logger.mark(`正在连接`, path)
     try {
-      await this.socket.connect(path as string)
+      this.client = /^(http|ws)s?:\/\//.test(path)
+        ? new Connect.WebSocket.Client(this.handle, { path })
+        : (this.client = new Connect.Socket.Client(this.handle, { path }))
+      this.client.logger = this.logger
+      this.api = createAPI<Philia.API.ClientAPI>(this.client)
+      await this.client.connect()
     } catch (err) {
       return this.em("system.login.error", err)
     }
+  }
 
+  async online() {
     this.self_info = await this.api.getSelfInfo()
     this.uin = this.self_info.id
     this.logger.mark(`欢迎 ${this.nickname}(${this.uin})！正在加载资源……`)

@@ -16,8 +16,8 @@ export interface IConfig extends AConfig {
 export class Project {
   config: IConfig
   handles: type.Handles
-  clients!: Set<Socket.Client | WebSocket.Client>
-  server!: Socket.Server | WebSocket.Server
+  server?: Socket.Server | WebSocket.Server
+  clients = new Set<Socket.Client | WebSocket.Client>()
 
   constructor(config: IConfig, handles: type.Handles = {}) {
     this.config = config
@@ -114,7 +114,8 @@ export class Project {
         } else {
           this.server = new Socket.Server(this.handles, this.config.opts)
           this.clients = this.server.clients
-          return this.server.listen((this.config.path as string) || Path.resolve("Philia"))
+          this.config.path ??= Path.resolve("Philia")
+          return this.server.listen(this.config.path as string)
         }
       case "WebSocket":
         if (this.config.role === "Client") {

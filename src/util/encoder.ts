@@ -81,6 +81,18 @@ verify.MD5 = cryptoHash("md5", 16)
 verify.SHA256 = cryptoHash("sha256", 32)
 verify["SHA3-512"] = cryptoHash("sha3-512", 64)
 
+export const compress: IEncoders<Buffer> = {}
+
+compress.ZSTD = {
+  encode: zlib.zstdCompressSync,
+  decode: zlib.zstdDecompressSync,
+}
+
+compress.GZIP = {
+  encode: zlib.gzipSync,
+  decode: zlib.gunzipSync,
+}
+
 interface Encoders {
   encode: string[]
   verify: string[]
@@ -113,8 +125,8 @@ export class Encoder {
     if (!encode) throw makeError("协议校验不支持", { local, remote })
     decode = findArrays(remote.verify, local.verify) as string
     this.verify = {
-      encode: verify[encode].encode,
-      decode: verify[decode].decode,
+      encode: (verify[encode] ?? compress[encode]).encode,
+      decode: (verify[decode] ?? compress[encode]).decode,
     }
 
     if (encode === "None") this.encode = (data: any) => this.encoder.encode(data)

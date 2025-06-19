@@ -20,7 +20,7 @@ import {
   segment,
 } from "./elements.js"
 import { lock } from "../common.js"
-import * as PhiliaType from "../../../type/message.js"
+import * as Philia from "#protocol/type"
 import { Contactable } from "../contact/contactable.js"
 import { MemberInfo } from "../contact/types.js"
 import { Message } from "./message.js"
@@ -34,7 +34,7 @@ export class OICQtoPhilia {
   /** 转换前的消息 */
   before: (string | MessageElem)[]
   /** 转换后的消息 */
-  after: PhiliaType.MessageSegment[] = []
+  after: Philia.Message.MessageSegment[] = []
   /** 长度(字符) */
   length = 0
   /** 预览文字 */
@@ -110,7 +110,7 @@ export class OICQtoPhilia {
     }
   }
 
-  async _prepareFile<T extends PhiliaType.AFile>(ms: {
+  async _prepareFile<T extends Philia.Message.AFile>(ms: {
     type: string
     file: string | Buffer
     fid?: string
@@ -143,22 +143,22 @@ export class OICQtoPhilia {
   }
 
   async file(ms: FileElem) {
-    this.after.push(await this._prepareFile<PhiliaType.File>(ms))
+    this.after.push(await this._prepareFile<Philia.Message.File>(ms))
     this.brief += "[文件]"
   }
 
   async image(ms: ImageElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Image>(ms))
+    this.after.push(await this._prepareFile<Philia.Message.Image>(ms))
     this.brief += "[图片]"
   }
 
   async record(ms: PttElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Voice>({ ...ms, type: "voice" }))
+    this.after.push(await this._prepareFile<Philia.Message.Voice>({ ...ms, type: "voice" }))
     this.brief += "[语音]"
   }
 
   async video(ms: VideoElem) {
-    this.after.push(await this._prepareFile<PhiliaType.Video>(ms))
+    this.after.push(await this._prepareFile<Philia.Message.Video>(ms))
     this.brief += "[视频]"
   }
 
@@ -180,7 +180,7 @@ export class OICQtoPhilia {
       QQBot: ms,
       text: ms.render_data.label,
       clicked_text: ms.render_data.visited_label,
-    } as unknown as PhiliaType.ButtonType
+    } as unknown as Philia.Message.ButtonType
 
     switch (ms.action.type) {
       case 0:
@@ -225,7 +225,7 @@ export class OICQtoPhilia {
 }
 
 export class PhiliaToOICQ {
-  before: (string | PhiliaType.MessageSegment)[]
+  before: (string | Philia.Message.MessageSegment)[]
   after: MessageElem[] = []
   brief = ""
   content = ""
@@ -236,7 +236,7 @@ export class PhiliaToOICQ {
 
   constructor(
     protected readonly c: Client,
-    message: PhiliaType.Message,
+    message: Philia.Message.Message,
   ) {
     lock(this, "c")
     this.before = Array.isArray(message) ? message : [message]
@@ -250,12 +250,12 @@ export class PhiliaToOICQ {
     }
   }
 
-  text(ms: PhiliaType.Text) {
+  text(ms: Philia.Message.Text) {
     this.after.push(segment.text(ms.data, ms.markdown))
     this.brief += ms.data
   }
 
-  mention(ms: PhiliaType.Mention) {
+  mention(ms: Philia.Message.Mention) {
     if (ms.data === "all") {
       this.after.push(segment.at("all"))
       this.brief += "@全体成员"
@@ -267,7 +267,7 @@ export class PhiliaToOICQ {
     if (ms.id === this.c.uin) this.atme = true
   }
 
-  async reply(ms: PhiliaType.Reply) {
+  async reply(ms: Philia.Message.Reply) {
     this.after.push(segment.reply(ms.data, ms.summary))
     this.brief += ms.summary ? `[回复: ${ms.summary}(${ms.data})]` : `[回复: ${ms.data}]`
     const source = await this.c.api.getMsg({ id: ms.data })
@@ -278,7 +278,7 @@ export class PhiliaToOICQ {
     } as unknown as Quotable
   }
 
-  _button(button: PhiliaType.ButtonType) {
+  _button(button: Philia.Message.ButtonType) {
     if (button.QQBot) return button.QQBot
 
     const msg: any = {
@@ -321,14 +321,14 @@ export class PhiliaToOICQ {
     return msg
   }
 
-  button(ms: PhiliaType.Button) {
+  button(ms: Philia.Message.Button) {
     this.after.push(
       Object.assign(ms, segment.button(ms.data.map(i => i.map(this._button.bind(this))))),
     )
     this.brief += "[按钮]"
   }
 
-  extend(ms: PhiliaType.Extend) {
+  extend(ms: Philia.Message.Extend) {
     if (ms.extend.startsWith("OICQ.")) {
       this.after.push(ms.data as MessageElem)
       this.brief += `[${(ms.data as MessageElem).type}: ${ms.data}]`
@@ -338,7 +338,7 @@ export class PhiliaToOICQ {
     }
   }
 
-  platform(ms: PhiliaType.Platform) {
+  platform(ms: Philia.Message.Platform) {
     this.brief += `[${ms.list}(${ms.mode}) 平台消息: ${ms.data}]`
     if (modeMatch(ms, "OICQ"))
       if (Array.isArray(ms.data)) this.after.push(...(ms.data as MessageElem[]))
@@ -346,7 +346,7 @@ export class PhiliaToOICQ {
     else this.after.push(ms)
   }
 
-  async _file(type: BaseMessageElem["type"], ms: PhiliaType.AFile): Promise<void> {
+  async _file(type: BaseMessageElem["type"], ms: Philia.Message.AFile): Promise<void> {
     switch (ms.data) {
       case "id":
         return this._file(type, await this.c.api.getFile({ id: ms.id as string }))
@@ -360,27 +360,27 @@ export class PhiliaToOICQ {
     }
   }
 
-  file(ms: PhiliaType.File) {
+  file(ms: Philia.Message.File) {
     this.brief += ms.summary ?? `[文件: ${ms.name}]`
     return this._file("file", ms)
   }
 
-  image(ms: PhiliaType.Image) {
+  image(ms: Philia.Message.Image) {
     this.brief += ms.summary ?? `[图片: ${ms.name}]`
     return this._file("image", ms)
   }
 
-  voice(ms: PhiliaType.Voice) {
+  voice(ms: Philia.Message.Voice) {
     this.brief += ms.summary ?? `[语音: ${ms.name}]`
     return this._file("record", ms)
   }
 
-  audio(ms: PhiliaType.Audio) {
+  audio(ms: Philia.Message.Audio) {
     this.brief += ms.summary ?? `[音频: ${ms.name}]`
     return this._file("file", ms)
   }
 
-  video(ms: PhiliaType.File) {
+  video(ms: Philia.Message.File) {
     this.brief += ms.summary ?? `[视频: ${ms.name}]`
     return this._file("video", ms)
   }

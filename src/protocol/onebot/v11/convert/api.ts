@@ -471,7 +471,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
   async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
-      if (group && group.size !== 0) return Array.from(this.group_cache.values())
+      if (group && group.size !== 0) return Array.from(group.values())
     }
     const res = await this.client.api.get_group_member_list({ group_id: Number(id) })
     const ret: Contact.GroupMember[] = res.map(i => this._convertGroupMemberInfo(id, i))
@@ -503,7 +503,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         reason,
       })
     }
-    this.client.protocol.convert.event_map.delete(id)
+    event.state = result ? "accepted" : "rejected"
   }
 
   async uploadCacheFile({ file }: { file: string | Buffer }) {

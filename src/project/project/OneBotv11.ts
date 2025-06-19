@@ -14,8 +14,8 @@ export interface IConfig extends AConfig {
 
 export class Project {
   config: IConfig
-  server!: Server.Server
-  client!: Server.Client
+  server?: Server.Server
+  client?: Server.Client
 
   constructor(config: IConfig) {
     this.config = config

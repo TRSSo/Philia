@@ -59,13 +59,13 @@ export class OBv11toPhilia {
       case "user":
         qq = String(qq)
         if (!name) {
-          let info: Philia.Event.GroupMessage["user"]
+          let info: Philia.Contact.GroupMember
           if (this.event.message_type === "group")
             info = await this.client.handle.getGroupMemberInfo({
               id: String((this.event as OBv11.Event.GroupMessage).group_id),
               uid: qq,
             })
-          info ??= await this.client.handle.getUserInfo({ id: qq })
+          info ??= (await this.client.handle.getUserInfo({ id: qq })) as Philia.Contact.GroupMember
           if (info) name = info.card || info.name
         }
 

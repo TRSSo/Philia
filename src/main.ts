@@ -1,0 +1,1 @@
+import(`./bin/${process.argv[2] || "help"}.js`)

@@ -1,6 +1,6 @@
 import * as Milky from "../type/index.js"
 import * as Philia from "#protocol/type"
-import Client from "../server/client.js"
+import Client from "../client.js"
 import * as Common from "./common.js"
 import { ulid } from "ulid"
 import { modeMatch } from "#util"
@@ -82,7 +82,7 @@ export class MilkyToPhilia {
       name: ulid(),
       data: ms.data.temp_url ? "url" : "id",
       url: ms.data.temp_url,
-      id: ms.data.resource_id,
+      id: Common.encodeFileID(Common.FileScene.Resource, ms.data.resource_id),
       summary: ms.data.summary,
       sub_type: ms.data.sub_type,
     })
@@ -94,7 +94,7 @@ export class MilkyToPhilia {
       name: ulid(),
       data: ms.data.temp_url ? "url" : "id",
       url: ms.data.temp_url,
-      id: ms.data.resource_id,
+      id: Common.encodeFileID(Common.FileScene.Resource, ms.data.resource_id),
       duration: ms.data.duration,
     })
   }
@@ -105,7 +105,7 @@ export class MilkyToPhilia {
       name: ulid(),
       data: ms.data.temp_url ? "url" : "id",
       url: ms.data.temp_url,
-      id: ms.data.resource_id,
+      id: Common.encodeFileID(Common.FileScene.Resource, ms.data.resource_id),
     })
   }
 }

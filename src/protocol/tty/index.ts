@@ -1,6 +1,4 @@
-import Client from "./client.js"
-import handle, { Handle } from "./handle.js"
-import { Convert } from "./message.js"
+export { default as Client } from "./client.js"
+export * as Convert from "./convert/index.js"
 import { Tui } from "./tui.js"
-export { Client, handle, Handle, Convert, Tui }
 export default Tui

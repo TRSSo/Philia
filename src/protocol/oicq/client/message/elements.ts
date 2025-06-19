@@ -1,4 +1,3 @@
-import { ButtonType as IButton } from "../../../type/message.js"
 import { Message } from "#protocol/type"
 
 /** LongMsg */
@@ -216,7 +215,7 @@ export interface ButtonElem {
       buttons: Button[]
     }[]
   }
-  data?: IButton[][]
+  data?: Message.ButtonType[][]
 }
 
 export interface Button {

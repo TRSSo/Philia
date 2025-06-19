@@ -53,6 +53,7 @@ export class OBv11toPhilia {
       scene: "user",
       time: data.time || Date.now() / 1000,
       user: await this.client.handle.getUserInfo({ id: String(data.user_id) }),
+      state: "pending",
       reason: data.comment,
     } as Philia.Event.Request
     if (data.request_type === "group") {

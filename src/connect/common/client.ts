@@ -2,7 +2,7 @@ import logger from "#logger"
 import * as type from "./type.js"
 import Handle from "./handle.js"
 import { ulid } from "ulid"
-import { encoder, verify, Encoder, makeError } from "#util"
+import { encoder, verify, compress, Encoder, makeError } from "#util"
 
 export default abstract class Client {
   logger = logger
@@ -33,10 +33,14 @@ export default abstract class Client {
     this.handle = new Handle(handle, this)
     if (opts.meta) Object.assign(this.meta.local, opts.meta)
     if (opts.timeout) Object.assign(this.timeout, opts.timeout)
+    if (opts.compress) this.meta.local.encode.unshift(...Object.keys(compress))
+    else this.meta.local.encode.push(...Object.keys(compress))
   }
 
   abstract write(data: type.Base<type.EStatus>): void
   abstract getMetaInfo(): Promise<type.MetaInfo>
+  abstract connect(path?: string): Promise<this>
+  abstract close(): Promise<unknown>
   abstract force_close(): void
 
   async onconnectMeta() {

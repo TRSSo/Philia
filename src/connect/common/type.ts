@@ -22,6 +22,7 @@ export interface Options {
     retry?: number
   }
   path?: string
+  compress?: boolean
 }
 
 export const enum ESocketStatus {
@@ -82,7 +83,7 @@ export type Handle = (
   data: Request["data"],
   client: Client,
 ) => Response["data"] | Promise<Response["data"]>
-export type OHandle = {
+export interface OHandle {
   [key: Request["name"]]: Handle | unknown
   default?: HandleDefault
 }

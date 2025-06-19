@@ -49,6 +49,9 @@ export interface AFile extends AMessage {
   name: string
   /** 文件摘要 */
   summary?: string
+  /** 文件字节 */
+  size?: number
+
   /** 文件数据类型 */
   data: "id" | "binary" | "url" | "path"
   /** 文件 ID（调用 getFile 接口获取） */

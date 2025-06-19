@@ -1,2 +1,2 @@
-import { Tui } from "../project/tui.js"
+import { Tui } from "#project/tui.js"
 new Tui().main()

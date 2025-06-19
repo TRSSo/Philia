@@ -24,7 +24,7 @@ export default class Client extends AClient {
     if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
     else this.socket.path = `\0${path}`
     this.socket.connect(this.socket.path as string)
-    return promiseEvent(this.socket, "connected", "error") as Promise<this | Error>
+    return promiseEvent(this.socket, "connected", "error") as Promise<this>
   }
 
   onconnect = async () => {

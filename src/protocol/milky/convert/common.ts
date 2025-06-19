@@ -37,7 +37,7 @@ export enum FileScene {
   Group,
 }
 
-export function encodeFileID(scene: FileScene, id: string, peer_id: number) {
+export function encodeFileID(scene: FileScene, id: string, peer_id?: number) {
   let buffer: Buffer
   if (scene === FileScene.Resource) {
     buffer = Buffer.allocUnsafe(1)
@@ -45,7 +45,7 @@ export function encodeFileID(scene: FileScene, id: string, peer_id: number) {
   } else {
     buffer = Buffer.allocUnsafe(5)
     buffer.writeUint8(scene)
-    buffer.writeUint32BE(peer_id, 1)
+    buffer.writeUint32BE(peer_id as number, 1)
   }
   return `${buffer.toString("base64url")}|${id}`
 }

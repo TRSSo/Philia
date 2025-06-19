@@ -1,26 +1,37 @@
-import path from "node:path"
-import { Client as SocketClient } from "#connect/socket"
+import { Philia } from "#project/project"
+import { Event } from "#protocol/common"
+import * as Type from "#protocol/type"
 import logger from "#logger"
-import handle from "./handle.js"
+import fs from "node:fs/promises"
+import * as Convert from "./convert/index.js"
 
 export default class Client {
   logger = logger
-  socket: SocketClient
-  request: SocketClient["request"]
+  handle = new Convert.API(this)
+  philia: Philia.Project
+  event_handle: Event.Handle
 
-  platform = { id: "tty", name: "终端" }
-  config = {
-    save: {
-      path: path.join(process.cwd(), "data"),
-    },
+  data_path = "data"
+  temp_path = "temp"
+
+  self: Type.Contact.Self = { id: "tty", name: "终端" }
+  user: Type.Contact.User = { id: "tty_user", name: "终端用户" }
+  group: Type.Contact.Group = { id: "tty_group", name: "终端" }
+
+  event_message_map = new Map<Type.Event.Message["id"], Type.Event.Message>()
+  event_request_map = new Map<Type.Event.Request["id"], Type.Event.Request>()
+
+  constructor(philia: Philia.IConfig) {
+    this.philia = new Philia.Project(
+      philia,
+      this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
+    )
+    this.event_handle = new Event.Handle(this.philia)
   }
 
-  constructor(socket: Parameters<typeof SocketClient.create>[0]) {
-    this.socket = SocketClient.create(socket, handle(this))
-    this.request = this.socket.request.bind(this.socket)
-  }
-
-  connect() {
-    return this.socket.connect()
+  async start() {
+    if (this.data_path) await fs.mkdir(this.data_path, { recursive: true })
+    if (this.temp_path) await fs.mkdir(this.temp_path, { recursive: true })
+    return this.philia.start()
   }
 }

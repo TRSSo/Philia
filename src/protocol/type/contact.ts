@@ -14,6 +14,8 @@ export interface Self {
 export interface User extends Self {
   /** 用户备注 */
   remark?: string
+  /** 拉黑 */
+  block?: boolean
 }
 
 /** 群信息 */
@@ -35,7 +37,7 @@ export interface Group {
 /** 群成员信息 */
 export interface GroupMember extends User {
   /** 名片 */
-  card?: string
+  card: string
   /** 权限 */
   role?: "owner" | "admin" | "member"
   /** 头衔 */
@@ -45,6 +47,4 @@ export interface GroupMember extends User {
    * 设置：禁言时长
    */
   mute_time?: number
-  /** 拉黑 */
-  block?: boolean
 }

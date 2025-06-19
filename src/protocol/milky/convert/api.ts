@@ -1,4 +1,4 @@
-import Client from "../server/client.js"
+import Client from "../client.js"
 import { API, Event, Contact, Message } from "#protocol/type"
 import { String } from "#util"
 import * as MessageConverter from "./message.js"
@@ -377,7 +377,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
     mid: Event.Message["id"]
   }) {
     const { message } = await this.client.api.get_message(Common.decodeMessageID(mid))
-    return await this.sendMsg({
+    return this.sendMsg({
       scene,
       id,
       data: {
@@ -490,7 +490,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
   async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
-      if (group && group.size !== 0) return Array.from(this.group_cache.values())
+      if (group && group.size !== 0) return Array.from(group.values())
     }
     const res = await this.client.api.get_group_member_list({
       group_id: Number(id),
@@ -504,7 +504,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
     scene,
     count,
   }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
-    let ret: Event.Request[]
+    let ret: (Promise<Event.Request> | Event.Request)[]
     switch (scene) {
       case "user": {
         const res = await this.client.api.get_friend_requests({ limit: count })

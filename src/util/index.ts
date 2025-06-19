@@ -1,4 +1,4 @@
-export { encoder, verify, Encoder } from "./encoder.js"
+export { encoder, verify, compress, Encoder } from "./encoder.js"
 export {
   chalk,
   makeError,
@@ -6,6 +6,7 @@ export {
   StringOrNull,
   StringOrBuffer,
   String,
+  toBuffer,
   Loging,
   getAllProps,
   promiseEvent,

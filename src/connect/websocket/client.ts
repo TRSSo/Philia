@@ -11,7 +11,7 @@ export default class Client extends AClient {
   ws_opts?: ConstructorParameters<typeof WebSocket>[2]
 
   constructor(handle: type.Handles, opts: ClientOptions = {}) {
-    super(handle, opts)
+    super(handle, { compress: true, ...opts })
     if (opts.path) this.path = opts.path
     if (opts.ws instanceof WebSocket) this.ws = opts.ws
     else this.ws_opts = opts.ws
@@ -20,7 +20,7 @@ export default class Client extends AClient {
 
   connect(path = this.path) {
     this.ws ??= new WebSocket(path, this.ws_opts).on("open", this.onconnect)
-    return promiseEvent(this.ws, "connected", "error") as Promise<this | Error>
+    return promiseEvent(this.ws, "connected", "error") as Promise<this>
   }
 
   onconnect = async () => {

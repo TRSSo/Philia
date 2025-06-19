@@ -2,8 +2,8 @@ import logger from "#logger"
 import { Philia } from "#project/project"
 import { createAPI, Event } from "#protocol/common"
 import { makeError } from "#util"
-import { API } from "../type/index.js"
-import * as Convert from "../convert/index.js"
+import { API } from "./type/index.js"
+import * as Convert from "./convert/index.js"
 
 export default class Client {
   logger = logger

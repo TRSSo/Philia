@@ -1,6 +1,8 @@
 import util from "node:util"
-import { Chalk } from "chalk"
+import path from "node:path"
+import fs from "node:fs/promises"
 import EventEmitter from "node:events"
+import { Chalk } from "chalk"
 export const chalk = new Chalk({ level: 3 })
 
 /**
@@ -95,6 +97,33 @@ export function String(data: any, space?: Parameters<typeof JSON.stringify>[2]):
   } catch {
     return StringOrNull(data)
   }
+}
+
+/**
+ *  base64 http file 转为 Buffer
+ * @param data 数据
+ * @param opts.http 是否返回 http
+ * @param opts.path 是否返回文件路径
+ */
+export async function toBuffer(
+  data: any,
+  opts: { http?: boolean; path?: boolean } & Parameters<typeof fetch>[1] = {},
+): Promise<Buffer | string> {
+  if (Buffer.isBuffer(data)) return data
+  data = String(data)
+  if (data.startsWith("base64://")) {
+    data = Buffer.from(data.replace("base64://", ""), "base64")
+  } else if (data.match(/^https?:\/\//)) {
+    if (opts.http) return data
+    data = Buffer.from(await (await fetch(data, opts)).arrayBuffer())
+  } else {
+    const file = data.replace(/^file:\/\//, "")
+    if (await fs.stat(file).catch(() => false)) {
+      if (opts.path) return `file://${path.resolve(file)}`
+      return fs.readFile(file)
+    }
+  }
+  throw makeError("数据转换失败", { data })
 }
 
 interface InspectOptions extends util.InspectOptions {

@@ -1,78 +1,35 @@
 import * as inquirer from "@inquirer/prompts"
 import Client from "./client.js"
 import { ulid } from "ulid"
-import Server from "../../connect/socket/server.js"
 import logger from "#logger"
+import { Philia } from "#project/project"
+import * as Type from "#protocol/type"
+import { continueTui } from "#util/tui.js"
+import path from "node:path"
+import fs from "node:fs/promises"
 
 export class Tui {
   logger = logger
-  client = {} as Client
-  server?: Server
-
-  constructor() {
-    this.main()
-  }
+  path = path.join("project", "tty")
+  client!: Client
 
   async main() {
+    await fs.mkdir(this.path, { recursive: true })
+    process.chdir(this.path)
+    this.client = new Client(await Philia.Project.createConfig())
+    await this.client.start()
     while (true)
       try {
-        if (this.client.socket?.open) await this.start()
-        else await this.connect()
-        await inquirer.input({ message: "" })
+        if (this.client.philia.clients.size === 0)
+          this.logger.info("等待客户端连接中", this.client.philia.config.path)
+        else await this.send()
+        await continueTui()
       } catch (err) {
         this.logger.error("错误", err)
       }
   }
 
-  async connect() {
-    if (this.server) {
-      this.logger.info("等待客户端连接中", this.server.path)
-      return new Promise(resolve => (this.server as Server).socket.once("connected", resolve))
-    }
-
-    switch (
-      await inquirer.select({
-        message: "欢迎使用 Philia TTY",
-        choices: [
-          {
-            name: "客户端",
-            value: "client",
-            description: "连接到服务端",
-          },
-          {
-            name: "服务端",
-            value: "server",
-            description: "启动服务端",
-          },
-          {
-            name: "退出",
-            value: "exit",
-          },
-        ],
-      })
-    ) {
-      case "client": {
-        const answer = await inquirer.input({ message: "请输入服务端地址" })
-        if (!answer) break
-        this.client = new Client(answer)
-        return this.client.connect()
-      }
-      case "server": {
-        const answer = await inquirer.input({ message: "请输入服务端地址" })
-        if (!answer) break
-        this.server = new Server(undefined, { limit: 1, path: answer })
-        this.server.socket.on("connected", client => (this.client = new Client(client)))
-        return this.server.listen()
-      }
-      case "exit":
-        return process.exit()
-      default:
-        this.logger.error(Error("❎ 内部错误"))
-        process.exit()
-    }
-  }
-
-  async start() {
+  async send() {
     switch (
       await inquirer.select({
         message: "Philia TTY",
@@ -99,13 +56,16 @@ export class Tui {
 
   async sendMsg() {
     const answer = await inquirer.input({ message: "请输入消息" })
-    return this.client.request("message.user", {
+    const event: Type.Event.Message = {
       id: ulid(),
       type: "message",
+      time: Date.now() / 1000,
       scene: "user",
-      user: this.client.platform,
+      user: this.client.self,
       message: [{ type: "text", data: answer }],
       summary: answer,
-    })
+    }
+    this.client.event_message_map.set(event.id, event)
+    return this.client.event_handle.handle(event)
   }
 }

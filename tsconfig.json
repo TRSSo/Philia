@@ -7,6 +7,7 @@
     "strict": true,
     "module": "nodenext",
     "target": "esnext",
+    "declaration": true,
     "allowSyntheticDefaultImports": true
   }
 }

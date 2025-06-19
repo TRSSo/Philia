@@ -1,12 +1,12 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { ulid } from "ulid"
-import { Message } from "../type/index.js"
-import Client from "./client.js"
+import { Message } from "#protocol/type"
+import Client from "../client.js"
 import logger from "#logger"
 import { modeMatch } from "#util"
 
-export class Convert {
+export default class PhiliaToTTY {
   message: (string | Message.MessageSegment)[]
   summary = ""
 
@@ -59,44 +59,41 @@ export class Convert {
   }
 
   async file(ms: Message.AFile, name = "文件"): Promise<void> {
-    if (this.client.config.save)
-      try {
-        switch (ms.data) {
-          case "id":
-            return this.file(
-              (await this.client.request("getFile", {
-                id: ms.id,
-              })) as Message.File,
-              name,
-            )
-          case "binary": {
-            const save_path = path.join(this.client.config.save.path, `${ulid()}-${ms.name}`)
-            if (typeof ms.binary === "string")
-              ms.binary = Buffer.from(ms.binary.replace("base64://", ""), "base64")
-            await fs.writeFile(save_path, ms.binary as Buffer)
-            this.summary += `[${name}: ${save_path}]`
-            return
-          }
-          case "url":
-            return this.file(
-              {
-                name: ms.name,
-                ms: "binary",
-                binary: await (await fetch(ms.url as string)).arrayBuffer(),
-              } as unknown as Message.File,
-              name,
-            )
-          case "path": {
-            const save_path = path.join(this.client.config.save.path, `${ulid()}-${ms.name}`)
-            await fs.copyFile(ms.path as string, save_path)
-            this.summary += `[${name}: ${save_path}]`
-            return
-          }
+    if (!this.client.data_path) {
+      this.summary += ms.summary ?? `[${name}: ${ms.name}]`
+      return
+    }
+    try {
+      switch (ms.data) {
+        case "id":
+          return this.file(await this.client.handle.getFile({ id: ms.id as string }))
+        case "binary": {
+          const save_path = path.join(this.client.data_path, "data", `${ulid()}-${ms.name}`)
+          if (typeof ms.binary === "string")
+            ms.binary = Buffer.from(ms.binary.replace("base64://", ""), "base64")
+          await fs.writeFile(save_path, ms.binary as Buffer)
+          this.summary += `[${name}: ${save_path}]`
+          return
         }
-      } catch (err) {
-        logger.error(`${name}保存错误`, ms, err)
+        case "url":
+          return this.file(
+            {
+              name: ms.name,
+              ms: "binary",
+              binary: await (await fetch(ms.url as string)).arrayBuffer(),
+            } as unknown as Message.File,
+            name,
+          )
+        case "path": {
+          const save_path = path.join(this.client.data_path, "data", `${ulid()}-${ms.name}`)
+          await fs.copyFile(ms.path as string, save_path)
+          this.summary += `[${name}: ${save_path}]`
+          return
+        }
       }
-    this.summary += ms.summary ?? `[${name}: ${ms.name}]`
+    } catch (err) {
+      logger.error(`${name}保存错误`, ms, err)
+    }
   }
 
   image(ms: Message.Image) {

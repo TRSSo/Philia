@@ -12,12 +12,22 @@ export interface AEvent {
   scene: string
   /** 事件时间，Unix时间戳(秒) */
   time: number
-  /** 发起事件用户 */
-  user: Contact.User | Contact.GroupMember
   /** 发起事件群 */
   group?: Contact.Group
   /** 平台额外字段 */
   [key: string]: unknown
+}
+
+export interface AUserEvent extends AEvent {
+  /** 发起事件用户 */
+  user: Contact.User
+}
+
+export interface AGroupEvent extends AEvent {
+  /** 发起事件群成员 */
+  user: Contact.GroupMember
+  /** 发起事件群 */
+  group: Contact.Group
 }
 
 export interface Handle {
@@ -34,51 +44,52 @@ export interface Handle {
 }
 
 /** 消息事件基类 */
-export interface AMessage extends AEvent {
-  type: "message"
-  message: IMessage.Message
+export interface AMessage {
+  /** 消息段 */
+  message: IMessage.MessageSegment[]
   /** 消息摘要 */
   summary: string
 }
-
 /** 用户消息事件 */
-export interface UserMessage extends AMessage {
+export interface UserMessage extends AUserEvent, AMessage {
+  type: "message"
   scene: "user"
-  /** 如果是自己发送给用户，则存在该字段 */
+  /** 是否是自己发送给用户 */
   is_self?: true
 }
 /** 群消息事件 */
-export interface GroupMessage extends AMessage {
+export interface GroupMessage extends AGroupEvent, AMessage {
+  type: "message"
   scene: "group"
-  user: Contact.GroupMember
-  group: Contact.Group
 }
 export type Message = UserMessage | GroupMessage
 
 /** 通知事件基类 */
-export interface ANotice extends AEvent {
+export interface AUserNotice extends AUserEvent {
+  type: "notice"
+}
+/** 群通知事件基类 */
+export interface AGroupNotice extends AGroupEvent {
   type: "notice"
 }
 
 /** 用户信息更改通知 */
-export interface UserInfo extends ANotice {
+export interface UserInfo extends AUserNotice {
   scene: "user_info"
   /** 更改后信息 */
   change: Partial<Contact.User>
 }
 
 /** 群信息更改通知 */
-export interface GroupInfo extends ANotice {
+export interface GroupInfo extends AGroupNotice {
   scene: "group_info"
-  group: Contact.Group
   /** 更改后信息 */
   change: Partial<Contact.Group>
 }
 
 /** 群成员信息更改通知 */
-export interface GroupMemberInfo extends ANotice {
+export interface GroupMemberInfo extends AGroupNotice {
   scene: "group_member_info"
-  group: Contact.Group
   /** 被更改信息用户 */
   target: Contact.GroupMember
   /** 更改后信息 */
@@ -86,52 +97,100 @@ export interface GroupMemberInfo extends ANotice {
 }
 
 /** 机器人下线通知 */
-export interface BotOffline extends ANotice {
+export interface BotOffline extends AUserNotice {
   scene: "bot_offline"
   /** 下线原因 */
   reason: string
 }
 
 /** 撤回消息通知 */
-export interface MessageRecall extends ANotice {
-  scene: "user_message_recall" | "group_message_recall"
-  /** 被撤回的用户，若无则撤回自己 */
-  target?: Contact.User
+export interface UserMessageRecall extends AUserNotice {
+  scene: "user_message_recall"
   /** 撤回消息ID */
   message_id: Message["id"]
+  /** 是否自己撤回 */
+  is_self?: true
 }
 
-/** 戳一戳通知 */
-export interface Poke extends ANotice {
-  scene: "user_poke" | "group_poke"
-  /** 被戳用户，若无则戳自己 */
+/** 撤回消息通知 */
+export interface GroupMessageRecall extends AGroupNotice {
+  scene: "group_message_recall"
+  /** 撤回消息ID */
+  message_id: Message["id"]
+  /** 被撤回的用户，若无则撤回自己 */
   target?: Contact.User
 }
 
-/** 文件上传通知 */
-export interface FileUpload extends ANotice {
-  scene: "user_file_upload" | "group_file_upload"
-  file: IMessage.AFile
+/** 用户戳一戳通知 */
+export interface UserPoke extends AUserNotice {
+  scene: "user_poke"
+  /** 是否自己发出的戳一戳 */
+  is_self?: true
+  /** 是否戳自己 */
+  is_self_target?: true
+}
+
+/** 群戳一戳通知 */
+export interface GroupPoke extends AGroupNotice {
+  scene: "group_poke"
+  /** 被戳用户，若无则用户戳用户自己 */
+  target?: Contact.GroupMember
+}
+
+/** 用户文件上传 */
+export interface UserFileUpload extends AUserNotice {
+  scene: "user_file_upload"
+  /** 是否自己发出的文件 */
+  is_self?: true
+  /** 文件消息段 */
+  file: IMessage.File
+}
+
+/** 群文件上传 */
+export interface GroupFileUpload extends AGroupNotice {
+  scene: "group_file_upload"
+  /** 文件消息段 */
+  file: IMessage.File
 }
 
 /** 群精华消息通知 */
-export interface GroupEssenceMessage extends ANotice {
+export interface GroupEssenceMessage extends AGroupNotice {
   scene: "group_essence_message_add" | "group_essence_message_del"
-  group: Contact.Group
   /** 设精消息ID */
   message_id: Message["id"]
 }
 
 /** 群成员出入通知 */
-export interface GroupMember extends ANotice {
+export interface GroupMember extends AGroupNotice {
   scene: "group_member_add" | "group_member_del"
-  group: Contact.Group
-  /** 出入用户 */
-  user: Contact.GroupMember
   /** 操作用户（同意入群或移出群） */
   operator?: Contact.GroupMember
   /** 入群邀请用户 */
   invitor?: Contact.GroupMember
+}
+
+/** 消息回应类型 */
+export interface MessageReactionType {
+  type: "face"
+  id: string
+}
+
+/** 用户消息回应 */
+export interface UserMessageReaction extends AUserNotice {
+  scene: "user_message_reaction_add" | "user_message_reaction_del"
+  /** 消息ID */
+  message_id: Message["id"]
+  /** 回应数据 */
+  data: MessageReactionType
+}
+
+/** 群消息回应 */
+export interface GroupMessageReaction extends AGroupNotice {
+  scene: "group_message_reaction_add" | "group_message_reaction_del"
+  /** 消息ID */
+  message_id: Message["id"]
+  /** 回应数据 */
+  data: MessageReactionType
 }
 
 export type Notice =
@@ -139,17 +198,22 @@ export type Notice =
   | GroupInfo
   | GroupMemberInfo
   | BotOffline
-  | MessageRecall
-  | Poke
-  | FileUpload
+  | UserMessageRecall
+  | GroupMessageRecall
+  | UserPoke
+  | GroupPoke
+  | UserFileUpload
+  | GroupFileUpload
   | GroupEssenceMessage
   | GroupMember
 
 /** 请求事件基类 */
-export interface ARequest extends AEvent {
+export interface ARequest extends AUserEvent {
   type: "request"
-  /** 申请理由 */
-  reason: string
+  /** 请求状态 */
+  state: "pending" | "accepted" | "rejected" | "ignored"
+  /** 请求理由 */
+  reason?: string
 }
 /** 加好友请求 */
 export interface UserRequest extends ARequest {
@@ -159,6 +223,8 @@ export interface UserRequest extends ARequest {
 export interface GroupRequest extends ARequest {
   scene: "group_add" | "group_invite"
   group: Contact.Group
+  /** 被邀请用户，若无则自己申请 */
+  target?: Contact.User
 }
 export type Request = UserRequest | GroupRequest
 
