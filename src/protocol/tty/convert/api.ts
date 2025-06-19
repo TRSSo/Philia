@@ -167,7 +167,7 @@ export default class PhiliaToTTY implements API.ServerAPI {
       type: "file",
       name: id,
       data: "binary",
-      binary: await fs.readFile(path.join(this.client.temp_path, id)),
+      binary: await fs.readFile(path.join(this.client.path, "temp", id)),
     }
     return ret
   }
@@ -242,12 +242,13 @@ export default class PhiliaToTTY implements API.ServerAPI {
 
   async uploadCacheFile({ file }: { file: string | Buffer }) {
     const id = ulid()
-    await fs.writeFile(path.join(this.client.temp_path, id), await toBuffer(file))
+    await fs.writeFile(path.join(this.client.path, "temp", id), await toBuffer(file))
     return id
   }
 
   async clearCache() {
-    await fs.rm(this.client.temp_path, { recursive: true, force: true })
-    await fs.mkdir(this.client.temp_path)
+    const dir = path.join(this.client.path, "temp")
+    await fs.rm(dir, { recursive: true, force: true })
+    await fs.mkdir(dir)
   }
 }

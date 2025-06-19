@@ -5,9 +5,8 @@ import { promiseEvent } from "#util"
 import logger from "#logger"
 import { type } from "../common/index.js"
 
-export interface ServerOptions extends type.Options {
+export interface ServerOptions extends type.ServerOptions {
   ws?: WebSocketServer | ConstructorParameters<typeof WebSocketServer>[0]
-  limit?: number
 }
 
 export class Server {
@@ -20,11 +19,12 @@ export class Server {
     id: ulid(),
     name: "Server",
   }
-  handle: type.Handles
   limit?: number
 
-  constructor(handle: type.Handles = {}, opts: ServerOptions = {}) {
-    this.handle = handle
+  constructor(
+    public handle: type.Handles = {},
+    public opts: ServerOptions = {},
+  ) {
     if (opts.limit) this.limit = opts.limit
 
     if (opts.ws instanceof WebSocketServer) this.ws = opts.ws
@@ -43,7 +43,7 @@ export class Server {
           this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
           return ws.terminate()
         }
-        new Client(this.handle, this, ws, this.ws_opts)
+        new Client(this.handle, this, ws, this.opts)
       })
     return promiseEvent(this.ws, "listening", "error") as Promise<this | Error>
   }
@@ -76,20 +76,17 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(handle: type.Handles, server: Server, ws: WebSocket, opts: ServerOptions = {}) {
+  constructor(handle: type.Handles, server: Server, ws: WebSocket, opts: ServerOptions) {
     super(handle, { ...opts, ws })
     this.server = server
-    Object.defineProperty(this, "logger", {
-      get() {
-        return this.server.logger
-      },
-    })
+    this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
     this.onconnect().then(() => {
       server.add(this)
       server.ws.emit("connected", this)
+      opts.onconnected?.(this)
     })
   }
 }

@@ -1,3 +1,3 @@
-export default function (name: string) {
-  return import(name)
+export default function (name: string, opts?: object) {
+  return import(name, opts)
 }

@@ -47,7 +47,7 @@ export default class Client extends AClient {
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
-    data: this.receive,
+    message: this.receive,
     close(this: Client) {
       this.onclose()
       this.logger.info(`${this.meta.remote?.id} 已断开连接`)
@@ -86,9 +86,9 @@ export default class Client extends AClient {
       }
       const timeout = setTimeout(() => {
         reject(makeError("等待元数据超时", { timeout: this.timeout.send }))
-        this.ws.off("data", listener)
+        this.ws.off("message", listener)
       }, this.timeout.send)
-      this.ws.once("data", listener)
+      this.ws.once("message", listener)
     })
   }
 

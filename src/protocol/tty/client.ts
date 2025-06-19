@@ -11,9 +11,7 @@ export default class Client {
   philia: Philia.Project
   event_handle: Event.Handle
 
-  data_path = "data"
-  temp_path = "temp"
-
+  path = process.cwd()
   self: Type.Contact.Self = { id: "tty", name: "终端" }
   user: Type.Contact.User = { id: "tty_user", name: "终端用户" }
   group: Type.Contact.Group = { id: "tty_group", name: "终端" }
@@ -30,8 +28,7 @@ export default class Client {
   }
 
   async start() {
-    if (this.data_path) await fs.mkdir(this.data_path, { recursive: true })
-    if (this.temp_path) await fs.mkdir(this.temp_path, { recursive: true })
+    await Promise.all(["data", "temp"].map(i => fs.mkdir(i, { recursive: true })))
     return this.philia.start()
   }
 }

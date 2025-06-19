@@ -6,9 +6,8 @@ import { promiseEvent } from "#util"
 import logger from "#logger"
 import { type } from "../common/index.js"
 
-export interface ServerOptions extends type.Options {
+export interface ServerOptions extends type.ServerOptions {
   socket?: SocketServer | ConstructorParameters<typeof SocketServer>[0]
-  limit?: number
 }
 
 export class Server {
@@ -21,11 +20,12 @@ export class Server {
     name: "Server",
   }
   path = ""
-  handle: type.Handles
   limit?: number
 
-  constructor(handle: type.Handles = {}, opts: ServerOptions = {}) {
-    this.handle = handle
+  constructor(
+    public handle: type.Handles = {},
+    public opts: ServerOptions = {},
+  ) {
     if (opts.limit) this.limit = opts.limit
     if (opts.path) this.path = opts.path
 
@@ -80,20 +80,17 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(handle: type.Handles, server: Server, socket: Socket, opts: ServerOptions = {}) {
+  constructor(handle: type.Handles, server: Server, socket: Socket, opts: ServerOptions) {
     super(handle, { ...opts, socket })
     this.server = server
-    Object.defineProperty(this, "logger", {
-      get() {
-        return this.server.logger
-      },
-    })
+    this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
     this.onconnect().then(() => {
       server.add(this)
       server.socket.emit("connected", this)
+      opts.onconnected?.(this)
     })
   }
 }

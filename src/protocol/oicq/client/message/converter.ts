@@ -61,7 +61,6 @@ export class OICQtoPhilia {
         this.extend(i as ExtendMessageElem)
       else this._text(i)
     }
-    if (!this.after.length) throw new Error("空消息")
     return this.after
   }
 

@@ -25,6 +25,11 @@ export interface Options {
   compress?: boolean
 }
 
+export interface ServerOptions extends Options {
+  limit?: number
+  onconnected?(client: Client): void
+}
+
 export const enum ESocketStatus {
   New,
   dle,

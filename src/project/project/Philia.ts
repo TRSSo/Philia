@@ -71,7 +71,7 @@ export class Project {
 
   verifyConfig() {
     if (this.config.role !== "Server" && this.config.role !== "Client")
-      throw TypeError("Philia 协议端类型必须为 server 或 client")
+      throw TypeError("Philia 协议端类型必须为 Server 或 Client")
     switch (this.config.type) {
       case "Socket":
         if (this.config.role === "Client") {

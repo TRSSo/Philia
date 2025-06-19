@@ -165,6 +165,7 @@ export class Client extends events {
     if (uin instanceof Connect.Common.Client) {
       this.client = uin
       this.client.handle.set(this.handle)
+      this.api = createAPI<Philia.API.ClientAPI>(this.client)
     } else {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
@@ -189,26 +190,28 @@ export class Client extends events {
    */
   login(uin?: string, path?: string): Promise<void>
   async login(uin?: string, path?: string) {
-    if (this.isOnline()) return this.online()
-    if (this.uin) path = uin || this.path
-    else this.uin = String(uin)
-    this.path = path
-    return this.connect()
+    try {
+      if (this.isOnline()) return await this.online()
+      if (this.uin) path = uin || this.path
+      else this.uin = String(uin)
+      this.path = path
+      return await this.connect()
+    } catch (err) {
+      this.em("system.login.error", err)
+      throw err
+    }
   }
 
   async connect(path = this.path) {
     if (!path) throw new Error("连接地址为空")
     this.logger.mark(`正在连接`, path)
-    try {
-      this.client = /^(http|ws)s?:\/\//.test(path)
-        ? new Connect.WebSocket.Client(this.handle, { path })
-        : (this.client = new Connect.Socket.Client(this.handle, { path }))
-      this.client.logger = this.logger
-      this.api = createAPI<Philia.API.ClientAPI>(this.client)
-      await this.client.connect()
-    } catch (err) {
-      return this.em("system.login.error", err)
-    }
+    this.client = /^(http|ws)s?:\/\//.test(path)
+      ? new Connect.WebSocket.Client(this.handle, { path })
+      : (this.client = new Connect.Socket.Client(this.handle, { path }))
+    this.client.logger = this.logger
+    this.api = createAPI<Philia.API.ClientAPI>(this.client)
+    await this.client.connect()
+    return this.online()
   }
 
   async online() {
@@ -649,6 +652,6 @@ export interface Config {
 export type Statistics = Client["stat"]
 
 /** 创建一个客户端 (=new Client) */
-export function createClient(config?: Config) {
-  return new Client(config)
+export function createClient(...args: ConstructorParameters<typeof Client>) {
+  return new Client(...args)
 }

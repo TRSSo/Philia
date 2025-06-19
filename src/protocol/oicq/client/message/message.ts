@@ -33,7 +33,7 @@ export abstract class Message implements Quotable, Forwardable {
   raw_message: string = ""
   font: string
   /** @cqhttp 方法用 */
-  message_id = ""
+  message_id: string
   /** 消息编号，在群消息中是唯一的 (私聊消息建议至少使用time,seq,rand中的两个判断唯一性) */
   seq: number | string
   /** 消息随机数 */
@@ -96,6 +96,7 @@ export abstract class Message implements Quotable, Forwardable {
       ...event.user,
     } as unknown as typeof this.sender
     this.time = event.time
+    this.message_id = event.id
     this.seq = (event.seq as number) || this.message_id
     this.rand = (event.rand as number) || 0
     this.font = (event.font as string) || "unknown"

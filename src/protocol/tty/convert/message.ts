@@ -59,7 +59,7 @@ export default class PhiliaToTTY {
   }
 
   async file(ms: Message.AFile, name = "文件"): Promise<void> {
-    if (!this.client.data_path) {
+    if (!this.client.path) {
       this.summary += ms.summary ?? `[${name}: ${ms.name}]`
       return
     }
@@ -68,7 +68,7 @@ export default class PhiliaToTTY {
         case "id":
           return this.file(await this.client.handle.getFile({ id: ms.id as string }))
         case "binary": {
-          const save_path = path.join(this.client.data_path, "data", `${ulid()}-${ms.name}`)
+          const save_path = path.join(this.client.path, "data", `${ulid()}-${ms.name || "Buffer"}`)
           if (typeof ms.binary === "string")
             ms.binary = Buffer.from(ms.binary.replace("base64://", ""), "base64")
           await fs.writeFile(save_path, ms.binary as Buffer)
@@ -78,14 +78,18 @@ export default class PhiliaToTTY {
         case "url":
           return this.file(
             {
-              name: ms.name,
+              name: ms.name || path.basename(new URL(ms.url as string).pathname),
               ms: "binary",
               binary: await (await fetch(ms.url as string)).arrayBuffer(),
             } as unknown as Message.File,
             name,
           )
         case "path": {
-          const save_path = path.join(this.client.data_path, "data", `${ulid()}-${ms.name}`)
+          const save_path = path.join(
+            this.client.path,
+            "data",
+            `${ulid()}-${ms.name || path.basename(ms.path as string)}`,
+          )
           await fs.copyFile(ms.path as string, save_path)
           this.summary += `[${name}: ${save_path}]`
           return

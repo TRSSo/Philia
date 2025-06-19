@@ -75,13 +75,13 @@ export default class Client {
     return promiseEvent(this.ws, "close", "error")
   }
 
-  message(event: WebSocket.MessageEvent) {
+  async message(event: WebSocket.MessageEvent) {
     try {
       const data = JSON.parse(event.data.toString())
-      this.logger.debug("WebSocket 消息", data)
-      this.protocol.handle(data)
+      this.logger.trace("WebSocket 消息", data)
+      await this.protocol.handle(data)
     } catch (err) {
-      this.logger.error("WebSocket 消息解析错误", event, err)
+      this.logger.error("WebSocket 消息解析错误", event.data, err)
     }
   }
 
@@ -89,7 +89,7 @@ export default class Client {
     if (this.queue.length === 0 || !this.open) return
     const data = this.cache.get(this.queue.shift() as string)?.request
     if (data) {
-      this.logger.debug("WebSocket 发送", data)
+      this.logger.trace("WebSocket 发送", data)
       this.ws.send(JSON.stringify(data))
     }
     return this.sendQueue()
@@ -98,7 +98,7 @@ export default class Client {
   request<T extends string>(action: T, params: API.Request<T>["params"] = {}) {
     const echo = ulid()
     const request: API.Request<T> = { action, params, echo }
-    this.logger.debug("WebSocket 请求", request)
+    this.logger.trace("WebSocket 请求", request)
     if (this.open) this.ws.send(String(request))
     else this.queue.push(echo)
     const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK<string>["data"]>()

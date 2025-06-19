@@ -9,9 +9,9 @@ export default class Protocol {
   }
 
   handle(data: object) {
-    if ("echo" in data) this.echo(data as OBv11.API.Response<string>)
-    else if ("post_type" in data) this.post(data as OBv11.Event.Event)
-    else this.client.logger.warn("未知消息", data)
+    if ("echo" in data) return this.echo(data as OBv11.API.Response<string>)
+    if ("post_type" in data) return this.post(data as OBv11.Event.Event)
+    this.client.logger.warn("未知消息", data)
   }
 
   echo(data: OBv11.API.Response<string>) {
@@ -23,6 +23,6 @@ export default class Protocol {
   }
 
   async post(data: OBv11.Event.Event) {
-    this.client.event_handle.handle(await this.convert.convert(data))
+    return this.client.event_handle.handle(await this.convert.convert(data))
   }
 }

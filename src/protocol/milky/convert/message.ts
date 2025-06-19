@@ -225,7 +225,7 @@ export class PhiliaToMilky {
   async image(ms: Philia.Message.Image) {
     const ret = await this._file<Milky.Message.OutgoingImage>("image", ms)
     if (ms.summary) ret.data.summary = ms.summary
-    if (ms.sub_type === "sticker") ret.data.sub_type = ms.sub_type
+    ret.data.sub_type = ms.sub_type === "sticker" ? "sticker" : "normal"
     this.summary += ms.summary ?? `[图片: ${ms.name}]`
   }
 

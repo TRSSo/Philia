@@ -33,8 +33,8 @@ export default abstract class Client {
     this.handle = new Handle(handle, this)
     if (opts.meta) Object.assign(this.meta.local, opts.meta)
     if (opts.timeout) Object.assign(this.timeout, opts.timeout)
-    if (opts.compress) this.meta.local.encode.unshift(...Object.keys(compress))
-    else this.meta.local.encode.push(...Object.keys(compress))
+    if (opts.compress) this.meta.local.verify.unshift(...Object.keys(compress))
+    else this.meta.local.verify.push(...Object.keys(compress))
   }
 
   abstract write(data: type.Base<type.EStatus>): void
@@ -55,7 +55,7 @@ export default abstract class Client {
     }
   }
 
-  async sender(): Promise<type.Cache["promise"]> {
+  sender(): true | void {
     if (!this.open) {
       for (const i of this.queue) this.cache[i].reject(Error("连接关闭"))
       this.queue = []
@@ -69,7 +69,7 @@ export default abstract class Client {
       if (cache.retry > this.timeout.retry)
         return cache.reject(makeError("等待消息超时", { timeout: this.timeout.send }))
       cache.retry++
-      this.logger.debug(`发送 ${id} 超时，重试${cache.retry}次`)
+      this.logger.warn(`发送 ${id} 超时，重试${cache.retry}次`)
       cache.timeout = setTimeout(timeout, this.timeout.send)
       this.write(cache.data)
     }
@@ -94,7 +94,7 @@ export default abstract class Client {
       this.idle = false
       this.sender()
     }
-    return cache.promise
+    return cache.promise.finally(() => cache.finally())
   }
 
   request(name: type.Request["name"], data?: type.Request["data"]) {
