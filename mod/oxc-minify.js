@@ -2,14 +2,16 @@ import { minify } from "oxc-minify"
 import fs from "node:fs/promises"
 import Path from "node:path"
 
-async function dealJS(dir) {
-  const files = await fs.readdir(dir, { withFileTypes: true })
-  return Promise.all(
-    files.map(async file => {
-      const path = Path.join(dir, file.name)
-      if (file.isDirectory()) return dealJS(path)
-      else if (Path.extname(file.name).toLowerCase() === ".js")
-        return fs.writeFile(path, minify(file.name, await fs.readFile(path, "utf8")).code, "utf8")
+function dealJS(dir) {
+  return fs.readdir(dir, { withFileTypes: true }).then(i =>
+    i.map(file => {
+      if (file.isDirectory()) return dealJS(Path.join(dir, file.name))
+      else if (Path.extname(file.name).toLowerCase() === ".js") {
+        const path = Path.join(dir, file.name)
+        return fs
+          .readFile(path, "utf8")
+          .then(i => fs.writeFile(path, minify(file.name, i).code, "utf8"))
+      }
     }),
   )
 }

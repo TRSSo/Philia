@@ -198,11 +198,10 @@ export interface BaseAPI {
   /**
    * 获取文件
    * @param id 文件ID
-   * @returns 文件消息段（只能是 binary 或 url 类型）
    */
   getFile: {
-    request: { id: NonNullable<Message.AFile["id"]> }
-    response: Message.AFile
+    request: { id: Message.IDFile["id"] }
+    response: Message.BinaryFile | Message.URLFile
   }
 
   /**

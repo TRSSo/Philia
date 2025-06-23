@@ -24,7 +24,7 @@ export default class Client extends AClient {
     if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
     else this.socket.path = `\0${path}`
     this.socket.connect(this.socket.path as string)
-    return promiseEvent(this.socket, "connected", "error") as Promise<this>
+    return promiseEvent<this>(this.socket, "connected", "error")
   }
 
   onconnect = async () => {
@@ -92,14 +92,14 @@ export default class Client extends AClient {
     })
   }
 
-  force_close() {
+  forceClose() {
     this.socket.destroy()
   }
 
   close() {
     this.socket.end()
-    const timeout = setTimeout(this.force_close.bind(this), this.timeout.wait)
-    return promiseEvent(this.socket, "close", "error").finally(() => clearTimeout(timeout))
+    const timeout = setTimeout(this.forceClose.bind(this), this.timeout.wait)
+    return promiseEvent<void>(this.socket, "close", "error").finally(() => clearTimeout(timeout))
   }
 
   encode(data: any) {

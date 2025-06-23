@@ -31,7 +31,7 @@ export function decodeMessageID(id: string): {
   }
 }
 
-export enum FileScene {
+export const enum FileScene {
   Resource,
   Private,
   Group,

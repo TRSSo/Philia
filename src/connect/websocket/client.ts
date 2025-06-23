@@ -20,7 +20,7 @@ export default class Client extends AClient {
 
   connect(path = this.path) {
     this.ws ??= new WebSocket(path, this.ws_opts).on("open", this.onconnect)
-    return promiseEvent(this.ws, "connected", "error") as Promise<this>
+    return promiseEvent<this>(this.ws, "connected", "error")
   }
 
   onconnect = async () => {
@@ -92,14 +92,14 @@ export default class Client extends AClient {
     })
   }
 
-  force_close() {
+  forceClose() {
     this.ws.terminate()
   }
 
   close() {
     this.ws.close()
-    const timeout = setTimeout(this.force_close.bind(this), this.timeout.wait)
-    return promiseEvent(this.ws, "close", "error").finally(() => clearTimeout(timeout))
+    const timeout = setTimeout(this.forceClose.bind(this), this.timeout.wait)
+    return promiseEvent<void>(this.ws, "close", "error").finally(() => clearTimeout(timeout))
   }
 
   write(data: type.Base<type.EStatus>) {

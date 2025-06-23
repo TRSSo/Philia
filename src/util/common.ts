@@ -181,14 +181,14 @@ export function getAllProps(data: any, props: Set<string> = new Set()): Set<stri
  * @param timeout 超时时间
  * @returns Promise
  */
-export function promiseEvent(
+export function promiseEvent<T>(
   event: EventEmitter,
   resolve: string | symbol,
   reject?: string | symbol,
   timeout?: number,
 ) {
-  const listener: ReturnType<typeof Promise.withResolvers> & { timeout?: NodeJS.Timeout } =
-    Promise.withResolvers()
+  const listener: ReturnType<typeof Promise.withResolvers<T>> & { timeout?: NodeJS.Timeout } =
+    Promise.withResolvers<T>()
   event.once(resolve, listener.resolve)
   if (reject) event.once(reject, listener.reject)
   if (timeout)

@@ -45,7 +45,7 @@ export class Server {
         }
         new Client(this.handle, this, ws, this.opts)
       })
-    return promiseEvent(this.ws, "listening", "error") as Promise<this | Error>
+    return promiseEvent<this>(this.ws, "listening", "error")
   }
 
   add(client: Client) {
@@ -69,7 +69,7 @@ export class Server {
   async close() {
     await Promise.allSettled([...this.clients].map(i => i.close()))
     this.ws.close()
-    return promiseEvent(this.ws, "close", "error")
+    return promiseEvent<void>(this.ws, "close", "error")
   }
 }
 export default Server

@@ -40,8 +40,8 @@ export default abstract class Client {
   abstract write(data: type.Base<type.EStatus>): void
   abstract getMetaInfo(): Promise<type.MetaInfo>
   abstract connect(path?: string): Promise<this>
-  abstract close(): Promise<unknown>
-  abstract force_close(): void
+  abstract close(): Promise<void>
+  abstract forceClose(): void
 
   async onconnectMeta() {
     try {
@@ -50,7 +50,7 @@ export default abstract class Client {
         throw makeError("协议版本不支持", this.meta)
       this.encoder = new Encoder(this.meta.local, this.meta.remote)
     } catch (err) {
-      this.force_close()
+      this.forceClose()
       throw err
     }
   }

@@ -1,4 +1,4 @@
-import { User as IUser, Group as IGroup } from "./contact.js"
+import * as Contact from "./contact.js"
 import * as Event from "./event.js"
 import { IModeMatch } from "#util"
 
@@ -29,9 +29,9 @@ export interface Mention extends AMessage {
   /** 提及目标 */
   data: "user" | "all"
   /** 提及目标ID */
-  id?: IUser["id"]
+  id?: Contact.User["id"]
   /** 用户名 */
-  name?: IUser["name"]
+  name?: Contact.User["name"]
 }
 
 /** 回复消息 */
@@ -54,7 +54,7 @@ export interface AFile extends AMessage {
 
   /** 文件数据类型 */
   data: "id" | "binary" | "url" | "path"
-  /** 文件 ID（调用 getFile 接口获取） */
+  /** 文件ID（getFile(id) => {@link BinaryFile | URLFile}） */
   id?: string
   /** 文件二进制或 base64:// */
   binary?: Buffer | string
@@ -64,26 +64,39 @@ export interface AFile extends AMessage {
   path?: string
 }
 
+/** ID文件消息 */
+export interface IDFile extends AFile {
+  data: "id"
+  id: NonNullable<AFile["id"]>
+}
+/** 二进制文件消息 */
+export interface BinaryFile extends AFile {
+  data: "binary"
+  binary: NonNullable<AFile["binary"]>
+}
+/** URL文件消息 */
+export interface URLFile extends AFile {
+  data: "url"
+  url: NonNullable<AFile["url"]>
+}
+/** 本地文件消息 */
+export interface PathFile extends AFile {
+  data: "path"
+  path: NonNullable<AFile["path"]>
+}
+/** 文件消息总类 */
+export type IFile = IDFile | BinaryFile | URLFile | PathFile
+
 /** 文件消息 */
-export interface File extends AFile {
-  type: "file"
-}
+export type File = IFile & { type: "file" }
 /** 图片消息 */
-export interface Image extends AFile {
-  type: "image"
-}
+export type Image = IFile & { type: "image" }
 /** 语音消息 */
-export interface Voice extends AFile {
-  type: "voice"
-}
+export type Voice = IFile & { type: "voice" }
 /** 音频消息 */
-export interface Audio extends AFile {
-  type: "audio"
-}
+export type Audio = IFile & { type: "audio" }
 /** 视频消息 */
-export interface Video extends AFile {
-  type: "video"
-}
+export type Video = IFile & { type: "video" }
 
 /** 按钮基类 */
 export interface AButton {
@@ -92,7 +105,7 @@ export interface AButton {
   /** 按钮点击后的文字 */
   clicked_text?: string
   /** 谁能点按钮 */
-  permission?: IUser["id"] | IUser["id"][]
+  permission?: Contact.User["id"] | Contact.User["id"][]
   /** 平台额外字段，[平台名: 内容]，非目标平台忽略该字段 */
   [key: string]: unknown
 }
@@ -126,8 +139,8 @@ export interface Button extends AMessage {
 export interface Forward {
   message: Message
   time?: number
-  user?: IUser
-  group?: IGroup
+  user?: Contact.User
+  group?: Contact.Group
 }
 
 /** 扩展消息 */
@@ -167,7 +180,7 @@ export interface RSendMsg {
   /** 事件时间，Unix时间戳(秒) */
   time: Event.Message["time"]
   /** 文件ID（如果有发送文件） */
-  file_id?: NonNullable<AFile["id"]>[]
+  file_id?: IDFile["id"][]
   /** 平台额外字段 */
   [key: string]: unknown
 }

@@ -49,7 +49,7 @@ export class Server {
     if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
     else this.socket.path = `\0${path}`
     this.socket.listen(this.socket.path, ...args)
-    return promiseEvent(this.socket, "listening", "error") as Promise<this | Error>
+    return promiseEvent<this>(this.socket, "listening", "error")
   }
 
   add(client: Client) {
@@ -73,7 +73,7 @@ export class Server {
   async close() {
     await Promise.allSettled([...this.clients].map(i => i.close()))
     this.socket.close()
-    return promiseEvent(this.socket, "close", "error")
+    return promiseEvent<void>(this.socket, "close", "error")
   }
 }
 export default Server

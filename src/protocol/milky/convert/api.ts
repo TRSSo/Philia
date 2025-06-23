@@ -389,9 +389,9 @@ export default class PhiliaToMilky implements API.ServerAPI {
     })
   }
 
-  async getFile({ id }: { id: NonNullable<Message.AFile["id"]> }) {
+  async getFile({ id }: { id: Message.IDFile["id"] }) {
     const { scene, id: file_id, peer_id } = Common.decodeFileID(id)
-    const ret = { data: "url" } as Message.AFile
+    const ret = { data: "url" } as Message.URLFile
     switch (scene) {
       case Common.FileScene.Resource:
         ret.url = (await this.client.api.get_resource_temp_url({ resource_id: file_id })).url

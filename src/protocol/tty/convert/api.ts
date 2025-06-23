@@ -162,8 +162,8 @@ export default class PhiliaToTTY implements API.ServerAPI {
     return this.sendMsg({ scene, id, data: message })
   }
 
-  async getFile({ id }: { id: NonNullable<Message.AFile["id"]> }) {
-    const ret: Message.AFile = {
+  async getFile({ id }: { id: Message.IDFile["id"] }) {
+    const ret: Message.BinaryFile = {
       type: "file",
       name: id,
       data: "binary",

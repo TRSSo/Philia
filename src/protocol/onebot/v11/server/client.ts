@@ -72,7 +72,7 @@ export default class Client {
 
   close() {
     this.ws.close()
-    return promiseEvent(this.ws, "close", "error")
+    return promiseEvent<void>(this.ws, "close", "error")
   }
 
   async message(event: WebSocket.MessageEvent) {

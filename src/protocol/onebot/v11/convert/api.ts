@@ -382,9 +382,9 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return ret
   }
 
-  getFile({ id }: { id: NonNullable<Message.AFile["id"]> }) {
+  getFile({ id }: { id: Message.IDFile["id"] }) {
     /** TODO: 获取文件 */
-    return { id } as Message.AFile
+    return { id } as Message.URLFile
   }
 
   async getForwardMsg({ id }: { id: string }) {

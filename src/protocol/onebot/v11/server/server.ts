@@ -50,6 +50,6 @@ export default class Server {
   close() {
     for (const i of this.clients.values()) i.close()
     this.wss.close()
-    return promiseEvent(this.wss, "close", "error")
+    return promiseEvent<void>(this.wss, "close", "error")
   }
 }
