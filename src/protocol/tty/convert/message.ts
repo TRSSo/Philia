@@ -1,10 +1,10 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { ulid } from "ulid"
-import { Message } from "#protocol/type"
-import Client from "../client.js"
 import logger from "#logger"
+import type { Message } from "#protocol/type"
 import { modeMatch } from "#util"
+import type Client from "../client.js"
 
 export default class PhiliaToTTY {
   message: (string | Message.MessageSegment)[]

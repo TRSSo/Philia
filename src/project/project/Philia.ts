@@ -1,11 +1,11 @@
-import * as inquirer from "@inquirer/prompts"
 import Path from "node:path"
-import { type } from "#connect/common"
+import * as inquirer from "@inquirer/prompts"
+import type { type } from "#connect/common"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
-import { Config as AConfig } from "../type.js"
+import * as Common from "./common.js"
 
-export interface IConfig extends AConfig {
+export interface IConfig extends Common.IConfig {
   name: "Philia"
   type: "Socket" | "WebSocket"
   role: "Server" | "Client"
@@ -13,15 +13,14 @@ export interface IConfig extends AConfig {
   opts?: type.Options
 }
 
-export class Project {
-  config: IConfig
+export class Project extends Common.Project {
+  declare config: IConfig
   handles: type.Handles
   server?: Socket.Server | WebSocket.Server
   clients = new Set<Socket.Client | WebSocket.Client>()
 
   constructor(config: IConfig, handles: type.Handles = {}) {
-    this.config = config
-    this.verifyConfig()
+    super(config)
     this.handles = handles
   }
 
@@ -41,7 +40,7 @@ export class Project {
       ],
     })
 
-    let path: IConfig["path"] = undefined
+    let path: IConfig["path"]
     switch (type) {
       case "Socket":
         if (role === "Client") {
@@ -114,8 +113,8 @@ export class Project {
         } else {
           this.server = new Socket.Server(this.handles, this.config.opts)
           this.clients = this.server.clients
-          this.config.path ??= Path.resolve("Philia")
-          return this.server.listen(this.config.path as string)
+          this.config.path = Path.resolve((this.config.path as string) || this.config.name)
+          return this.server.listen(this.config.path)
         }
       case "WebSocket":
         if (this.config.role === "Client") {
@@ -135,7 +134,7 @@ export class Project {
   }
 
   stop() {
-    if (this.config.role === "Server") return this.server?.close()
+    if (this.config.role === "Server") return this.server?.close()!
     return Promise.allSettled([...this.clients].map(i => i.close()))
   }
 }

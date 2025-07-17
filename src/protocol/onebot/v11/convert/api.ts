@@ -1,8 +1,8 @@
-import Client from "../server/client.js"
-import { API, Event, Contact, Message } from "#protocol/type"
-import { String } from "#util"
+import type { API, Contact, Event, Message } from "#protocol/type"
+import { toJSON } from "#util"
+import type Client from "../server/client.js"
+import type * as OBv11 from "../type/index.js"
 import * as MessageConverter from "./message.js"
-import * as OBv11 from "../type/index.js"
 
 /** API 转换器 */
 export class PhiliaToOBv11 implements API.ServerAPI {
@@ -46,7 +46,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         nickname: data.name,
         personal_note: data.personal_note as string,
       })
-    if (data.avatar) await this.client.api.set_qq_avatar({ file: String(data.avatar) })
+    if (data.avatar) await this.client.api.set_qq_avatar({ file: toJSON(data.avatar) })
   }
 
   _convertUserInfo(res: OBv11.API.API["get_stranger_info"]["response"] | OBv11.Event.Sender) {
@@ -68,7 +68,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_stranger_info({
-      user_id: Number(id),
+      user_id: +id,
       no_cache: refresh,
     })
     return this._convertUserInfo(res)
@@ -94,7 +94,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_group_info({
-      group_id: Number(id),
+      group_id: +id,
       no_cache: refresh,
     })
     return this._convertGroupInfo(res)
@@ -135,8 +135,8 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_group_member_info({
-      group_id: Number(id),
-      user_id: Number(uid),
+      group_id: +id,
+      user_id: +uid,
       no_cache: refresh,
     })
     return this._convertGroupMemberInfo(id, res)
@@ -154,21 +154,30 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     switch (scene) {
       case "user":
         if (data.remark !== undefined)
-          await this.client.api.set_friend_remark({ user_id: Number(id), remark: data.remark })
+          await this.client.api.set_friend_remark({
+            user_id: +id,
+            remark: data.remark,
+          })
         break
       case "group":
         if (data.name !== undefined)
-          await this.client.api.set_group_name({ group_id: Number(id), group_name: data.name })
+          await this.client.api.set_group_name({
+            group_id: +id,
+            group_name: data.name,
+          })
         if (data.avatar !== undefined)
           await this.client.api.set_group_portrait({
-            group_id: Number(id),
-            file: String(data.avatar),
+            group_id: +id,
+            file: toJSON(data.avatar),
           })
         if (data.remark !== undefined)
-          await this.client.api.set_group_remark({ group_id: Number(id), remark: data.remark })
+          await this.client.api.set_group_remark({
+            group_id: +id,
+            remark: data.remark,
+          })
         if (data.whole_mute !== undefined)
           await this.client.api.set_group_whole_ban({
-            group_id: Number(id),
+            group_id: +id,
             enable: (data as Contact.Group).whole_mute,
           })
         break
@@ -186,36 +195,39 @@ export class PhiliaToOBv11 implements API.ServerAPI {
   }) {
     if (data.card !== undefined)
       await this.client.api.set_group_card({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         card: data.card,
       })
     if (data.role !== undefined)
       await this.client.api.set_group_admin({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         enable: data.role === "admin",
       })
     if (data.title !== undefined)
       await this.client.api.set_group_special_title({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         special_title: data.title,
       })
     if (data.mute_time !== undefined)
       await this.client.api.set_group_ban({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         duration: data.mute_time,
       })
   }
 
   delUser({ id }: { id: Contact.User["id"] }) {
-    return this.client.api.delete_friend({ user_id: Number(id) })
+    return this.client.api.delete_friend({ user_id: +id })
   }
 
   delGroup({ id, dismiss }: { id: Contact.Group["id"]; dismiss?: boolean }) {
-    return this.client.api.set_group_leave({ group_id: Number(id), is_dismiss: dismiss })
+    return this.client.api.set_group_leave({
+      group_id: +id,
+      is_dismiss: dismiss,
+    })
   }
 
   delGroupMember({
@@ -228,8 +240,8 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     block?: boolean
   }) {
     return this.client.api.set_group_kick({
-      group_id: Number(id),
-      user_id: Number(uid),
+      group_id: +id,
+      user_id: +uid,
       reject_add_request: block,
     })
   }
@@ -254,7 +266,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       }
     }
     const res = await this.client.api.send_msg({
-      [scene === "user" ? "user_id" : "group_id"]: Number(id),
+      [scene === "user" ? "user_id" : "group_id"]: +id,
       message: message.after,
     })
     const ret: Message.RSendMsg = {
@@ -303,11 +315,11 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       ]
     const res = await (scene === "user"
       ? this.client.api.send_private_forward_msg({
-          user_id: Number(id),
+          user_id: +id,
           messages,
         })
       : this.client.api.send_group_forward_msg({
-          group_id: Number(id),
+          group_id: +id,
           messages,
         }))
     const ret: Message.RSendMsg = {
@@ -335,29 +347,31 @@ export class PhiliaToOBv11 implements API.ServerAPI {
         break
       case "binary":
       case "url":
-        file = await this.uploadCacheFile({ file: data.binary || (data.url as string) })
+        file = await this.uploadCacheFile({
+          file: data.binary || (data.url as string),
+        })
         break
     }
     return scene === "user"
       ? this.client.api.upload_private_file({
-          user_id: Number(id),
+          user_id: +id,
           file,
           name: data.name,
         })
       : this.client.api.upload_group_file({
-          group_id: Number(id),
+          group_id: +id,
           file,
           name: data.name,
         })
   }
 
   async getMsg({ id }: { id: Event.Message["id"] }) {
-    const res = await this.client.api.get_msg({ message_id: Number(id) })
+    const res = await this.client.api.get_msg({ message_id: +id })
     return this.client.protocol.convert.message(res)
   }
 
   delMsg({ id }: { id: Event.Message["id"] }) {
-    return this.client.api.delete_msg({ message_id: Number(id) })
+    return this.client.api.delete_msg({ message_id: +id })
   }
 
   async sendMsgForward({
@@ -369,9 +383,9 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     id: (Contact.User | Contact.Group)["id"]
     mid: Event.Message["id"]
   }) {
-    const message = await this.client.api.get_msg({ message_id: Number(mid) })
+    const message = await this.client.api.get_msg({ message_id: +mid })
     const res = await this.client.api.send_msg({
-      [scene === "user" ? "user_id" : "group_id"]: Number(id),
+      [scene === "user" ? "user_id" : "group_id"]: +id,
       message: message.message,
     })
     const ret: Message.RSendMsg = {
@@ -388,7 +402,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
   }
 
   async getForwardMsg({ id }: { id: string }) {
-    const res = await this.client.api.get_forward_msg({ message_id: Number(id) })
+    const res = await this.client.api.get_forward_msg({ message_id: +id })
     return Promise.all(
       res.message.map(this.client.protocol.convert.message.bind(this.client.protocol.convert)),
     )
@@ -408,7 +422,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     if (newer) throw new Error("暂不支持获取新消息")
     let res: { messages: OBv11.Event.Message[] }
     if (type === "message") {
-      const msg = await this.client.api.get_msg({ message_id: Number(id) })
+      const msg = await this.client.api.get_msg({ message_id: +id })
       res = await (msg.message_type === "private"
         ? this.client.api.get_friend_msg_history({
             user_id: msg.user_id,
@@ -422,8 +436,8 @@ export class PhiliaToOBv11 implements API.ServerAPI {
           }))
     } else {
       res = await (type === "user"
-        ? this.client.api.get_friend_msg_history({ user_id: Number(id) })
-        : this.client.api.get_group_msg_history({ group_id: Number(id) }))
+        ? this.client.api.get_friend_msg_history({ user_id: +id })
+        : this.client.api.get_group_msg_history({ group_id: +id }))
     }
     return Promise.all(
       res.messages.map(this.client.protocol.convert.message.bind(this.client.protocol.convert)),
@@ -463,7 +477,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
     }
-    const res = await this.client.api.get_group_member_list({ group_id: Number(id) })
+    const res = await this.client.api.get_group_member_list({ group_id: +id })
     const ret: Contact.GroupMember["id"][] = res.map(i => String(i.user_id))
     return ret
   }
@@ -473,7 +487,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(group.values())
     }
-    const res = await this.client.api.get_group_member_list({ group_id: Number(id) })
+    const res = await this.client.api.get_group_member_list({ group_id: +id })
     const ret: Contact.GroupMember[] = res.map(i => this._convertGroupMemberInfo(id, i))
     return ret
   }

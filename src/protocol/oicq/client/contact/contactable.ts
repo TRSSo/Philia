@@ -1,19 +1,19 @@
+import type * as Philia from "#protocol/type"
 import { lock } from "../common.js"
-import { MessageRet } from "../event/types.js"
+import type { MessageRet } from "../event/types.js"
 import {
-  Sendable,
-  Forwardable,
-  Quotable,
-  ImageElem,
-  VideoElem,
-  PttElem,
-  ForwardNode,
-  Message,
-  OICQtoPhilia,
+  type FileIDElem,
+  type Forwardable,
+  type ForwardNode,
   GroupMessage,
-  FileIDElem,
+  type ImageElem,
+  type Message,
+  OICQtoPhilia,
+  type PttElem,
+  type Quotable,
+  type Sendable,
+  type VideoElem,
 } from "../message/index.js"
-import * as Philia from "#protocol/type"
 
 type Client = import("../client.js").Client
 
@@ -147,7 +147,7 @@ export abstract class Contactable {
 
   async sendForwardMsg(node: ForwardNode["data"]) {
     const data: Philia.Message.Forward[] = []
-    let ret: MessageRet | undefined = undefined
+    let ret: MessageRet | undefined
     for (const i of Array.isArray(node) ? node : [node]) {
       const message = new OICQtoPhilia(this, i.message)
       await message.convert()
@@ -193,13 +193,19 @@ export abstract class Contactable {
    */
   recallMsg(message: Message): Promise<boolean>
   async recallMsg(param: string | Message) {
-    await this.c.api.delMsg({ id: typeof param === "string" ? param : param.message_id })
+    await this.c.api.delMsg({
+      id: typeof param === "string" ? param : param.message_id,
+    })
     return true
   }
 
   /** 转发消息 */
   forwardMsg(mid: string) {
-    return this.c.api.sendMsgForward({ scene: this.scene, id: this.target, mid })
+    return this.c.api.sendMsgForward({
+      scene: this.scene,
+      id: this.target,
+      mid,
+    })
   }
 
   /**
@@ -237,16 +243,28 @@ export abstract class Contactable {
 
   /** 设置群名 */
   setName(name: string) {
-    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { name } })
+    return this.c.api.setInfo({
+      scene: this.scene,
+      id: this.target,
+      data: { name },
+    })
   }
 
   /** 设置备注 */
   setRemark(remark: string) {
-    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { remark } })
+    return this.c.api.setInfo({
+      scene: this.scene,
+      id: this.target,
+      data: { remark },
+    })
   }
 
   /** 设置群头像 */
   setAvatar(avatar: ImageElem["file"]) {
-    return this.c.api.setInfo({ scene: this.scene, id: this.target, data: { avatar } })
+    return this.c.api.setInfo({
+      scene: this.scene,
+      id: this.target,
+      data: { avatar },
+    })
   }
 }

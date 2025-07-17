@@ -121,7 +121,7 @@ export type Gender = "male" | "female" | "unknown"
 export type GroupRole = "owner" | "admin" | "member"
 
 /** 可设置的在线状态 */
-export const enum OnlineStatus {
+export enum OnlineStatus {
   /** 离线 */
   Offline,
   /** 在线 */

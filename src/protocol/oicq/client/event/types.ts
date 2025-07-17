@@ -1,18 +1,18 @@
-import { PrivateMessage, GroupMessage, Sendable } from "../message/index.js"
-import {
+import type {
   Friend,
   FriendNoticeEventMap,
   FriendRequestEventMap,
   PrivateMessageEventMap,
 } from "../contact/friend.js"
-import {
+import type {
   Group,
-  GroupRequestEventMap,
-  GroupNoticeEventMap,
   GroupMessageEventMap,
+  GroupNoticeEventMap,
+  GroupRequestEventMap,
 } from "../contact/group.js"
-import { Member } from "../contact/member.js"
-import { MemberInfo, Gender, GroupRole } from "../contact/types.js"
+import type { Member } from "../contact/member.js"
+import type { Gender, GroupRole, MemberInfo } from "../contact/types.js"
+import type { GroupMessage, PrivateMessage, Sendable } from "../message/index.js"
 
 /** 发消息的返回值 */
 export interface MessageRet {
@@ -251,14 +251,14 @@ export type PushStrToNextStr<
   NS extends string,
 > = NS extends `${infer L}.${infer R}` ? `${L}.${S}.${R}` : `${NS}.${S}`
 export type MessageEventMap = {
-  "message"(event: PrivateMessageEvent | GroupMessageEvent): void
+  message(event: PrivateMessageEvent | GroupMessageEvent): void
 } & {
   [P in keyof PrivateMessageEventMap as PushStrToNextStr<"private", P>]: PrivateMessageEventMap[P]
 } & {
   [P in keyof GroupMessageEventMap as PushStrToNextStr<"group", P>]: GroupMessageEventMap[P]
 }
 export type NoticeEventMap = {
-  "notice"(
+  notice(
     ...event: Parameters<MergeEventMap["notice.friend"]> | Parameters<MergeEventMap["notice.group"]>
   ): void
 } & {
@@ -267,7 +267,7 @@ export type NoticeEventMap = {
   [P in keyof GroupNoticeEventMap as PushStrToNextStr<"group", P>]: GroupNoticeEventMap[P]
 }
 export type RequestEventMap = {
-  "request"(
+  request(
     ...event:
       | Parameters<MergeEventMap["request.friend"]>
       | Parameters<MergeEventMap["request.group"]>

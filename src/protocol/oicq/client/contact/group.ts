@@ -1,22 +1,23 @@
-import { timestamp, NOOP, lock, hide } from "../common.js"
-import { Contactable } from "./contactable.js"
-import { GroupMessage, segment } from "../message/index.js"
-import { Gfs } from "./gfs.js"
-import {
+// biome-ignore-all lint/complexity/noThisInStatic::
+import type * as Philia from "#protocol/type"
+import { hide, lock, NOOP, timestamp } from "../common.js"
+import type {
   GroupAdminEvent,
   GroupInviteEvent,
-  GroupSignEvent,
   GroupMessageEvent,
   GroupMuteEvent,
   GroupPokeEvent,
   GroupRecallEvent,
   GroupRequestEvent,
+  GroupSignEvent,
   GroupTransferEvent,
   MemberDecreaseEvent,
   MemberIncreaseEvent,
 } from "../event/types.js"
-import { GroupInfo, MemberInfo } from "./types.js"
-import * as Philia from "#protocol/type"
+import { GroupMessage, segment } from "../message/index.js"
+import { Contactable } from "./contactable.js"
+import { Gfs } from "./gfs.js"
+import type { GroupInfo, MemberInfo } from "./types.js"
 
 type Client = import("../client.js").Client
 type Member = import("./member.js").Member
@@ -26,7 +27,7 @@ const weakmap = new WeakMap<GroupInfo, Group>()
 
 /** 群聊消息事件 */
 export interface GroupMessageEventMap {
-  "message"(event: GroupMessageEvent): void
+  message(event: GroupMessageEvent): void
   /** 普通消息 */
   "message.normal"(event: GroupMessageEvent): void
   /** 匿名消息 */
@@ -34,7 +35,7 @@ export interface GroupMessageEventMap {
 }
 /** 群聊通知事件 */
 export interface GroupNoticeEventMap {
-  "notice"(
+  notice(
     event:
       | MemberIncreaseEvent
       | GroupSignEvent
@@ -64,7 +65,7 @@ export interface GroupNoticeEventMap {
 }
 /** 群聊申请事件 */
 export interface GroupRequestEventMap {
-  "request"(event: GroupRequestEvent | GroupInviteEvent): void
+  request(event: GroupRequestEvent | GroupInviteEvent): void
   /** 加群申请 */
   "request.add"(event: GroupRequestEvent): void
   /** 群邀请 */
@@ -81,7 +82,7 @@ export class Group extends Contactable {
   static as(this: Client, gid: string, strict = false) {
     gid = String(gid)
     const info = this.gl.get(gid)
-    if (strict && !info) throw new Error(`你尚未加入群` + gid)
+    if (strict && !info) throw new Error(`你尚未加入群${gid}`)
     let group = weakmap.get(info!)
     if (group) return group
     group = new Group(this, gid, info)
@@ -149,7 +150,7 @@ export class Group extends Contactable {
   getAvatarUrl(size: 0 | 40 | 100 | 140 = 0, history = 0) {
     return (
       this.info?.avatar ||
-      `https://p.qlogo.cn/gh/${this.gid}/${this.gid}${history ? "_" + history : ""}/` + size
+      `https://p.qlogo.cn/gh/${this.gid}/${this.gid}${history ? `_${history}` : ""}/${size}`
     )
   }
 
@@ -242,7 +243,11 @@ export class Group extends Contactable {
 
   /** 全员禁言 */
   muteAll(yes = true) {
-    return this.c.api.setInfo({ scene: "group", id: this.gid, data: { whole_mute: yes } })
+    return this.c.api.setInfo({
+      scene: "group",
+      id: this.gid,
+      data: { whole_mute: yes },
+    })
   }
   /** 发送简易群公告 */
   announce(content: string) {
@@ -272,12 +277,21 @@ export class Group extends Contactable {
    * @param {string} [answer] - 在 `type` 为 "Correct" 时需要传入。正确回答的问题答案。
    */
   async setGroupJoinType(type: string, question?: string, answer?: string) {
-    return this.c.api.setGroupJoinType({ id: this.gid, type, question, answer })
+    return this.c.api.setGroupJoinType({
+      id: this.gid,
+      type,
+      question,
+      answer,
+    })
   }
 
   /** 设置群备注 */
   async setRemark(remark = "") {
-    return this.c.api.setInfo({ scene: "group", id: this.gid, data: { remark } })
+    return this.c.api.setInfo({
+      scene: "group",
+      id: this.gid,
+      data: { remark },
+    })
   }
 
   /** 获取 @全体成员 的剩余次数 */
@@ -417,7 +431,13 @@ export class Group extends Contactable {
   setReaction(seq: number | string, eid: string, etype = 1) {
     if (typeof seq !== "number")
       return this.c.api.setReaction({ type: "message", id: seq, eid, etype })
-    return this.c.api.setReaction({ type: "group", id: this.gid, eid, etype, seq })
+    return this.c.api.setReaction({
+      type: "group",
+      id: this.gid,
+      eid,
+      etype,
+      seq,
+    })
   }
 
   /**
@@ -429,6 +449,12 @@ export class Group extends Contactable {
   delReaction(seq: number, eid: string, etype = 1) {
     if (typeof seq !== "number")
       return this.c.api.delReaction({ type: "message", id: seq, eid, etype })
-    return this.c.api.delReaction({ type: "group", id: this.gid, eid, etype, seq })
+    return this.c.api.delReaction({
+      type: "group",
+      id: this.gid,
+      eid,
+      etype,
+      seq,
+    })
   }
 }

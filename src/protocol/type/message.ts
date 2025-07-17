@@ -1,6 +1,6 @@
-import * as Contact from "./contact.js"
-import * as Event from "./event.js"
-import { IModeMatch } from "#util"
+import type { IModeMatch } from "#util"
+import type * as Contact from "./contact.js"
+import type * as Event from "./event.js"
 
 /** 消息基类 */
 export interface AMessage {
@@ -23,16 +23,28 @@ export interface Text extends AMessage {
   url?: string
 }
 
-/** 提及消息 */
-export interface Mention extends AMessage {
+/** 提及消息基类 */
+export interface AMention extends AMessage {
   type: "mention"
   /** 提及目标 */
   data: "user" | "all"
+}
+/** 提及用户消息 */
+export interface UserMention extends AMention {
+  /** 提及目标 */
+  data: "user"
   /** 提及目标ID */
-  id?: Contact.User["id"]
+  id: Contact.User["id"]
   /** 用户名 */
   name?: Contact.User["name"]
 }
+/** 提及全体成员消息 */
+export interface AllMention extends AMention {
+  /** 提及目标 */
+  data: "all"
+}
+/** 提及消息 */
+export type Mention = UserMention | AllMention
 
 /** 回复消息 */
 export interface Reply extends AMessage {
@@ -54,7 +66,7 @@ export interface AFile extends AMessage {
 
   /** 文件数据类型 */
   data: "id" | "binary" | "url" | "path"
-  /** 文件ID（getFile(id) => {@link BinaryFile | URLFile}） */
+  /** 文件ID（getFile(id) => {@link BinaryFile} | {@link URLFile}） */
   id?: string
   /** 文件二进制或 base64:// */
   binary?: Buffer | string
@@ -109,29 +121,25 @@ export interface AButton {
   /** 平台额外字段，[平台名: 内容]，非目标平台忽略该字段 */
   [key: string]: unknown
 }
-
 /** 链接按钮 */
 export interface ButtonLink extends AButton {
   link: string
 }
-
 /** 输入按钮 */
 export interface ButtonInput extends AButton {
   input: string
   /** 是否直接发送 */
   send?: boolean
 }
-
 /** 回调按钮 */
 export interface ButtonCallback extends AButton {
   callback: string
 }
-
 export type ButtonType = ButtonLink | ButtonInput | ButtonCallback
-
 /** 按钮消息 */
 export interface Button extends AMessage {
   type: "button"
+  /** 按钮[行][列] */
   data: ButtonType[][]
 }
 

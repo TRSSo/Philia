@@ -1,12 +1,12 @@
-import { Philia } from "#project/project"
-import { WebSocket } from "ws"
-import { makeError, promiseEvent, String } from "#util"
-import logger from "#logger"
-import Protocol from "./protocol.js"
 import { ulid } from "ulid"
+import { WebSocket } from "ws"
+import logger from "#logger"
+import { Philia } from "#project/project"
 import { createAPI, Event } from "#protocol/common"
-import { API } from "../type/index.js"
+import { makeError, promiseEvent, toJSON } from "#util"
 import * as Convert from "../convert/index.js"
+import type { API } from "../type/index.js"
+import Protocol from "./protocol.js"
 
 export default class Client {
   logger = logger
@@ -85,7 +85,7 @@ export default class Client {
     }
   }
 
-  sendQueue(): void {
+  sendQueue(): undefined {
     if (this.queue.length === 0 || !this.open) return
     const data = this.cache.get(this.queue.shift() as string)?.request
     if (data) {
@@ -99,7 +99,7 @@ export default class Client {
     const echo = ulid()
     const request: API.Request<T> = { action, params, echo }
     this.logger.trace("WebSocket 请求", request)
-    if (this.open) this.ws.send(String(request))
+    if (this.open) this.ws.send(toJSON(request))
     else this.queue.push(echo)
     const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK<string>["data"]>()
     this.cache.set(echo, {

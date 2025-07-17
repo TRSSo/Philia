@@ -1,9 +1,9 @@
-import * as Philia from "#protocol/type"
-import * as OBv11 from "../type/index.js"
-import { ulid } from "ulid"
 import fs from "node:fs/promises"
-import Client from "../server/client.js"
+import { ulid } from "ulid"
+import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
+import type Client from "../server/client.js"
+import * as OBv11 from "../type/index.js"
 
 /** 消息转换器 */
 export class OBv11toPhilia {
@@ -65,7 +65,9 @@ export class OBv11toPhilia {
               id: String((this.event as OBv11.Event.GroupMessage).group_id),
               uid: qq,
             })
-          info ??= (await this.client.handle.getUserInfo({ id: qq })) as Philia.Contact.GroupMember
+          info ??= (await this.client.handle.getUserInfo({
+            id: qq,
+          })) as Philia.Contact.GroupMember
           if (info) name = info.card || info.name
         }
 
@@ -170,7 +172,10 @@ export class PhiliaToOBv11 {
   mention(ms: Philia.Message.Mention) {
     switch (ms.data) {
       case "user":
-        this.after.push({ type: "at", data: { qq: ms.id as string, name: ms.name } })
+        this.after.push({
+          type: "at",
+          data: { qq: ms.id as string, name: ms.name },
+        })
         this.summary += ms.name ? `@${ms.name}(${ms.id})` : `@${ms.id}`
         break
       case "all":

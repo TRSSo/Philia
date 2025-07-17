@@ -1,4 +1,4 @@
-import * as Milky from "../type/index.js"
+import type * as Milky from "../type/index.js"
 
 export enum MessageScene {
   friend,
@@ -31,7 +31,7 @@ export function decodeMessageID(id: string): {
   }
 }
 
-export const enum FileScene {
+export enum FileScene {
   Resource,
   Private,
   Group,
@@ -50,7 +50,11 @@ export function encodeFileID(scene: FileScene, id: string, peer_id?: number) {
   return `${buffer.toString("base64url")}|${id}`
 }
 
-export function decodeFileID(file_id: string): { scene: FileScene; id: string; peer_id?: number } {
+export function decodeFileID(file_id: string): {
+  scene: FileScene
+  id: string
+  peer_id?: number
+} {
   const match = file_id.match(/^([A-Za-z0-9-_]+)\|/)
   if (!match) return { scene: FileScene.Resource, id: file_id }
   const buffer = Buffer.from(match[1], "base64url")

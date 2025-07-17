@@ -1,6 +1,6 @@
-import * as Contact from "./contact.js"
-import * as Message from "./message.js"
-import * as Event from "./event.js"
+import type * as Contact from "./contact.js"
+import type * as Event from "./event.js"
+import type * as Message from "./message.js"
 
 export interface BaseAPI {
   /** 接收事件 */
@@ -127,7 +127,11 @@ export interface BaseAPI {
    * @param block 是否禁止再次请求
    */
   delGroupMember: {
-    request: { id: Contact.Group["id"]; uid: Contact.GroupMember["id"]; block?: boolean }
+    request: {
+      id: Contact.Group["id"]
+      uid: Contact.GroupMember["id"]
+      block?: boolean
+    }
     response: void
   }
 
@@ -403,7 +407,12 @@ export interface OICQExtendAPI {
     response: unknown
   }
   getGroupFSDir: {
-    request: { id: Contact.Group["id"]; pid?: string; start?: number; limit?: number }
+    request: {
+      id: Contact.Group["id"]
+      pid?: string
+      start?: number
+      limit?: number
+    }
     response: unknown
   }
   addGroupFSDir: {
@@ -437,11 +446,19 @@ export interface OICQExtendAPI {
 
   /** 若有 seq，则id为群ID，否则为消息ID */
   addGroupEssence: {
-    request: { id: Event.Message["id"] | Contact.Group["id"]; seq?: number; rand?: number }
+    request: {
+      id: Event.Message["id"] | Contact.Group["id"]
+      seq?: number
+      rand?: number
+    }
     response: void
   }
   delGroupEssence: {
-    request: { id: Event.Message["id"] | Contact.Group["id"]; seq?: number; rand?: number }
+    request: {
+      id: Event.Message["id"] | Contact.Group["id"]
+      seq?: number
+      rand?: number
+    }
     response: void
   }
   setReaded: {
@@ -462,7 +479,12 @@ export interface OICQExtendAPI {
     response: void
   }
   setGroupJoinType: {
-    request: { id: Contact.Group["id"]; type: string; question?: string; answer?: string }
+    request: {
+      id: Contact.Group["id"]
+      type: string
+      question?: string
+      answer?: string
+    }
     response: void
   }
   getGroupAtAllRemainder: {

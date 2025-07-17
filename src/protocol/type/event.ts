@@ -1,6 +1,6 @@
-import * as Contact from "./contact.js"
-import * as IMessage from "./message.js"
-import { IModeMatch } from "#util"
+import type { IModeMatch } from "#util"
+import type * as Contact from "./contact.js"
+import type * as IMessage from "./message.js"
 
 /** 事件基类 */
 export interface AEvent {

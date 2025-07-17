@@ -1,21 +1,20 @@
 import * as inquirer from "@inquirer/prompts"
-import * as Philia from "./Philia.js"
 import { Client } from "#protocol/milky"
-import { Config as AConfig } from "../type.js"
+import * as Common from "./common.js"
+import * as Philia from "./Philia.js"
 
-export interface IConfig extends AConfig {
+export interface IConfig extends Common.IConfig {
   name: "Milky"
   server: string | URL
   client: Philia.IConfig
 }
 
-export class Project {
-  config: IConfig
+export class Project extends Common.Project {
+  declare config: IConfig
   client: Client
 
   constructor(config: IConfig) {
-    this.config = config
-    this.verifyConfig()
+    super(config)
     this.client = new Client(this.config.client, this.config.server)
   }
 
@@ -45,6 +44,7 @@ export class Project {
   start() {
     return this.client.start()
   }
+
   stop() {
     return this.client.close()
   }

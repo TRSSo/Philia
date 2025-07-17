@@ -1,42 +1,37 @@
 import { Socket } from "node:net"
 import Path from "node:path"
 import { Encoder, makeError, promiseEvent, StringOrBuffer } from "#util"
-import { type, Client as AClient } from "../common/index.js"
+import { Client as AClient, type type } from "../common/index.js"
 
 export interface ClientOptions extends type.Options {
   socket?: Socket | ConstructorParameters<typeof Socket>[0]
 }
 
 export default class Client extends AClient {
-  socket: Socket & { path?: string }
-  buffer = Buffer.alloc(0)
+  event: Socket & { path?: string }
+  buffer!: Buffer
+  buffer_split?: Buffer
 
   constructor(handle: type.Handles, opts: ClientOptions = {}) {
     super(handle, opts)
     if (opts.path) this.path = opts.path
-    if (opts.socket instanceof Socket) this.socket = opts.socket
-    else this.socket = new Socket(opts.socket).on("connect", this.onconnect)
-    this.socket.setTimeout(this.timeout.idle)
+    if (opts.socket instanceof Socket) this.event = opts.socket
+    else this.event = new Socket(opts.socket).on("connect", this.onconnect.bind(this))
+    this.event.setTimeout(this.timeout.idle)
     for (const i in this.listener) this.listener[i] = this.listener[i].bind(this)
   }
 
   connect(path = this.path) {
-    if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
-    else this.socket.path = `\0${path}`
-    this.socket.connect(this.socket.path as string)
-    return promiseEvent<this>(this.socket, "connected", "error")
-  }
-
-  onconnect = async () => {
-    await this.onconnectMeta()
-    for (const i in this.listener) this.socket.on(i, this.listener[i])
-    this.socket.emit("connected", this)
+    if (process.platform === "win32") this.event.path = Path.join("\\\\?\\pipe", path)
+    else this.event.path = `\0${path}`
+    this.event.connect(this.event.path as string)
+    return promiseEvent<this>(this.event, "connected", "error")
   }
 
   onclose() {
     this.open = false
     this.buffer = Buffer.alloc(0)
-    for (const i in this.listener) this.socket.off(i, this.listener[i])
+    for (const i in this.listener) this.event.off(i, this.listener[i])
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
@@ -49,7 +44,7 @@ export default class Client extends AClient {
       this.logger.info(`${this.meta.remote?.id} 已断开连接`)
     },
     timeout(this: Client) {
-      this.request("heartbeat")
+      this.request("heartbeat").catch(this.forceClose)
     },
     connected(this: Client) {
       this.logger.info("已连接", this.meta.remote)
@@ -64,7 +59,7 @@ export default class Client extends AClient {
   getMetaInfo(): Promise<type.MetaInfo> {
     this.encoder = new Encoder()
     this.buffer = Buffer.alloc(0)
-    this.socket.write(this.encode(this.meta.local))
+    this.write(this.encoder.encode(this.meta.local))
 
     return new Promise((resolve, reject) => {
       const listener = (buffer: Buffer) => {
@@ -82,54 +77,60 @@ export default class Client extends AClient {
           )
         }
         clearTimeout(timeout)
-        this.socket.off("data", listener)
+        this.event.off("data", listener)
       }
       const timeout = setTimeout(() => {
         reject(makeError("等待元数据超时", { timeout: this.timeout.send }))
-        this.socket.off("data", listener)
+        this.event.off("data", listener)
       }, this.timeout.send)
-      this.socket.on("data", listener)
+      this.event.on("data", listener)
     })
   }
 
-  forceClose() {
-    this.socket.destroy()
-  }
-
+  forceClose = () => this.event.destroy()
   close() {
-    this.socket.end()
-    const timeout = setTimeout(this.forceClose.bind(this), this.timeout.wait)
-    return promiseEvent<void>(this.socket, "close", "error").finally(() => clearTimeout(timeout))
-  }
-
-  encode(data: any) {
-    const buffer = this.encoder.encode(data)
-    const length = Buffer.allocUnsafe(4)
-    length.writeUint32BE(buffer.length)
-    return Buffer.concat([length, buffer])
+    this.event.end()
+    const timeout = setTimeout(this.forceClose, this.timeout.wait)
+    return promiseEvent<void>(this.event, "close", "error").finally(() => clearTimeout(timeout))
   }
 
   decode_empty = Symbol("decode_empty")
-  decode() {
+  decode(): typeof this.decode_empty | ReturnType<typeof this.encoder.decode> {
     if (this.buffer.length < 4) return this.decode_empty
     const length = this.buffer.readUint32BE() + 4
     if (this.buffer.length < length) return this.decode_empty
 
-    const data = this.buffer.subarray(4, length)
+    let data = this.buffer.subarray(4, length)
+    if (this.buffer_split) {
+      data = Buffer.concat([this.buffer_split, data])
+      this.buffer_split = undefined
+    }
     this.buffer = this.buffer.subarray(length)
+
+    if (length === 4294967295 + 4) {
+      this.buffer_split = data
+      return this.decode()
+    }
     return this.encoder.decode(data)
   }
 
-  write(data: type.Base<type.EStatus>) {
-    if (data.data === undefined) delete data.data
-    this.logger.trace("发送", data)
-    return this.socket.write(this.encode(data))
+  write(data: Buffer) {
+    while (data.length >= 4294967295) {
+      const length = Buffer.allocUnsafe(4)
+      length.writeUint32BE(4294967295)
+      this.event.write(Buffer.concat([length, data.subarray(0, 4294967295)]))
+      data = data.subarray(4294967295)
+    }
+
+    const length = Buffer.allocUnsafe(4)
+    length.writeUint32BE(data.length)
+    return this.event.write(Buffer.concat([length, data]))
   }
 
   receive(buffer: Buffer) {
     try {
       this.buffer = Buffer.concat([this.buffer, buffer])
-      let data
+      let data: ReturnType<typeof this.decode>
       while ((data = this.decode()) !== this.decode_empty) this.handle.data(data)
     } catch (err) {
       this.close()

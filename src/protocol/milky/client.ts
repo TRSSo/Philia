@@ -2,8 +2,8 @@ import logger from "#logger"
 import { Philia } from "#project/project"
 import { createAPI, Event } from "#protocol/common"
 import { makeError } from "#util"
-import { API } from "./type/index.js"
 import * as Convert from "./convert/index.js"
+import type { API } from "./type/index.js"
 
 export default class Client {
   logger = logger
@@ -12,6 +12,7 @@ export default class Client {
   url: URL
   ws!: WebSocket
   timeout = 6e4
+  open = false
 
   api = createAPI<API.ClientAPI>(this)
   handle = new Convert.API(this)
@@ -27,27 +28,41 @@ export default class Client {
     this.url = url instanceof URL ? url : new URL(url)
   }
 
+  event_promise?: ReturnType<typeof Promise.withResolvers>
+  promiseEvent() {
+    this.event_promise = Promise.withResolvers()
+    return this.event_promise.promise.finally(() => (this.event_promise = undefined))
+  }
+
   start() {
+    if (this.open === true) return Promise.resolve()
     const url = new URL(this.url)
     url.pathname += "event"
     this.ws = new WebSocket(url)
     this.logger.info(`WebSocket 正在连接 ${this.ws.url}`)
-    this.ws.onopen = () => {
+    this.ws.onopen = event => {
+      this.open = true
+      this.event_promise?.resolve(event)
       this.logger.info(`WebSocket 已连接 ${this.ws.url}`)
       this.philia.start()
     }
     this.ws.onerror = err => {
+      this.event_promise?.reject(err)
       this.logger.error("WebSocket 错误", err)
     }
     this.ws.onclose = event => {
+      this.open = false
+      this.event_promise?.resolve(event)
       this.logger.info(`WebSocket 已断开 ${event.reason}(${event.code})`)
       this.philia.stop()
     }
     this.ws.onmessage = this.message.bind(this)
+    return this.promiseEvent()
   }
 
   close() {
-    return this.ws.close()
+    this.ws.close()
+    return this.promiseEvent()
   }
 
   async message(event: MessageEvent) {

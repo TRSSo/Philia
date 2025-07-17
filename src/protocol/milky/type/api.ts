@@ -1,6 +1,6 @@
-import { API as PhiliaAPI } from "#protocol/type"
-import * as Struct from "./struct.js"
-import * as Message from "./message.js"
+import type { API as PhiliaAPI } from "#protocol/type"
+import type * as Message from "./message.js"
+import type * as Struct from "./struct.js"
 
 /** 系统 API */
 export interface SystemAPI {

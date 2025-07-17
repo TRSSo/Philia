@@ -1,6 +1,7 @@
-import { timestamp, lock, hide } from "../common.js"
-import { PrivateMessage, segment } from "../message/index.js"
-import {
+// biome-ignore-all lint/complexity/noThisInStatic::
+import type * as Philia from "#protocol/type"
+import { hide, lock, timestamp } from "../common.js"
+import type {
   FriendDecreaseEvent,
   FriendIncreaseEvent,
   FriendPokeEvent,
@@ -9,9 +10,9 @@ import {
   GroupInviteEvent,
   PrivateMessageEvent,
 } from "../event/types.js"
-import { FriendInfo } from "./types.js"
+import { PrivateMessage, segment } from "../message/index.js"
 import { Contactable } from "./contactable.js"
-import * as Philia from "#protocol/type"
+import type { FriendInfo } from "./types.js"
 
 type Client = import("../client.js").Client
 
@@ -27,7 +28,7 @@ export class User extends Contactable {
   static as(this: Client, uid: string, strict = false) {
     uid = String(uid)
     const info = this.fl.get(uid)
-    if (strict && !info) throw new Error(uid + `不是你的好友`)
+    if (strict && !info) throw new Error(`${uid}不是你的好友`)
     let friend = weakmap.get(info!)
     if (friend) return friend
     friend = new User(this, uid, info)
@@ -61,7 +62,7 @@ export class User extends Contactable {
    * @returns 头像的url地址
    */
   getAvatarUrl(size: 0 | 40 | 100 | 140 = 0) {
-    return this.info?.avatar || `https://q.qlogo.cn/g?b=qq&s=${size}&nk=` + this.uid
+    return this.info?.avatar || `https://q.qlogo.cn/g?b=qq&s=${size}&nk=${this.uid}`
   }
 
   /**
@@ -113,7 +114,9 @@ export class User extends Contactable {
    * @param time 默认当前时间，为时间戳的分钟数（`Date.now() / 1000`）
    */
   async markRead(time = timestamp()) {
-    return this.c.api.setReaded({ id: (await this.getChatHistory(time, 1))[0].message_id })
+    return this.c.api.setReaded({
+      id: (await this.getChatHistory(time, 1))[0].message_id,
+    })
   }
 
   /**
@@ -209,7 +212,11 @@ export class User extends Contactable {
 
   /** 戳一戳 */
   async poke(self = false) {
-    return this.c.api.sendPoke({ scene: "user", id: this.uid, tid: self ? this.c.uin : this.uid })
+    return this.c.api.sendPoke({
+      scene: "user",
+      id: this.uid,
+      tid: self ? this.c.uin : this.uid,
+    })
   }
 
   /**
@@ -246,7 +253,7 @@ export class User extends Contactable {
 
 /** 私聊消息事件 */
 export interface PrivateMessageEventMap {
-  "message"(event: PrivateMessageEvent): void
+  message(event: PrivateMessageEvent): void
   /** 好友的消息 */
   "message.friend"(event: PrivateMessageEvent): void
   /** 群临时对话 */
@@ -258,7 +265,7 @@ export interface PrivateMessageEventMap {
 }
 /** 好友通知事件 */
 export interface FriendNoticeEventMap {
-  "notice"(
+  notice(
     event: FriendIncreaseEvent | FriendDecreaseEvent | FriendRecallEvent | FriendPokeEvent,
   ): void
   /** 新增好友 */
@@ -272,7 +279,7 @@ export interface FriendNoticeEventMap {
 }
 /** 好友申请事件 */
 export interface FriendRequestEventMap {
-  "request"(event: FriendRequestEvent): void
+  request(event: FriendRequestEvent): void
   /** 群邀请 */
   "request.invite"(event: GroupInviteEvent): void
   /** 添加好友 */

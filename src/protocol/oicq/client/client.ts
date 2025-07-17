@@ -1,23 +1,29 @@
 import events from "node:events"
-import { timestamp } from "./common.js"
-import {
-  Domain,
-  FriendInfo,
-  GroupInfo,
-  MemberInfo,
-  StrangerInfo,
-  Gender,
-  OnlineStatus,
-} from "./contact/types.js"
-import { User, Friend } from "./contact/friend.js"
-import { Group } from "./contact/group.js"
-import { Member } from "./contact/member.js"
-import { Forwardable, ImageElem, OICQtoPhilia, Quotable, Sendable } from "./message/index.js"
-import Handle from "./event/handle.js"
-import * as Philia from "#protocol/type"
-import { createAPI } from "#protocol/common"
 import * as Connect from "#connect"
 import logger from "#logger"
+import { createAPI } from "#protocol/common"
+import type * as Philia from "#protocol/type"
+import { timestamp } from "./common.js"
+import { Friend, User } from "./contact/friend.js"
+import { Group } from "./contact/group.js"
+import { Member } from "./contact/member.js"
+import {
+  type Domain,
+  type FriendInfo,
+  type Gender,
+  type GroupInfo,
+  type MemberInfo,
+  OnlineStatus,
+  type StrangerInfo,
+} from "./contact/types.js"
+import Handle from "./event/handle.js"
+import {
+  type Forwardable,
+  type ImageElem,
+  OICQtoPhilia,
+  type Quotable,
+  type Sendable,
+} from "./message/index.js"
 
 /** 一个客户端 */
 export class Client extends events {

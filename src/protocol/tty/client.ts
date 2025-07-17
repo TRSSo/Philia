@@ -1,8 +1,8 @@
+import fs from "node:fs/promises"
+import logger from "#logger"
 import { Philia } from "#project/project"
 import { Event } from "#protocol/common"
-import * as Type from "#protocol/type"
-import logger from "#logger"
-import fs from "node:fs/promises"
+import type * as Type from "#protocol/type"
 import * as Convert from "./convert/index.js"
 
 export default class Client {

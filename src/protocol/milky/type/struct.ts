@@ -1,4 +1,4 @@
-import * as Message from "./message.js"
+import type * as Message from "./message.js"
 
 /** 用户 */
 export interface User {

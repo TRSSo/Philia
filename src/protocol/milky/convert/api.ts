@@ -1,9 +1,9 @@
-import Client from "../client.js"
-import { API, Event, Contact, Message } from "#protocol/type"
-import { String } from "#util"
-import * as MessageConverter from "./message.js"
-import * as Milky from "../type/index.js"
+import type { API, Contact, Event, Message } from "#protocol/type"
+import { toJSON } from "#util"
+import type Client from "../client.js"
+import type * as Milky from "../type/index.js"
 import { Common } from "./index.js"
+import * as MessageConverter from "./message.js"
 
 /** API 转换器 */
 export default class PhiliaToMilky implements API.ServerAPI {
@@ -62,7 +62,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_friend_info({
-      user_id: Number(id),
+      user_id: +id,
       no_cache: refresh,
     })
     return this._convertUserInfo(res.friend)
@@ -87,7 +87,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_group_info({
-      group_id: Number(id),
+      group_id: +id,
       no_cache: refresh,
     })
     return this._convertGroupInfo(res.group)
@@ -126,8 +126,8 @@ export default class PhiliaToMilky implements API.ServerAPI {
       if (cache) return cache
     }
     const res = await this.client.api.get_group_member_info({
-      group_id: Number(id),
-      user_id: Number(uid),
+      group_id: +id,
+      user_id: +uid,
       no_cache: refresh,
     })
     return this._convertGroupMemberInfo(res.member)
@@ -147,15 +147,18 @@ export default class PhiliaToMilky implements API.ServerAPI {
         break
       case "group":
         if (data.name !== undefined)
-          await this.client.api.set_group_name({ group_id: Number(id), name: data.name })
+          await this.client.api.set_group_name({
+            group_id: +id,
+            name: data.name,
+          })
         if (data.avatar !== undefined)
           await this.client.api.set_group_avatar({
-            group_id: Number(id),
-            image_uri: String(data.avatar),
+            group_id: +id,
+            image_uri: toJSON(data.avatar),
           })
         if (data.whole_mute !== undefined)
           await this.client.api.set_group_whole_mute({
-            group_id: Number(id),
+            group_id: +id,
             is_mute: (data as Contact.Group).whole_mute,
           })
         break
@@ -173,26 +176,26 @@ export default class PhiliaToMilky implements API.ServerAPI {
   }) {
     if (data.card !== undefined)
       await this.client.api.set_group_member_card({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         card: data.card,
       })
     if (data.title !== undefined)
       await this.client.api.set_group_member_special_title({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         special_title: data.title,
       })
     if (data.role !== undefined)
       await this.client.api.set_group_member_admin({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         is_set: data.role === "admin",
       })
     if (data.mute_time !== undefined)
       await this.client.api.set_group_member_mute({
-        group_id: Number(id),
-        user_id: Number(uid),
+        group_id: +id,
+        user_id: +uid,
         duration: data.mute_time,
       })
   }
@@ -202,11 +205,16 @@ export default class PhiliaToMilky implements API.ServerAPI {
   async delGroup({ id, dismiss }: { id: Contact.Group["id"]; dismiss?: boolean }) {
     if (!dismiss) {
       if (
-        (await this.getGroupMemberInfo({ id, uid: (await this.getSelfInfo()).id })).role === "owner"
+        (
+          await this.getGroupMemberInfo({
+            id,
+            uid: (await this.getSelfInfo()).id,
+          })
+        ).role === "owner"
       )
         return
     }
-    return this.client.api.quit_group({ group_id: Number(id) })
+    return this.client.api.quit_group({ group_id: +id })
   }
 
   delGroupMember({
@@ -219,8 +227,8 @@ export default class PhiliaToMilky implements API.ServerAPI {
     block?: boolean
   }) {
     return this.client.api.kick_group_member({
-      group_id: Number(id),
-      user_id: Number(uid),
+      group_id: +id,
+      user_id: +uid,
       reject_add_request: block,
     })
   }
@@ -244,7 +252,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
         time: Math.floor(Date.now() / 1000),
       }
     }
-    const peer_id = Number(id)
+    const peer_id = +id
     const res = await (scene === "user"
       ? this.client.api.send_private_message({
           user_id: peer_id,
@@ -328,11 +336,11 @@ export default class PhiliaToMilky implements API.ServerAPI {
         break
       case "binary":
       case "url":
-        file_uri = String(data.binary || data.url)
+        file_uri = toJSON(data.binary || data.url)
         break
     }
-    const peer_id = Number(id)
-    let file_id, type
+    const peer_id = +id
+    let file_id: string, type: Common.FileScene
     if (scene === "user") {
       file_id = (
         await this.client.api.upload_private_file({
@@ -364,7 +372,10 @@ export default class PhiliaToMilky implements API.ServerAPI {
     const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
     return message_scene === "group"
       ? this.client.api.recall_group_message({ group_id: peer_id, message_seq })
-      : this.client.api.recall_private_message({ user_id: peer_id, message_seq })
+      : this.client.api.recall_private_message({
+          user_id: peer_id,
+          message_seq,
+        })
   }
 
   async sendMsgForward({
@@ -398,12 +409,18 @@ export default class PhiliaToMilky implements API.ServerAPI {
         break
       case Common.FileScene.Private:
         ret.url = (
-          await this.client.api.get_private_file_download_url({ user_id: peer_id!, file_id })
+          await this.client.api.get_private_file_download_url({
+            user_id: peer_id!,
+            file_id,
+          })
         ).download_url
         break
       case Common.FileScene.Group:
         ret.url = (
-          await this.client.api.get_group_file_download_url({ group_id: peer_id!, file_id })
+          await this.client.api.get_group_file_download_url({
+            group_id: peer_id!,
+            file_id,
+          })
         ).download_url
         break
     }
@@ -411,7 +428,9 @@ export default class PhiliaToMilky implements API.ServerAPI {
   }
 
   async getForwardMsg({ id }: { id: string }) {
-    const res = await this.client.api.get_forwarded_messages({ forward_id: id })
+    const res = await this.client.api.get_forwarded_messages({
+      forward_id: id,
+    })
     return Promise.all(res.messages.map(this.client.event.IncomingMessage.bind(this.client.event)))
   }
 
@@ -439,7 +458,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
     } else {
       res = await this.client.api.get_history_messages({
         message_scene: type === "user" ? "friend" : type,
-        peer_id: Number(id),
+        peer_id: +id,
         direction: newer ? "newer" : "older",
         limit: count,
       })
@@ -480,7 +499,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
     }
     const res = await this.client.api.get_group_member_list({
-      group_id: Number(id),
+      group_id: +id,
       no_cache: refresh,
     })
     const ret: Contact.GroupMember["id"][] = res.members.map(i => String(i.user_id))
@@ -493,7 +512,7 @@ export default class PhiliaToMilky implements API.ServerAPI {
       if (group && group.size !== 0) return Array.from(group.values())
     }
     const res = await this.client.api.get_group_member_list({
-      group_id: Number(id),
+      group_id: +id,
       no_cache: refresh,
     })
     const ret: Contact.GroupMember[] = res.members.map(i => this._convertGroupMemberInfo(i))
@@ -517,7 +536,9 @@ export default class PhiliaToMilky implements API.ServerAPI {
         break
       }
       case "group_invite": {
-        const res = await this.client.api.get_group_invitations({ limit: count })
+        const res = await this.client.api.get_group_invitations({
+          limit: count,
+        })
         ret = res.invitations.map(this.client.event.GroupInvitation.bind(this.client.event))
         break
       }

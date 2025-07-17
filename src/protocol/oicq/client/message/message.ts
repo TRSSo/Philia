@@ -1,11 +1,11 @@
+import querystring from "node:querystring"
+import type { Event } from "#protocol/type"
+import type { Client } from "../client.js"
 import { lock } from "../common.js"
+import type { Friend, Gender, Group, GroupRole, Member } from "../contact/index.js"
+import type { MessageRet } from "../event/types.js"
 import { PhiliaToOICQ } from "./converter.js"
-import { Quotable, Forwardable, MessageElem, Sendable } from "./elements.js"
-import querystring from "querystring"
-import { Event } from "#protocol/type"
-import { Client } from "../client.js"
-import { Gender, GroupRole, Friend, Group, Member } from "../contact/index.js"
-import { MessageRet } from "../event/types.js"
+import type { Forwardable, MessageElem, Quotable, Sendable } from "./elements.js"
 
 /** 一条消息 */
 export abstract class Message implements Quotable, Forwardable {

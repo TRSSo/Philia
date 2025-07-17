@@ -1,12 +1,12 @@
+import fs from "node:fs/promises"
+import path from "node:path"
 import * as inquirer from "@inquirer/prompts"
-import Client from "./client.js"
 import { ulid } from "ulid"
 import logger from "#logger"
 import { Philia } from "#project/project"
-import * as Type from "#protocol/type"
+import type * as Type from "#protocol/type"
 import { continueTui } from "#util/tui.js"
-import path from "node:path"
-import fs from "node:fs/promises"
+import Client from "./client.js"
 
 export class Tui {
   logger = logger

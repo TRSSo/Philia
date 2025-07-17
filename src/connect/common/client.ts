@@ -1,8 +1,8 @@
-import logger from "#logger"
-import * as type from "./type.js"
-import Handle from "./handle.js"
 import { ulid } from "ulid"
-import { encoder, verify, compress, Encoder, makeError } from "#util"
+import logger from "#logger"
+import { compress, Encoder, encoder, makeError, verify } from "#util"
+import Handle from "./handle.js"
+import * as type from "./type.js"
 
 export default abstract class Client {
   logger = logger
@@ -22,7 +22,7 @@ export default abstract class Client {
       verify: Object.keys(verify),
     },
   }
-  encoder = new Encoder()
+  encoder!: Encoder
   cache: { [key: type.Cache["data"]["id"]]: type.Cache } = {}
   queue: type.Cache["data"]["id"][] = []
   idle = false
@@ -37,11 +37,25 @@ export default abstract class Client {
     else this.meta.local.verify.push(...Object.keys(compress))
   }
 
-  abstract write(data: type.Base<type.EStatus>): void
+  abstract listener: { [key: string]: (...args: any[]) => void }
+  abstract event: NodeJS.EventEmitter
+  abstract write(data: Buffer): void
   abstract getMetaInfo(): Promise<type.MetaInfo>
   abstract connect(path?: string): Promise<this>
   abstract close(): Promise<void>
   abstract forceClose(): void
+
+  send(data: type.Status) {
+    if ("data" in data && data.data === undefined) delete data.data
+    this.logger.trace("发送", data)
+    return this.write(this.encoder.encode(data))
+  }
+
+  async onconnect() {
+    await this.onconnectMeta()
+    for (const i in this.listener) this.event.on(i, this.listener[i])
+    this.event.emit("connected", this)
+  }
 
   async onconnectMeta() {
     try {
@@ -55,14 +69,14 @@ export default abstract class Client {
     }
   }
 
-  sender(): true | void {
+  sender(): true | undefined {
     if (!this.open) {
       for (const i of this.queue) this.cache[i].reject(Error("连接关闭"))
       this.queue = []
       return (this.idle = true)
     }
     if (this.queue.length === 0) return (this.idle = true)
-    const id = this.queue.shift() as type.Base<type.EStatus>["id"]
+    const id = this.queue.shift() as type.Status["id"]
     const cache = this.cache[id]
     if (!cache?.data) return this.sender()
     const timeout = () => {
@@ -71,33 +85,30 @@ export default abstract class Client {
       cache.retry++
       this.logger.warn(`发送 ${id} 超时，重试${cache.retry}次`)
       cache.timeout = setTimeout(timeout, this.timeout.send)
-      this.write(cache.data)
+      this.send(cache.data)
     }
     cache.timeout = setTimeout(timeout, this.timeout.send)
-    this.write(cache.data)
+    this.send(cache.data)
   }
 
-  send(data: type.Request) {
+  request(name: type.Request["name"], data?: type.Request["data"]) {
+    const id = ulid()
     const cache = {
-      data,
+      data: { id, code: type.EStatus.Request as const, name, data },
       retry: 0,
       ...Promise.withResolvers(),
       finally: () => {
-        delete this.cache[data.id]
+        delete this.cache[id]
         this.sender()
       },
     }
 
-    this.cache[data.id] = cache
-    this.queue.push(data.id)
+    this.cache[id] = cache
+    this.queue.push(id)
     if (this.idle) {
       this.idle = false
       this.sender()
     }
     return cache.promise.finally(() => cache.finally())
-  }
-
-  request(name: type.Request["name"], data?: type.Request["data"]) {
-    return this.send({ id: ulid(), code: type.EStatus["Request"], name, data })
   }
 }

@@ -1,5 +1,5 @@
-import { Philia } from "#project/project"
-import { Event } from "#protocol/type"
+import type { Philia } from "#project/project"
+import type { Event } from "#protocol/type"
 import { isEqualObj, modeMatch } from "#util"
 export class Handle {
   philia: Philia.Project

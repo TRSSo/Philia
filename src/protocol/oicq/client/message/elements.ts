@@ -1,4 +1,4 @@
-import { Message } from "#protocol/type"
+import type { Message } from "#protocol/type"
 
 /** LongMsg */
 export interface LongMsgElem {

@@ -1,4 +1,4 @@
-import { FaceElem } from "./elements.js"
+import type { FaceElem } from "./elements.js"
 
 /** 表情字典 */
 export const facemap: { [key: number]: Omit<FaceElem, "id" | "type"> } = {

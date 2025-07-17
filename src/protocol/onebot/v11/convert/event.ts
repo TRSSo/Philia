@@ -1,8 +1,8 @@
-import * as OBv11 from "../type/index.js"
-import * as Philia from "#protocol/type"
-import Client from "../server/client.js"
-import * as Message from "./message.js"
+import type * as Philia from "#protocol/type"
 import { makeError } from "#util"
+import type Client from "../server/client.js"
+import type * as OBv11 from "../type/index.js"
+import * as Message from "./message.js"
 
 /** 事件转换器 */
 export class OBv11toPhilia {
@@ -30,7 +30,9 @@ export class OBv11toPhilia {
     if (data.message_type === "group") {
       event.scene = "group"
       event.user = this.client.handle._convertGroupMemberInfo(String(data.group_id), data.sender)
-      event.group = await this.client.handle.getGroupInfo({ id: String(data.group_id) })
+      event.group = await this.client.handle.getGroupInfo({
+        id: String(data.group_id),
+      })
     } else {
       event.user = this.client.handle._convertUserInfo(data.sender)
     }
@@ -58,7 +60,9 @@ export class OBv11toPhilia {
     } as Philia.Event.Request
     if (data.request_type === "group") {
       event.scene = `group_${data.sub_type}`
-      event.group = await this.client.handle.getGroupInfo({ id: String(data.group_id) })
+      event.group = await this.client.handle.getGroupInfo({
+        id: String(data.group_id),
+      })
       event.sub_type = data.sub_type
     }
     this.event_map.set(event.id, event)

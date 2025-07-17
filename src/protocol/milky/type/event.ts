@@ -1,4 +1,4 @@
-import * as Struct from "./struct.js"
+import type * as Struct from "./struct.js"
 
 export interface AEvent {
   /** 事件 Unix 时间戳（秒） */

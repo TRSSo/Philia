@@ -1,8 +1,8 @@
-import { Philia } from "#project/project"
-import { WebSocket, WebSocketServer } from "ws"
-import { promiseEvent } from "#util"
+import type { IncomingMessage } from "node:http"
+import { type WebSocket, WebSocketServer } from "ws"
 import logger from "#logger"
-import { IncomingMessage } from "node:http"
+import type { Philia } from "#project/project"
+import { promiseEvent } from "#util"
 import Client from "./client.js"
 
 export default class Server {

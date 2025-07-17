@@ -1,9 +1,9 @@
-import * as Milky from "../type/index.js"
-import * as Philia from "#protocol/type"
-import Client from "../client.js"
-import * as Common from "./common.js"
 import { ulid } from "ulid"
+import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
+import type Client from "../client.js"
+import * as Milky from "../type/index.js"
+import * as Common from "./common.js"
 
 /** 消息转换器 */
 export class MilkyToPhilia {
@@ -56,7 +56,11 @@ export class MilkyToPhilia {
   }
 
   mention(ms: Milky.Message.Mention) {
-    this.after.push({ type: "mention", data: "user", id: String(ms.data.user_id) })
+    this.after.push({
+      type: "mention",
+      data: "user",
+      id: String(ms.data.user_id),
+    })
     this.summary += `@${ms.data.user_id}`
   }
 
@@ -146,7 +150,7 @@ export class PhiliaToMilky {
   mention(ms: Philia.Message.Mention) {
     switch (ms.data) {
       case "user":
-        this.after.push({ type: "mention", data: { user_id: Number(ms.id) } })
+        this.after.push({ type: "mention", data: { user_id: +ms.id } })
         this.summary += `[提及：${ms.id}]`
         break
       case "all":
@@ -187,7 +191,9 @@ export class PhiliaToMilky {
       case "id":
         ret = {
           type,
-          data: { uri: (await this.client.handle.getFile({ id: ms.id as string })).url },
+          data: {
+            uri: (await this.client.handle.getFile({ id: ms.id as string })).url,
+          },
         } as T
         break
       case "path":

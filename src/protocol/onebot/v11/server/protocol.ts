@@ -1,6 +1,6 @@
-import Client from "./client.js"
-import * as OBv11 from "../type/index.js"
 import { Event } from "../convert/index.js"
+import type * as OBv11 from "../type/index.js"
+import type Client from "./client.js"
 
 export default class Protocol {
   convert: Event.OBv11toPhilia

@@ -1,7 +1,7 @@
-import util from "node:util"
-import path from "node:path"
+import type EventEmitter from "node:events"
 import fs from "node:fs/promises"
-import EventEmitter from "node:events"
+import path from "node:path"
+import util from "node:util"
 import { Chalk } from "chalk"
 export const chalk = new Chalk({ level: 3 })
 
@@ -21,7 +21,7 @@ export function makeError(msg: string, ...obj: object[]) {
  * @param array2 数组2
  * @returns (数组1 ∩ 数组2)[0]
  */
-export function findArrays<T>(array1: Array<T>, array2: Array<T>): T | void {
+export function findArrays<T>(array1: Array<T>, array2: Array<T>): T | undefined {
   return array1.find(i => array2.includes(i))
 }
 
@@ -32,7 +32,7 @@ export function findArrays<T>(array1: Array<T>, array2: Array<T>): T | void {
  */
 export function StringOrNull(data: object): string {
   if (typeof data === "object" && typeof data.toString !== "function") return "[object null]"
-  return global.String(data)
+  return String(data)
 }
 
 /**
@@ -76,17 +76,17 @@ export function getCircularReplacer() {
 }
 
 /**
- * 把任意类型转成字符串
+ * 把任意类型转成字符串/JSON
  * @param data 任意类型
  * @param space JSON.stringify 的第三个参数
  * @returns 字符串
  */
-export function String(data: any, space?: Parameters<typeof JSON.stringify>[2]): string {
+export function toJSON(data: any, space?: Parameters<typeof JSON.stringify>[2]): string {
   switch (typeof data) {
     case "string":
       return data
     case "function":
-      return data.toString()
+      return String(data)
     case "object":
       if (data instanceof Error) return data.stack || StringOrNull(data)
       if (Buffer.isBuffer(data)) return StringOrBuffer(data, true) as string
@@ -187,8 +187,9 @@ export function promiseEvent<T>(
   reject?: string | symbol,
   timeout?: number,
 ) {
-  const listener: ReturnType<typeof Promise.withResolvers<T>> & { timeout?: NodeJS.Timeout } =
-    Promise.withResolvers<T>()
+  const listener: ReturnType<typeof Promise.withResolvers<T>> & {
+    timeout?: NodeJS.Timeout
+  } = Promise.withResolvers<T>()
   event.once(resolve, listener.resolve)
   if (reject) event.once(reject, listener.reject)
   if (timeout)

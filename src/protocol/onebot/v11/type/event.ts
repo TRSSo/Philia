@@ -1,4 +1,4 @@
-import { MessageSegment } from "./message.js"
+import type { MessageSegment } from "./message.js"
 
 export interface AEvent {
   /** 事件发生的unix时间戳 */

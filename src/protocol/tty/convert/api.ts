@@ -1,10 +1,10 @@
-import Client from "../client.js"
-import MessageConvert from "./message.js"
-import { API, Contact, Event, Message } from "#protocol/type"
-import { ulid } from "ulid"
-import { toBuffer } from "#util"
 import fs from "node:fs/promises"
 import path from "node:path"
+import { ulid } from "ulid"
+import type { API, Contact, Event, Message } from "#protocol/type"
+import { toBuffer } from "#util"
+import type Client from "../client.js"
+import MessageConvert from "./message.js"
 
 export default class PhiliaToTTY implements API.ServerAPI {
   constructor(public client: Client) {}

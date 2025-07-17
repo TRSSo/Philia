@@ -1,6 +1,6 @@
-import { API as PhiliaAPI } from "#protocol/type"
-import * as Message from "./message.js"
-import * as Event from "./event.js"
+import type { API as PhiliaAPI } from "#protocol/type"
+import type * as Event from "./event.js"
+import type * as Message from "./message.js"
 
 export interface API {
   [key: string]: {

@@ -1,5 +1,6 @@
 import fs from "node:fs/promises"
 import YAML from "yaml"
+
 const map = new Map()
 
 /**
@@ -31,13 +32,13 @@ export default async function makeConfig<T extends object>(
   const ret = { config, configSave }
   map.set(name, ret)
 
-  let configData
+  let configData = {} as T
   try {
     configData = YAML.parse(await fs.readFile(configFile, "utf8"))
     Object.assign(config, configData)
   } catch {}
   Object.assign(config, keep)
 
-  if (YAML.stringify(config) != YAML.stringify(configData)) await configSave()
+  if (YAML.stringify(config) !== YAML.stringify(configData)) await configSave()
   return ret
 }

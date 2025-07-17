@@ -1,11 +1,11 @@
-import * as Struct from "./struct.js"
+import type * as Struct from "./struct.js"
 
 /** 接收消息段基础接口 */
 export interface ASegment {
   /** 类型标识符 */
   type: string
   /** 结构体 */
-  data: {}
+  data: object
 }
 
 /** 文本消息段 */

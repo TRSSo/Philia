@@ -1,8 +1,7 @@
+import crypto from "node:crypto"
 import v8 from "node:v8"
 import zlib from "node:zlib"
-import crypto from "node:crypto"
-import { findArrays, String } from "./common.js"
-import { makeError } from "./common.js"
+import { findArrays, makeError, toJSON } from "./common.js"
 
 export interface IEncoder<T> {
   encode(data: T): Buffer
@@ -30,14 +29,14 @@ encoder.V8Serializer = {
     try {
       return v8.serialize(data)
     } catch {
-      return v8.serialize(JSON.parse(String(data)))
+      return v8.serialize(JSON.parse(toJSON(data)))
     }
   },
   decode: v8.deserialize,
 }
 
 encoder.JSON = {
-  encode: data => Buffer.from(String(data)),
+  encode: data => Buffer.from(toJSON(data)),
   decode: JSON.parse as (data: string | Buffer) => any,
 }
 

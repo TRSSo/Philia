@@ -1,9 +1,9 @@
-import { WebSocketServer, WebSocket } from "ws"
 import { ulid } from "ulid"
-import OClient from "./client.js"
-import { promiseEvent } from "#util"
+import { type WebSocket, WebSocketServer } from "ws"
 import logger from "#logger"
-import { type } from "../common/index.js"
+import { promiseEvent } from "#util"
+import type { type } from "../common/index.js"
+import OClient from "./client.js"
 
 export interface ServerOptions extends type.ServerOptions {
   ws?: WebSocketServer | ConstructorParameters<typeof WebSocketServer>[0]
@@ -49,12 +49,12 @@ export class Server {
   }
 
   add(client: Client) {
-    this.wss.add(client.ws)
+    this.wss.add(client.event)
     this.clients.add(client)
   }
 
   del(client: Client) {
-    this.wss.delete(client.ws)
+    this.wss.delete(client.event)
     this.clients.delete(client)
   }
 

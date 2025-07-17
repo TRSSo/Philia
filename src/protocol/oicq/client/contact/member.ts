@@ -1,7 +1,8 @@
-import { timestamp, NOOP, lock, hide } from "../common.js"
-import { MemberInfo } from "./types.js"
+// biome-ignore-all lint/complexity/noThisInStatic::
+import { hide, lock, NOOP, timestamp } from "../common.js"
 import { User } from "./friend.js"
-import { GroupEventMap } from "./group.js"
+import type { GroupEventMap } from "./group.js"
+import type { MemberInfo } from "./types.js"
 
 type Client = import("../client.js").Client
 
@@ -16,7 +17,7 @@ export class Member extends User {
     gid = String(gid)
     uid = String(uid)
     const info = this.gml.get(gid)?.get(uid)
-    if (strict && !info) throw new Error(`群${gid}中找不到群员` + uid)
+    if (strict && !info) throw new Error(`群${gid}中找不到群员${uid}`)
     let member = weakmap.get(info!)
     if (member) return member
     member = new Member(this, gid, uid, info)
@@ -85,7 +86,11 @@ export class Member extends User {
 
   /** 强制刷新群员资料 */
   async renew(): Promise<MemberInfo> {
-    const i = await this.c.api.getGroupMemberInfo({ id: this.gid, uid: this.uid, refresh: true })
+    const i = await this.c.api.getGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      refresh: true,
+    })
     let info = {
       group_id: this.gid,
       user_id: i.id,
@@ -128,7 +133,11 @@ export class Member extends User {
    * @param card 名片
    */
   async setCard(card = "") {
-    return this.c.api.setGroupMemberInfo({ id: this.gid, uid: this.uid, data: { card } })
+    return this.c.api.setGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      data: { card },
+    })
   }
 
   /**
@@ -164,6 +173,10 @@ export class Member extends User {
    * @param yes
    */
   async setScreenMsg(yes = true) {
-    return this.c.api.setGroupMemberInfo({ id: this.gid, uid: this.uid, data: { block: yes } })
+    return this.c.api.setGroupMemberInfo({
+      id: this.gid,
+      uid: this.uid,
+      data: { block: yes },
+    })
   }
 }

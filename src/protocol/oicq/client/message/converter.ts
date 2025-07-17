@@ -1,33 +1,33 @@
-import {
-  AtElem,
-  Quotable,
-  TextElem,
-  ImageElem,
-  ReplyElem,
-  PttElem,
-  Sendable,
-  VideoElem,
-  FileElem,
-  ForwardNode,
-  MarkdownElem,
-  ButtonElem,
-  Button,
-  BaseMessageElem,
-  ExtendMessageElem,
-  ExtendArray,
-  PlatformElem,
-  MessageElem,
-  segment,
-} from "./elements.js"
-import { lock } from "../common.js"
-import * as Philia from "#protocol/type"
-import { Contactable } from "../contact/contactable.js"
-import { MemberInfo } from "../contact/types.js"
-import { Message } from "./message.js"
-import { Client } from "../client.js"
 import fs from "node:fs/promises"
-import { MessageRet } from "../event/types.js"
+import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
+import type { Client } from "../client.js"
+import { lock } from "../common.js"
+import type { Contactable } from "../contact/contactable.js"
+import type { MemberInfo } from "../contact/types.js"
+import type { MessageRet } from "../event/types.js"
+import {
+  type AtElem,
+  type BaseMessageElem,
+  type Button,
+  type ButtonElem,
+  ExtendArray,
+  type ExtendMessageElem,
+  type FileElem,
+  type ForwardNode,
+  type ImageElem,
+  type MarkdownElem,
+  type MessageElem,
+  type PlatformElem,
+  type PttElem,
+  type Quotable,
+  type ReplyElem,
+  type Sendable,
+  segment,
+  type TextElem,
+  type VideoElem,
+} from "./elements.js"
+import type { Message } from "./message.js"
 
 /** 消息转换器 */
 export class OICQtoPhilia {
@@ -92,10 +92,10 @@ export class OICQtoPhilia {
       case "user":
         qq = String(qq)
         if (!text) {
-          let info
+          let info: MemberInfo | undefined
           if (!this.c.dm && this.c.target) info = this.c.client.gml.get(this.c.target)?.get(qq)
-          info ??= this.c.client.fl.get(qq)
-          if (info) text = (info as MemberInfo).card || info.nickname
+          info ??= this.c.client.fl.get(qq) as MemberInfo
+          if (info) text = info.card || info.nickname
         }
 
         if (ms.dummy) return this._text(`@${text}`)

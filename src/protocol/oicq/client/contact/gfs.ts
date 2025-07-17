@@ -1,5 +1,5 @@
 import * as common from "../common.js"
-import { FileElem } from "../message/index.js"
+import type { FileElem } from "../message/index.js"
 
 type Client = import("../client.js").Client
 
@@ -99,9 +99,12 @@ export class Gfs {
    * @returns 文件和目录列表
    */
   dir(pid = "/", start = 0, limit = 100) {
-    return this.c.api.getGroupFSDir({ id: this.gid, pid, start, limit }) as Promise<
-      (GfsFileStat | GfsDirStat)[]
-    >
+    return this.c.api.getGroupFSDir({
+      id: this.gid,
+      pid,
+      start,
+      limit,
+    }) as Promise<(GfsFileStat | GfsDirStat)[]>
   }
   /** {@link dir} 的别名 */
   get ls() {
@@ -110,7 +113,10 @@ export class Gfs {
 
   /** 创建目录(只能在根目录下创建) */
   async mkdir(name: string) {
-    return this.c.api.addGroupFSDir({ id: this.gid, name }) as Promise<GfsDirStat>
+    return this.c.api.addGroupFSDir({
+      id: this.gid,
+      name,
+    }) as Promise<GfsDirStat>
   }
 
   /** 删除文件/目录(删除目录会删除下面的所有文件) */
@@ -144,7 +150,11 @@ export class Gfs {
    * @returns 上传的文件属性
    */
   async upload(file: string | Buffer, pid = "/", name?: string) {
-    return this.c.api.uploadGroupFSFile({ file, pid, name }) as Promise<GfsFileStat>
+    return this.c.api.uploadGroupFSFile({
+      file,
+      pid,
+      name,
+    }) as Promise<GfsFileStat>
   }
 
   /**
@@ -155,7 +165,11 @@ export class Gfs {
    * @returns 转发的文件在当前群的属性
    */
   async forward(stat: GfsFileStat, pid = "/", name?: string) {
-    return this.c.api.forwardGroupFSFile({ fid: stat.fid, pid, name }) as Promise<GfsFileStat>
+    return this.c.api.forwardGroupFSFile({
+      fid: stat.fid,
+      pid,
+      name,
+    }) as Promise<GfsFileStat>
   }
 
   /**

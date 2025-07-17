@@ -1,7 +1,7 @@
-import { isPromise } from "util/types"
-import { makeError, Loging, getAllProps } from "#util"
+import { isPromise } from "node:util/types"
+import { getAllProps, Loging, makeError } from "#util"
+import type Client from "./client.js"
 import * as type from "./type.js"
-import Client from "./client.js"
 
 export default class Handle {
   default_handle: [keyof type.OHandle, type.Handle | type.HandleDefault][] = [
@@ -15,7 +15,7 @@ export default class Handle {
     ],
   ]
   map = new Map(this.default_handle)
-  reply_cache: { [key: string]: type.Base<type.EStatus> } = {}
+  reply_cache: { [key: string]: type.Reply } = {}
 
   constructor(
     handle: type.Handles,
@@ -37,32 +37,33 @@ export default class Handle {
     this.map = new Map(this.default_handle)
   }
 
-  data(req: type.Base<type.EStatus>) {
+  data(req: type.Status) {
     this.client.logger.trace("接收", req)
     switch (req.code) {
       case type.EStatus.Request:
-        if (this.reply_cache[req.id]) return this.client.write(this.reply_cache[req.id])
-        return this.request(req as type.Request, this.reply.bind(this, req as type.Request))
+        if (this.reply_cache[req.id]) return this.client.send(this.reply_cache[req.id])
+        return this.request(req, this.reply.bind(this, req))
       case type.EStatus.Response:
-        return this.response(req as type.Response)
+        return this.response(req)
       case type.EStatus.Async:
-        return this.async(req as type.Async)
+        return this.async(req)
       case type.EStatus.Error:
-        return this.error(req as type.Error)
+        return this.error(req)
       default:
         throw TypeError("不支持的数据类型")
     }
   }
 
-  reply(req: type.Request, code: type.EStatus, data?: type.Base<type.EStatus>["data"]) {
-    this.reply_cache[req.id] = { id: req.id, code, data }
-    setTimeout(() => delete this.reply_cache[req.id], this.client.timeout.idle)
-    return this.client.write(this.reply_cache[req.id])
+  reply(req: type.Request, code: type.Reply["code"], data?: type.Response["data"]) {
+    this.reply_cache[req.id] = { id: req.id, code, data } as type.Reply
+    if (code !== type.EStatus.Async)
+      setTimeout(() => delete this.reply_cache[req.id], this.client.timeout.idle)
+    return this.client.send(this.reply_cache[req.id])
   }
 
   async request(
     req: type.Request,
-    reply: (code: type.EStatus, data?: type.Base<type.EStatus>["data"]) => void,
+    reply: (code: type.Reply["code"], data?: type.Response["data"]) => void,
   ) {
     try {
       let ret: type.Response["data"]
@@ -116,17 +117,16 @@ export default class Handle {
     const cache = this.getCache(req)
     cache.finally()
     cache.finally = () => delete this.client.cache[req.id]
-    cache.timeout = setTimeout(
-      () =>
-        cache.reject(
-          makeError("等待异步返回超时", {
-            cache,
-            req,
-            timeout: this.client.timeout.wait,
-          }),
-        ),
-      this.client.timeout.wait,
-    )
+    const time = req.time ? req.time * 1000 : this.client.timeout.wait
+    const timeout = () => {
+      if (cache.retry > this.client.timeout.retry)
+        return cache.reject(makeError("等待异步响应超时", { cache, req, timeout: time }))
+      cache.retry++
+      this.client.logger.warn(`等待异步响应 ${req.id} 超时，重试${cache.retry}次`)
+      cache.timeout = setTimeout(timeout, time)
+      this.client.send(cache.data)
+    }
+    cache.timeout = setTimeout(timeout, time)
     this.client.cache[req.id] = cache
   }
 

@@ -7,28 +7,28 @@
   "type": "module",
   "main": "lib/main.js",
   "scripts": {
-    "lint": "prettier --write --list-different src && oxlint --fix src",
+    "lint": "oxlint --fix src && biome check --write src",
     "compile": "rm -rf lib/* && tsc",
     "minify": "node mod/oxc-minify lib",
     "build": "pnpm lint && pnpm compile && pnpm minify",
     "main": "node lib/main"
   },
   "devDependencies": {
-    "@types/node": "^24.0.3",
+    "@biomejs/biome": "^2.1.1",
+    "@types/node": "^24.0.14",
     "@types/ws": "^8.18.1",
-    "oxc-minify": "^0.72.3",
-    "oxlint": "^1.1.0",
-    "prettier": "3.5.3",
+    "oxc-minify": "^0.77.1",
+    "oxlint": "^1.7.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.5.3",
+    "@inquirer/prompts": "^7.6.0",
     "cbor-x": "^1.6.0",
     "chalk": "^5.4.1",
     "log4js": "^6.9.1",
-    "msgpackr": "^1.11.4",
+    "msgpackr": "^1.11.5",
     "ulid": "^3.0.1",
-    "ws": "^8.18.2",
+    "ws": "^8.18.3",
     "yaml": "^2.8.0"
   },
   "imports": {

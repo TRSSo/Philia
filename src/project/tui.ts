@@ -1,12 +1,12 @@
-import * as inquirer from "@inquirer/prompts"
-import logger from "#logger"
-import * as Project from "./project/index.js"
-import { continueTui } from "#util/tui.js"
-import YAML from "yaml"
+import child_process from "node:child_process"
+import fs from "node:fs/promises"
 import Path from "node:path"
 import { fileURLToPath } from "node:url"
-import fs from "node:fs/promises"
-import child_process from "node:child_process"
+import * as inquirer from "@inquirer/prompts"
+import YAML from "yaml"
+import logger from "#logger"
+import { continueTui } from "#util/tui.js"
+import * as Project from "./project/index.js"
 
 const __dirname = Path.relative(process.cwd(), Path.dirname(fileURLToPath(import.meta.url)))
 
@@ -154,6 +154,7 @@ export class Tui {
         value: i,
       })),
     })
+    // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
     const config = await Project[name].Project.createConfig()
     await fs.mkdir(Path.join(this.path, path), { recursive: true })
     await fs.writeFile(Path.join(this.path, path, "config.yml"), YAML.stringify(config))

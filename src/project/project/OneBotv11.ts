@@ -1,9 +1,10 @@
 import * as inquirer from "@inquirer/prompts"
-import * as Philia from "./Philia.js"
 import { Server } from "#protocol/onebot/v11"
-import { Config as AConfig } from "../type.js"
+import { promiseEvent } from "#util"
+import * as Common from "./common.js"
+import * as Philia from "./Philia.js"
 
-export interface IConfig extends AConfig {
+export interface IConfig extends Common.IConfig {
   name: "OneBotv11"
   server: {
     type: "ws" | "ws-reverse"
@@ -12,15 +13,10 @@ export interface IConfig extends AConfig {
   client: Philia.IConfig
 }
 
-export class Project {
-  config: IConfig
+export class Project extends Common.Project {
+  declare config: IConfig
   server?: Server.Server
   client?: Server.Client
-
-  constructor(config: IConfig) {
-    this.config = config
-    this.verifyConfig()
-  }
 
   static async createConfig(): Promise<IConfig> {
     const type = await inquirer.select<IConfig["server"]["type"]>({
@@ -70,18 +66,16 @@ export class Project {
   }
 
   start() {
-    switch (this.config.server.type) {
-      case "ws":
-        this.client = new Server.Client(this.config.client, this.config.server.path as string)
-        break
-      case "ws-reverse":
-        this.server = new Server.Server(this.config.client, this.config.server.path as number)
-        break
+    if (this.config.server.type === "ws") {
+      this.client = new Server.Client(this.config.client, this.config.server.path as string)
+      return promiseEvent(this.client.ws, "open", "error")
     }
+    this.server = new Server.Server(this.config.client, this.config.server.path as number)
+    return promiseEvent(this.server.wss, "listening", "error")
   }
 
   stop() {
-    if (this.config.server.type === "ws") return this.client?.close()
-    return this.server?.close()
+    if (this.config.server.type === "ws") return this.client?.close()!
+    return this.server?.close()!
   }
 }

@@ -1,10 +1,10 @@
-import { Server as SocketServer, Socket } from "node:net"
+import { type Socket, Server as SocketServer } from "node:net"
 import Path from "node:path"
 import { ulid } from "ulid"
-import OClient from "./client.js"
-import { promiseEvent } from "#util"
 import logger from "#logger"
-import { type } from "../common/index.js"
+import { promiseEvent } from "#util"
+import type { type } from "../common/index.js"
+import OClient from "./client.js"
 
 export interface ServerOptions extends type.ServerOptions {
   socket?: SocketServer | ConstructorParameters<typeof SocketServer>[0]
@@ -53,12 +53,12 @@ export class Server {
   }
 
   add(client: Client) {
-    this.sockets.add(client.socket)
+    this.sockets.add(client.event)
     this.clients.add(client)
   }
 
   del(client: Client) {
-    this.sockets.delete(client.socket)
+    this.sockets.delete(client.event)
     this.clients.delete(client)
   }
 

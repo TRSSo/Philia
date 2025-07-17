@@ -1,5 +1,6 @@
 import log4js from "log4js"
 import { Loging } from "#util"
+
 log4js.configure({
   appenders: {
     console: {

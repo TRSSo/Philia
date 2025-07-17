@@ -1,4 +1,4 @@
-import Client from "./client.js"
+import type Client from "./client.js"
 
 export interface MetaInfo {
   id: string
@@ -30,13 +30,13 @@ export interface ServerOptions extends Options {
   onconnected?(client: Client): void
 }
 
-export const enum ESocketStatus {
+export enum ESocketStatus {
   New,
   dle,
   Send,
   Close,
 }
-export const enum EStatus {
+export enum EStatus {
   Request,
   Response,
   Async,
@@ -45,15 +45,18 @@ export const enum EStatus {
 export interface Base<T extends EStatus> {
   id: string
   code: T
-  name?: string
-  data?: unknown
 }
 
 export interface Request extends Base<EStatus.Request> {
   name: string
+  data?: unknown
 }
-export type Response = Base<EStatus.Response>
-export type Async = Base<EStatus.Async>
+export interface Response extends Base<EStatus.Response> {
+  data?: unknown
+}
+export interface Async extends Base<EStatus.Async> {
+  time?: number
+}
 export interface Error extends Base<EStatus.Error> {
   data: {
     name: string
@@ -61,6 +64,8 @@ export interface Error extends Base<EStatus.Error> {
     error?: unknown
   }
 }
+export type Status = Request | Response | Async | Error
+export type Reply = Response | Async | Error
 
 export class CError {
   data: Error["data"]
@@ -69,12 +74,9 @@ export class CError {
   }
 }
 
-export interface Cache {
+export interface Cache extends ReturnType<typeof Promise.withResolvers<Response["data"]>> {
   data: Request
   retry: number
-  promise: Promise<(Response | Error)["data"]>
-  resolve(data: Response["data"]): void
-  reject(data: globalThis.Error): void
   finally(): void
   timeout?: NodeJS.Timeout
 }

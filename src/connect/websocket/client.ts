@@ -1,41 +1,32 @@
 import { WebSocket } from "ws"
 import { Encoder, makeError, promiseEvent, StringOrBuffer } from "#util"
-import { type, Client as AClient } from "../common/index.js"
+import { Client as AClient, type type } from "../common/index.js"
 
 export interface ClientOptions extends type.Options {
   ws?: WebSocket | ConstructorParameters<typeof WebSocket>[2]
 }
 
 export default class Client extends AClient {
-  ws!: WebSocket
+  event!: WebSocket
   ws_opts?: ConstructorParameters<typeof WebSocket>[2]
 
   constructor(handle: type.Handles, opts: ClientOptions = {}) {
     super(handle, { compress: true, ...opts })
     if (opts.path) this.path = opts.path
-    if (opts.ws instanceof WebSocket) this.ws = opts.ws
+    if (opts.ws instanceof WebSocket) this.event = opts.ws
     else this.ws_opts = opts.ws
     for (const i in this.listener) this.listener[i] = this.listener[i].bind(this)
   }
 
   connect(path = this.path) {
-    this.ws ??= new WebSocket(path, this.ws_opts).on("open", this.onconnect)
-    return promiseEvent<this>(this.ws, "connected", "error")
-  }
-
-  onconnect = async () => {
-    await this.onconnectMeta()
-    for (const i in this.listener) this.ws.on(i, this.listener[i])
-    this.ws.emit("connected", this)
+    this.event ??= new WebSocket(path, this.ws_opts).on("open", this.onconnect.bind(this))
+    return promiseEvent<this>(this.event, "connected", "error")
   }
 
   heartbeat_timeout?: NodeJS.Timeout
   heartbeat = () => {
     this.heartbeat_timeout = setTimeout(
-      () =>
-        this.request("heartbeat")
-          .then(this.heartbeat)
-          .catch(() => this.ws.terminate()),
+      () => this.request("heartbeat").then(this.heartbeat).catch(this.forceClose),
       this.timeout.idle,
     )
   }
@@ -43,7 +34,7 @@ export default class Client extends AClient {
   onclose() {
     clearTimeout(this.heartbeat_timeout)
     this.open = false
-    for (const i in this.listener) this.ws.off(i, this.listener[i])
+    for (const i in this.listener) this.event.off(i, this.listener[i])
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
@@ -51,9 +42,6 @@ export default class Client extends AClient {
     close(this: Client) {
       this.onclose()
       this.logger.info(`${this.meta.remote?.id} 已断开连接`)
-    },
-    timeout(this: Client) {
-      this.request("heartbeat")
     },
     connected(this: Client) {
       this.logger.info("已连接", this.meta.remote)
@@ -68,7 +56,7 @@ export default class Client extends AClient {
 
   getMetaInfo(): Promise<type.MetaInfo> {
     this.encoder = new Encoder()
-    this.ws.send(this.encoder.encode(this.meta.local))
+    this.write(this.encoder.encode(this.meta.local))
 
     return new Promise((resolve, reject) => {
       const listener = (buffer: Buffer) => {
@@ -86,26 +74,21 @@ export default class Client extends AClient {
       }
       const timeout = setTimeout(() => {
         reject(makeError("等待元数据超时", { timeout: this.timeout.send }))
-        this.ws.off("message", listener)
+        this.event.off("message", listener)
       }, this.timeout.send)
-      this.ws.once("message", listener)
+      this.event.once("message", listener)
     })
   }
 
-  forceClose() {
-    this.ws.terminate()
-  }
-
+  forceClose = () => this.event.terminate()
   close() {
-    this.ws.close()
-    const timeout = setTimeout(this.forceClose.bind(this), this.timeout.wait)
-    return promiseEvent<void>(this.ws, "close", "error").finally(() => clearTimeout(timeout))
+    this.event.close()
+    const timeout = setTimeout(this.forceClose, this.timeout.wait)
+    return promiseEvent<void>(this.event, "close", "error").finally(() => clearTimeout(timeout))
   }
 
-  write(data: type.Base<type.EStatus>) {
-    if (data.data === undefined) delete data.data
-    this.logger.trace("发送", data)
-    return this.ws.send(this.encoder.encode(data))
+  write(data: Buffer) {
+    return this.event.send(data)
   }
 
   receive(data: Buffer) {
