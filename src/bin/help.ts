@@ -1,3 +1,5 @@
-import logger from "#logger"
+import { getLogger } from "#logger"
+
+const logger = getLogger()
 
 logger.info("TODO：帮助")

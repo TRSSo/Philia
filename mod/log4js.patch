@@ -1,12 +1,18 @@
---- a/lib/appenders/console.js
-+++ b/lib/appenders/console.js
-@@ -1,6 +1,8 @@
- // eslint-disable-next-line no-console
- const consoleLog = console.log.bind(console);
+--- a/lib/appenders/stderr.js
++++ b/lib/appenders/stderr.js
+@@ -1,3 +1,5 @@
 +const rep = { "": "^N", "": "^O", "": "␇" }
 +const reg = new RegExp(Object.keys(rep).join("|"), "g")
-
- function consoleAppender(layout, timezoneOffset) {
+ function stderrAppender(layout, timezoneOffset) {
    return (loggingEvent) => {
--    consoleLog(layout(loggingEvent, timezoneOffset));
-+    consoleLog(layout(loggingEvent, timezoneOffset).replace(reg, i => rep[i]))
+-    process.stderr.write(`${layout(loggingEvent, timezoneOffset)}\n`);
++    process.stderr.write(`${layout(loggingEvent, timezoneOffset).replace(reg, i => rep[i])}\n`);
+--- a/lib/appenders/stdout.js
++++ b/lib/appenders/stdout.js
+@@ -1,3 +1,5 @@
++const rep = { "": "^N", "": "^O", "": "␇" }
++const reg = new RegExp(Object.keys(rep).join("|"), "g")
+ function stdoutAppender(layout, timezoneOffset) {
+   return (loggingEvent) => {
+-    process.stdout.write(`${layout(loggingEvent, timezoneOffset)}\n`);
++    process.stdout.write(`${layout(loggingEvent, timezoneOffset).replace(reg, i => rep[i])}\n`);

@@ -1,3 +1,4 @@
+import { getLogger } from "#logger"
 import Tui from "#protocol/tty"
 
-new Tui().main()
+new Tui(getLogger("TTY")).main()

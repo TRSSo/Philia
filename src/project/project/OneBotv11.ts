@@ -19,13 +19,13 @@ export class Project extends Common.Project {
   client?: Server.Client
 
   static async createConfig(): Promise<IConfig> {
-    const type = await inquirer.select<IConfig["server"]["type"]>({
+    const type = await inquirer.select({
       message: "请选择 OneBotv11 协议类型",
       choices: [
         { name: "正向 WebSocket", value: "ws" },
         { name: "反向 WebSocket", value: "ws-reverse" },
       ],
-    })
+    } as const)
     const path = await (type === "ws"
       ? inquirer.input({
           message: "请输入 OneBotv11 服务器地址",
@@ -67,10 +67,18 @@ export class Project extends Common.Project {
 
   start() {
     if (this.config.server.type === "ws") {
-      this.client = new Server.Client(this.config.client, this.config.server.path as string)
+      this.client = new Server.Client(
+        this.logger,
+        this.config.client,
+        this.config.server.path as string,
+      )
       return promiseEvent(this.client.ws, "open", "error")
     }
-    this.server = new Server.Server(this.config.client, this.config.server.path as number)
+    this.server = new Server.Server(
+      this.logger,
+      this.config.client,
+      this.config.server.path as number,
+    )
     return promiseEvent(this.server.wss, "listening", "error")
   }
 

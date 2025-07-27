@@ -15,7 +15,7 @@ export class Project extends Common.Project {
 
   constructor(config: IConfig) {
     super(config)
-    this.client = new Client(this.config.client, this.config.server)
+    this.client = new Client(this.logger, this.config.client, this.config.server)
   }
 
   static async createConfig(): Promise<IConfig> {

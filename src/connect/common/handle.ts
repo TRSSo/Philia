@@ -29,7 +29,7 @@ export default class Handle {
       for (const k of getAllProps(i)) if (typeof i[k] === "function") this.map.set(k, i[k].bind(i))
   }
 
-  del(name: keyof type.Handle) {
+  del(name: keyof type.OHandle) {
     return this.map.delete(name)
   }
 
@@ -66,12 +66,13 @@ export default class Handle {
     reply: (code: type.Reply["code"], data?: type.Response["data"]) => void,
   ) {
     try {
+      const handle = this.map.get(req.name) as type.Handle
       let ret: type.Response["data"]
-      if (this.map.has(req.name)) {
+      if (handle) {
         this.client.logger.debug(
           `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
         )
-        ret = (this.map.get(req.name) as type.Handle)(req.data, this.client)
+        ret = handle(req.data, this.client)
       } else {
         this.client.logger.debug(
           `执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`,

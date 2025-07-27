@@ -1,6 +1,6 @@
 import { ulid } from "ulid"
 import { type WebSocket, WebSocketServer } from "ws"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import { promiseEvent } from "#util"
 import type { type } from "../common/index.js"
 import OClient from "./client.js"
@@ -10,7 +10,6 @@ export interface ServerOptions extends type.ServerOptions {
 }
 
 export class Server {
-  logger = logger
   ws!: WebSocketServer
   ws_opts?: ConstructorParameters<typeof WebSocketServer>[0]
   wss = new Set<WebSocket>()
@@ -22,6 +21,7 @@ export class Server {
   limit?: number
 
   constructor(
+    public logger: Logger,
     public handle: type.Handles = {},
     public opts: ServerOptions = {},
   ) {
@@ -43,7 +43,7 @@ export class Server {
           this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
           return ws.terminate()
         }
-        new Client(this.handle, this, ws, this.opts)
+        new Client(this.logger, this.handle, this, ws, this.opts)
       })
     return promiseEvent<this>(this.ws, "listening", "error")
   }
@@ -76,8 +76,14 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(handle: type.Handles, server: Server, ws: WebSocket, opts: ServerOptions) {
-    super(handle, { ...opts, ws })
+  constructor(
+    logger: Logger,
+    handle: type.Handles,
+    server: Server,
+    ws: WebSocket,
+    opts: ServerOptions,
+  ) {
+    super(logger, handle, { ...opts, ws })
     this.server = server
     this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)

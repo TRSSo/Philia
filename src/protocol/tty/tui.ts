@@ -2,21 +2,21 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import { Philia } from "#project/project"
 import type * as Type from "#protocol/type"
 import { continueTui } from "#util/tui.js"
 import Client from "./client.js"
 
 export class Tui {
-  logger = logger
   path = path.join("project", "tty")
   client!: Client
+  constructor(public logger: Logger) {}
 
   async main() {
     await fs.mkdir(this.path, { recursive: true })
     process.chdir(this.path)
-    this.client = new Client(await Philia.Project.createConfig())
+    this.client = new Client(this.logger, await Philia.Project.createConfig())
     await this.client.start()
     while (true)
       try {

@@ -1,11 +1,15 @@
+import { type Logger, makeLogger } from "#logger"
 import type * as Common from "../project/common.js"
 import * as Philia from "../project/Philia.js"
 import API from "./api.js"
+import LoggerManager from "./logger.js"
 import type * as type from "./type.js"
 
 export default class Manager {
   config: type.ManagerConfig = {
-    start_project: true,
+    logger: {
+      max_lines: 10000,
+    },
     philia: {
       name: "Philia",
       type: "Socket",
@@ -13,24 +17,31 @@ export default class Manager {
       path: "Manager",
     },
   }
+  logger: Logger
+  logger_manager: LoggerManager
+  handle: ReturnType<typeof API>
   philia: Philia.Project
-  handle = new API(this)
 
   constructor(
     public project: Common.Project,
     config: Common.IConfig,
   ) {
-    Object.assign(this.config, config.manager)
+    Object.assign(this.config.logger, config.manager?.logger)
+    if (config.manager?.philia) this.config.philia = config.manager.philia
+
+    this.logger = makeLogger("Manager", this.config.logger.level, this.config.logger.inspect)
+    this.logger_manager = new LoggerManager(this)
+
+    this.handle = API(this)
     this.philia = new Philia.Project(
       this.config.philia,
       this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
     )
+    this.philia.logger = this.logger
   }
 
   start() {
-    const ret: Promise<unknown>[] = [this.philia.start()]
-    if (this.config.start_project) ret.push(this.project.start())
-    return Promise.all(ret)
+    return Promise.all([this.philia.start(), this.project.start()])
   }
 
   stop() {

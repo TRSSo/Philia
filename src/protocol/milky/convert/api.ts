@@ -17,12 +17,17 @@ export default class PhiliaToMilky implements API.ServerAPI {
 
   constructor(public client: Client) {}
 
-  receiveEvent({ event }: { event: Event.Handle | Event.Handle[] }) {
-    return this.client.event_handle.receive(event)
+  receiveEvent(
+    { event }: { event: Event.Handle | Event.Handle[] },
+    client?: Parameters<typeof this.client.event_handle.receive>[1],
+  ) {
+    return this.client.event_handle.receive(event, client!)
   }
-
-  unreceiveEvent({ event }: { event: Event.Handle | Event.Handle[] }) {
-    return this.client.event_handle.unreceive(event)
+  unreceiveEvent(
+    { event }: { event: Event.Handle | Event.Handle[] },
+    client?: Parameters<typeof this.client.event_handle.unreceive>[1],
+  ) {
+    return this.client.event_handle.unreceive(event, client!)
   }
 
   async getSelfInfo({ refresh }: void | { refresh?: boolean } = {}) {

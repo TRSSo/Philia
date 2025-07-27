@@ -1,6 +1,6 @@
 import events from "node:events"
 import * as Connect from "#connect"
-import logger from "#logger"
+import { getLogger, type Logger } from "#logger"
 import { createAPI } from "#protocol/common"
 import type * as Philia from "#protocol/type"
 import { timestamp } from "./common.js"
@@ -54,9 +54,9 @@ export class Client extends events {
   readonly pickMember = Member.as.bind(this)
 
   /** 日志记录器 */
-  logger = logger
+  logger: Logger
   /** 配置 */
-  readonly config: Required<Config>
+  readonly config: Required<Omit<Config, "logger">>
 
   get [Symbol.toStringTag]() {
     return "OicqClient"
@@ -177,6 +177,7 @@ export class Client extends events {
       else this.uin = String(uin)
     }
 
+    this.logger = conf?.logger ?? getLogger("oicq")
     this.config = {
       ignore_self: true,
       cache_group_member: true,
@@ -212,8 +213,8 @@ export class Client extends events {
     if (!path) throw new Error("连接地址为空")
     this.logger.mark(`正在连接`, path)
     this.client = /^(http|ws)s?:\/\//.test(path)
-      ? new Connect.WebSocket.Client(this.handle, { path })
-      : (this.client = new Connect.Socket.Client(this.handle, { path }))
+      ? new Connect.WebSocket.Client(this.logger, this.handle, { path })
+      : (this.client = new Connect.Socket.Client(this.logger, this.handle, { path }))
     this.client.logger = this.logger
     this.api = createAPI<Philia.API.ClientAPI>(this.client)
     await this.client.connect()
@@ -643,6 +644,7 @@ export class Client extends events {
 
 /** 配置项 */
 export interface Config {
+  logger?: Logger
   /** 过滤自己的消息，默认`true` */
   ignore_self?: boolean
   /**

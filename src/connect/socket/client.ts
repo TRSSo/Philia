@@ -1,5 +1,6 @@
 import { Socket } from "node:net"
 import Path from "node:path"
+import type { Logger } from "#logger"
 import { Encoder, makeError, promiseEvent, StringOrBuffer } from "#util"
 import { Client as AClient, type type } from "../common/index.js"
 
@@ -12,8 +13,8 @@ export default class Client extends AClient {
   buffer!: Buffer
   buffer_split?: Buffer
 
-  constructor(handle: type.Handles, opts: ClientOptions = {}) {
-    super(handle, opts)
+  constructor(logger: Logger, handle: type.Handles, opts: ClientOptions = {}) {
+    super(logger, handle, opts)
     if (opts.path) this.path = opts.path
     if (opts.socket instanceof Socket) this.event = opts.socket
     else this.event = new Socket(opts.socket).on("connect", this.onconnect.bind(this))
@@ -136,17 +137,5 @@ export default class Client extends AClient {
       this.close()
       throw makeError("处理数据错误", { data: buffer, cause: err })
     }
-  }
-
-  static create(
-    path: string | Client,
-    handle: ConstructorParameters<typeof Client>[0],
-    opts?: ConstructorParameters<typeof Client>[1],
-  ) {
-    if (path instanceof Client) {
-      path.handle.set(handle)
-      return path
-    }
-    return new Client(handle, { ...opts, path })
   }
 }

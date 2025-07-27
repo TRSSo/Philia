@@ -1,11 +1,10 @@
 import { ulid } from "ulid"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import { compress, Encoder, encoder, makeError, verify } from "#util"
 import Handle from "./handle.js"
 import * as type from "./type.js"
 
 export default abstract class Client {
-  logger = logger
   handle: Handle
   timeout = {
     send: 5e3,
@@ -29,7 +28,11 @@ export default abstract class Client {
   open = false
   path = ""
 
-  constructor(handle: type.Handles, opts: type.Options = {}) {
+  constructor(
+    public logger: Logger,
+    handle: type.Handles,
+    opts: type.Options = {},
+  ) {
     this.handle = new Handle(handle, this)
     if (opts.meta) Object.assign(this.meta.local, opts.meta)
     if (opts.timeout) Object.assign(this.timeout, opts.timeout)

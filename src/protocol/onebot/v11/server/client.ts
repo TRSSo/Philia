@@ -1,6 +1,6 @@
 import { ulid } from "ulid"
 import { WebSocket } from "ws"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import { Philia } from "#project/project"
 import { createAPI, Event } from "#protocol/common"
 import { makeError, promiseEvent, toJSON } from "#util"
@@ -9,7 +9,6 @@ import type { API } from "../type/index.js"
 import Protocol from "./protocol.js"
 
 export default class Client {
-  logger = logger
   philia: Philia.Project
   ws: WebSocket
   path?: string
@@ -34,6 +33,7 @@ export default class Client {
   }
 
   constructor(
+    public logger: Logger,
     philia: Philia.IConfig,
     ws: string | WebSocket,
     opts?: ConstructorParameters<typeof WebSocket>[2],
@@ -109,7 +109,7 @@ export default class Client {
       request,
       timeout: setTimeout(() => {
         reject(makeError("WebSocket 请求超时", request, { timeout: this.timeout }))
-        logger.error("WebSocket 请求超时", request)
+        this.logger.error("WebSocket 请求超时", request)
         this.close()
       }, this.timeout),
     })

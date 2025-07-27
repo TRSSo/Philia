@@ -15,24 +15,25 @@ export interface IConfig extends Common.IConfig {
 
 export class Project extends Common.Project {
   declare config: IConfig
-  handles: type.Handles
   server?: Socket.Server | WebSocket.Server
   clients = new Set<Socket.Client | WebSocket.Client>()
 
-  constructor(config: IConfig, handles: type.Handles = {}) {
+  constructor(
+    config: IConfig,
+    public handles: type.Handles = {},
+  ) {
     super(config)
-    this.handles = handles
   }
 
   static async createConfig(role?: IConfig["role"]): Promise<IConfig> {
-    const type = await inquirer.select<IConfig["type"]>({
+    const type = await inquirer.select({
       message: "请选择 Philia 协议类型",
       choices: [
         { name: "Socket", value: "Socket" },
         { name: "WebSocket", value: "WebSocket" },
       ],
-    })
-    role ??= await inquirer.select<IConfig["role"]>({
+    } as const)
+    role ??= await inquirer.select({
       message: "请选择 Philia 协议端类型",
       choices: [
         { name: "服务端", value: "Server" },
@@ -105,13 +106,13 @@ export class Project extends Common.Project {
         if (this.config.role === "Client") {
           return Promise.allSettled(
             (this.config.path as string[]).map(i => {
-              const client = new Socket.Client(this.handles, this.config.opts)
+              const client = new Socket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)
             }),
           )
         } else {
-          this.server = new Socket.Server(this.handles, this.config.opts)
+          this.server = new Socket.Server(this.logger, this.handles, this.config.opts)
           this.clients = this.server.clients
           this.config.path = Path.resolve((this.config.path as string) || this.config.name)
           return this.server.listen(this.config.path)
@@ -120,13 +121,13 @@ export class Project extends Common.Project {
         if (this.config.role === "Client") {
           return Promise.allSettled(
             (this.config.path as string[]).map(i => {
-              const client = new WebSocket.Client(this.handles, this.config.opts)
+              const client = new WebSocket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)
             }),
           )
         } else {
-          this.server = new WebSocket.Server(this.handles, this.config.opts)
+          this.server = new WebSocket.Server(this.logger, this.handles, this.config.opts)
           this.clients = this.server.clients
           return this.server.listen(this.config.path as number)
         }

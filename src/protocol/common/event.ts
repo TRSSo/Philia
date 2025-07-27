@@ -1,52 +1,65 @@
 import type { Philia } from "#project/project"
 import type { Event } from "#protocol/type"
 import { isEqualObj, modeMatch } from "#util"
+
+type Client = Philia.Project["clients"] extends Set<infer U> ? U : never
+type HandleMap = Omit<Event.Handle, "type" | "scene"> & { client: Client }
+
 export class Handle {
   philia: Philia.Project
-  handles: Map<string, [Omit<Event.Handle, "type" | "scene">]> = new Map()
+  handles: Map<string, HandleMap[]> = new Map()
   constructor(philia: Philia.Project) {
     this.philia = philia
   }
 
-  receive(event: Event.Handle | Event.Handle[]) {
+  receive(event: Event.Handle | Event.Handle[], client: Client) {
     for (const i of Array.isArray(event) ? event : [event]) {
       const key = `${i.type}.${i.scene || ""}`
       delete (i as Partial<Event.Handle>).type
       delete i.scene
-      const value = this.handles.get(key)
+      const value: HandleMap = { client, ...i }
+      const values = this.handles.get(key)
 
-      if (value) {
-        if (!value.some(j => isEqualObj(i, j))) value.push(i)
+      if (values) {
+        if (!values.some(j => isEqualObj(value, j, 2))) values.push(value)
       } else {
-        this.handles.set(key, [i])
+        this.handles.set(key, [value])
       }
     }
   }
 
-  unreceive(event: Event.Handle | Event.Handle[]) {
+  unreceive(event: Event.Handle | Event.Handle[], client: Client) {
     for (const i of Array.isArray(event) ? event : [event]) {
       const key = `${i.type}.${i.scene || ""}`
       delete (i as Partial<Event.Handle>).type
       delete i.scene
-      const value = this.handles.get(key)
+      const values = this.handles.get(key)
 
-      if (!value) continue
-      const index = value.findIndex(j => isEqualObj(i, j))
+      if (!values) continue
+      const value: HandleMap = { client, ...i }
+      const index = values.findIndex(j => isEqualObj(value, j, 2))
       if (index === -1) continue
-      value.splice(index, 1)
-      if (!value.length) this.handles.delete(key)
+      values.splice(index, 1)
+      if (!values.length) this.handles.delete(key)
     }
   }
 
   handle(event: Event.Event) {
-    const handles = [
-      ...(this.handles.get(`${event.type}.`) || []),
-      ...(this.handles.get(`${event.type}.${event.scene}`) || []),
-    ]
-    for (const i of handles) {
-      if (i.uid && !(event.user?.id && modeMatch(i.uid, event.user.id))) continue
-      if (i.gid && !(event.group?.id && modeMatch(i.gid, event.group.id))) continue
-      this.philia.clients.forEach(c => c.request(i.handle, event))
+    for (const handles of [
+      this.handles.get(`${event.type}.`),
+      this.handles.get(`${event.type}.${event.scene}`),
+    ]) {
+      if (!handles) continue
+      for (const index in handles) {
+        const i = handles[index]
+        if (i.uid && !(event.user?.id && modeMatch(i.uid, event.user.id))) continue
+        if (i.gid && !(event.group?.id && modeMatch(i.gid, event.group.id))) continue
+        if (!this.philia.clients.has(i.client)) {
+          handles.splice(Number(index), 1)
+          continue
+        }
+        i.client.request(i.handle, event)
+      }
     }
   }
 }

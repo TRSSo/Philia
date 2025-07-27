@@ -1,7 +1,6 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { ulid } from "ulid"
-import logger from "#logger"
 import type { Message } from "#protocol/type"
 import { modeMatch } from "#util"
 import type Client from "../client.js"
@@ -96,7 +95,7 @@ export default class PhiliaToTTY {
         }
       }
     } catch (err) {
-      logger.error(`${name}保存错误`, ms, err)
+      this.client.logger.error(`${name}保存错误`, ms, err)
     }
   }
 

@@ -1,4 +1,5 @@
 import { WebSocket } from "ws"
+import type { Logger } from "#logger"
 import { Encoder, makeError, promiseEvent, StringOrBuffer } from "#util"
 import { Client as AClient, type type } from "../common/index.js"
 
@@ -10,8 +11,8 @@ export default class Client extends AClient {
   event!: WebSocket
   ws_opts?: ConstructorParameters<typeof WebSocket>[2]
 
-  constructor(handle: type.Handles, opts: ClientOptions = {}) {
-    super(handle, { compress: true, ...opts })
+  constructor(logger: Logger, handle: type.Handles, opts: ClientOptions = {}) {
+    super(logger, handle, { compress: true, ...opts })
     if (opts.path) this.path = opts.path
     if (opts.ws instanceof WebSocket) this.event = opts.ws
     else this.ws_opts = opts.ws
@@ -98,17 +99,5 @@ export default class Client extends AClient {
       this.close()
       throw makeError("处理数据错误", { data, cause: err })
     }
-  }
-
-  static create(
-    path: string | Client,
-    handle: ConstructorParameters<typeof Client>[0],
-    opts?: ConstructorParameters<typeof Client>[1],
-  ) {
-    if (path instanceof Client) {
-      path.handle.set(handle)
-      return path
-    }
-    return new Client(handle, { ...opts, path })
   }
 }

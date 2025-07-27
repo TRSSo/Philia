@@ -4,10 +4,8 @@ export default function createAPI<T extends { [key: string]: (data: any) => unkn
 }) {
   return new Proxy(
     {},
-    {
-      get: (_, name: string) => {
-        return client.request.bind(client, name) as T[typeof name]
-      },
-    },
-  ) as T
+    { get: (_, name: string) => client.request.bind(client, name) as T[typeof name] },
+  ) as {
+    [K in keyof T]: (...args: Parameters<T[K]>) => Promise<Awaited<ReturnType<T[K]>>>
+  }
 }

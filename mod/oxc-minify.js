@@ -1,6 +1,6 @@
-import { minify } from "oxc-minify"
 import fs from "node:fs/promises"
 import Path from "node:path"
+import { minify } from "oxc-minify"
 
 function dealJS(dir) {
   return fs.readdir(dir, { withFileTypes: true }).then(i =>

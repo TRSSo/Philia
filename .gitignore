@@ -1,4 +1,5 @@
 /lib
+/log
 /node_modules
 /project
 /test

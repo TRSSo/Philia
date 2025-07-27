@@ -1,18 +1,23 @@
+import { type Logger, makeLogger } from "#logger"
 import type { type as ManagerType } from "../manager/index.js"
 
 export interface IConfig {
   /** 项目名 */
   name: string
+  /** 日志配置 */
+  logger?: ManagerType.LoggerConfig
   /** 项目管理器配置 */
   manager?: ManagerType.ManagerConfig
 }
 
 export abstract class Project {
+  logger: Logger
   config: IConfig
 
   constructor(config: IConfig) {
     this.config = config
     this.verifyConfig()
+    this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
   }
 
   /** 创建配置文件，静态方法 */

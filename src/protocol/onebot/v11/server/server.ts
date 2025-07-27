@@ -1,17 +1,17 @@
 import type { IncomingMessage } from "node:http"
 import { type WebSocket, WebSocketServer } from "ws"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import type { Philia } from "#project/project"
 import { promiseEvent } from "#util"
 import Client from "./client.js"
 
 export default class Server {
-  logger = logger
   philia: Philia.IConfig
   wss: WebSocketServer
   clients: Map<string, Client> = new Map()
 
   constructor(
+    public logger: Logger,
     philia: Philia.IConfig,
     path: number,
     opts?: ConstructorParameters<typeof WebSocketServer>[0],
@@ -43,7 +43,7 @@ export default class Server {
         client.sendQueue()
       }
     } else {
-      this.clients.set(id, new Client(this.philia, ws))
+      this.clients.set(id, new Client(this.logger, this.philia, ws))
     }
   }
 

@@ -205,20 +205,21 @@ export function promiseEvent<T>(
 }
 
 /** A是否为B的子集 */
-export function isSubObj<T extends object>(A: Partial<T>, B: T, equal = false) {
+export function isSubObj<T extends object>(A: Partial<T>, B: T, length = 1, equal = false) {
+  if (length === 0) return false
   for (const i in A) {
-    if (A[i] === undefined) continue
+    if (A[i] === undefined || A[i] === B[i]) continue
     if (typeof A[i] === "object" && A[i] !== null && typeof B[i] === "object" && B[i] !== null) {
-      if (!(equal ? isEqualObj : isSubObj)(A[i], B[i])) return false
-    } else if (A[i] !== B[i]) return false
+      if (!(equal ? isEqualObj : isSubObj)(A[i], B[i], length - 1)) return false
+    } else return false
   }
   return true
 }
 
 /** A是否等于B */
-export function isEqualObj<T extends object>(A: T, B: T) {
+export function isEqualObj<T extends object>(A: T, B: T, length?: number) {
   if (Object.keys(A).length !== Object.keys(B).length) return false
-  return isSubObj(A, B, true)
+  return isSubObj(A, B, length, true)
 }
 
 /** 匹配规则 */
@@ -249,4 +250,61 @@ export function modeMatch(rule: IModeMatch, target: string) {
     default:
       return list.includes(target)
   }
+}
+
+/**
+ * 获取日期
+ * @returns YYYY-MM-DD
+ */
+export function getDate(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * 获取时间
+ * @returns hh:mm:ss.SSS
+ */
+export function getTime(date = new Date()) {
+  const hour = String(date.getHours()).padStart(2, "0")
+  const minute = String(date.getMinutes()).padStart(2, "0")
+  const second = String(date.getSeconds()).padStart(2, "0")
+  const milliseconds = String(date.getMilliseconds()).padStart(3, "0")
+  return `${hour}:${minute}:${second}.${milliseconds}`
+}
+
+/**
+ * 获取日期时间
+ * @returns YYYY-MM-DD hh:mm:ss.SSS
+ */
+export function getDateTime(date = new Date()) {
+  return `${getDate(date)} ${getTime(date)}`
+}
+
+/**
+ * 获取时间差
+ * @param time1 开始时间
+ * @param time2 结束时间
+ * @returns 时间差（D天h时m分s秒SSS）
+ */
+export function getTimeDiff(time1: number, time2 = Date.now()) {
+  let time = time2 - time1
+  const ms = time % 1000
+  time = Math.floor(time / 1000)
+  const sec = time % 60
+  time = Math.floor(time / 60)
+  const min = time % 60
+  time = Math.floor(time / 60)
+  const hour = time % 24
+  time = Math.floor(time / 24)
+
+  let ret = ""
+  if (time) ret += `${time}天`
+  if (hour) ret += `${hour}时`
+  if (min) ret += `${min}分`
+  if (sec) ret += `${sec}秒`
+  if (ms) ret += ms
+  return ret || "0秒"
 }

@@ -1,12 +1,11 @@
 import fs from "node:fs/promises"
-import logger from "#logger"
+import type { Logger } from "#logger"
 import { Philia } from "#project/project"
 import { Event } from "#protocol/common"
 import type * as Type from "#protocol/type"
 import * as Convert from "./convert/index.js"
 
 export default class Client {
-  logger = logger
   handle = new Convert.API(this)
   philia: Philia.Project
   event_handle: Event.Handle
@@ -19,7 +18,10 @@ export default class Client {
   event_message_map = new Map<Type.Event.Message["id"], Type.Event.Message>()
   event_request_map = new Map<Type.Event.Request["id"], Type.Event.Request>()
 
-  constructor(philia: Philia.IConfig) {
+  constructor(
+    public logger: Logger,
+    philia: Philia.IConfig,
+  ) {
     this.philia = new Philia.Project(
       philia,
       this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
