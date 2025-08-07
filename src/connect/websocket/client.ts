@@ -11,7 +11,7 @@ export default class Client extends AClient {
   event!: WebSocket
   ws_opts?: ConstructorParameters<typeof WebSocket>[2]
 
-  constructor(logger: Logger, handle: type.Handles, opts: ClientOptions = {}) {
+  constructor(logger: Logger, handle: type.HandleMap, opts: ClientOptions = {}) {
     super(logger, handle, { compress: true, ...opts })
     if (opts.path) this.path = opts.path
     if (opts.ws instanceof WebSocket) this.event = opts.ws
@@ -33,9 +33,8 @@ export default class Client extends AClient {
   }
 
   onclose() {
+    super.onclose()
     clearTimeout(this.heartbeat_timeout)
-    this.open = false
-    for (const i in this.listener) this.event.off(i, this.listener[i])
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
@@ -46,13 +45,10 @@ export default class Client extends AClient {
     },
     connected(this: Client) {
       this.logger.info("已连接", this.meta.remote)
-      this.open = true
+      this.onconnected()
       this.heartbeat()
-      this.sender()
     },
-    error(this: Client, error) {
-      this.logger.error("错误", error)
-    },
+    error: this.onerror,
   }
 
   getMetaInfo(): Promise<type.MetaInfo> {

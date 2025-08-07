@@ -27,16 +27,15 @@ export interface Options {
 
 export interface ServerOptions extends Options {
   limit?: number
-  onconnected?(client: Client): void
 }
 
-export enum ESocketStatus {
+export const enum ESocketStatus {
   New,
   dle,
   Send,
   Close,
 }
-export enum EStatus {
+export const enum EStatus {
   Request,
   Response,
   Async,
@@ -90,8 +89,7 @@ export type Handle = (
   data: Request["data"],
   client: Client,
 ) => Response["data"] | Promise<Response["data"]>
-export interface OHandle {
-  [key: Request["name"]]: Handle | unknown
+export interface HandleMap {
+  [key: Request["name"]]: Handle | undefined | string | number | boolean | object
   default?: HandleDefault
 }
-export type Handles = OHandle | OHandle[]

@@ -2,7 +2,7 @@ import { ulid } from "ulid"
 import { WebSocket } from "ws"
 import type { Logger } from "#logger"
 import { Philia } from "#project/project"
-import { createAPI, Event } from "#protocol/common"
+import { createAPI, EventHandle } from "#protocol/common"
 import { makeError, promiseEvent, toJSON } from "#util"
 import * as Convert from "../convert/index.js"
 import type { API } from "../type/index.js"
@@ -16,7 +16,7 @@ export default class Client {
   api = createAPI<API.ClientAPI>(this)
   handle = new Convert.API.PhiliaToOBv11(this)
   protocol = new Protocol(this)
-  event_handle: Event.Handle
+  event_handle: EventHandle
 
   cache = new Map<
     string,
@@ -42,7 +42,7 @@ export default class Client {
       philia,
       this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
     )
-    this.event_handle = new Event.Handle(this.philia)
+    this.event_handle = new EventHandle(this.philia)
     if (ws instanceof WebSocket) {
       this.ws = ws
       this.philia.start()

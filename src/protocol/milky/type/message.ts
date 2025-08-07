@@ -1,6 +1,6 @@
 import type * as Struct from "./struct.js"
 
-/** 接收消息段基础接口 */
+/** 消息段基类 */
 export interface ASegment {
   /** 类型标识符 */
   type: string
@@ -21,7 +21,7 @@ export interface Text extends ASegment {
 export interface Mention extends ASegment {
   type: "mention"
   data: {
-    /** 提及的 QQ 号 */
+    /** 提及的QQ号 */
     user_id: number
   }
 }
@@ -35,13 +35,13 @@ export interface MentionAll extends ASegment {
 export interface Face extends ASegment {
   type: "face"
   data: {
-    /** 表情 ID */
+    /** 表情ID */
     face_id: string
   }
 }
 
 /** 回复消息段 */
-export interface IncomingReply extends ASegment {
+export interface Reply extends ASegment {
   type: "reply"
   data: {
     /** 被引用的消息序列号 */
@@ -53,9 +53,9 @@ export interface IncomingReply extends ASegment {
 export interface IncomingImage extends ASegment {
   type: "image"
   data: {
-    /** 资源 ID */
+    /** 资源ID */
     resource_id: string
-    /** 临时 URL */
+    /** 临时URL */
     temp_url: string
     /** 图片预览文本 */
     summary?: string
@@ -68,11 +68,11 @@ export interface IncomingImage extends ASegment {
 export interface IncomingRecord extends ASegment {
   type: "record"
   data: {
-    /** 资源 ID */
+    /** 资源ID */
     resource_id: string
-    /** 临时 URL */
+    /** 临时URL */
     temp_url: string
-    /** 语音时长 */
+    /** 语音时长（秒） */
     duration: number
   }
 }
@@ -81,9 +81,9 @@ export interface IncomingRecord extends ASegment {
 export interface IncomingVideo extends ASegment {
   type: "video"
   data: {
-    /** 资源 ID */
+    /** 资源ID */
     resource_id: string
-    /** 临时 URL */
+    /** 临时URL */
     temp_url: string
   }
 }
@@ -92,7 +92,7 @@ export interface IncomingVideo extends ASegment {
 export interface IncomingForward extends ASegment {
   type: "forward"
   data: {
-    /** 合并转发 ID */
+    /** 合并转发ID */
     forward_id: string
   }
 }
@@ -101,7 +101,7 @@ export interface IncomingForward extends ASegment {
 export interface IncomingMarketFace extends ASegment {
   type: "market_face"
   data: {
-    /** 市场表情 URL */
+    /** 市场表情URL */
     url: string
   }
 }
@@ -112,7 +112,7 @@ export interface IncomingLightApp extends ASegment {
   data: {
     /** 小程序名称 */
     app_name: string
-    /** 小程序 JSON 数据 */
+    /** 小程序JSON数据 */
     json_payload: string
   }
 }
@@ -121,9 +121,9 @@ export interface IncomingLightApp extends ASegment {
 export interface IncomingXml extends ASegment {
   type: "xml"
   data: {
-    /** 服务 ID */
+    /** 服务ID */
     service_id: number
-    /** XML 数据 */
+    /** XML数据 */
     xml_payload: string
   }
 }
@@ -134,7 +134,7 @@ export type IncomingSegment =
   | Mention
   | MentionAll
   | Face
-  | IncomingReply
+  | Reply
   | IncomingImage
   | IncomingRecord
   | IncomingVideo
@@ -148,7 +148,7 @@ export type IncomingMessageBase =
   | Text
   | Mention
   | MentionAll
-  | IncomingReply
+  | Reply
   | IncomingImage
   | IncomingRecord
   | IncomingVideo
@@ -166,15 +166,6 @@ export const IncomingExtendArray: IncomingMessageExtend["type"][] = [
   "light_app",
   "xml",
 ]
-
-/** 回复消息段 */
-export interface OutgoingReply extends ASegment {
-  type: "reply"
-  data: {
-    /** 被引用的消息序列号 */
-    message_seq: number
-  }
-}
 
 /** 图片消息段 */
 export interface OutgoingImage extends ASegment {
@@ -224,7 +215,7 @@ export type OutgoingSegment =
   | Mention
   | MentionAll
   | Face
-  | OutgoingReply
+  | Reply
   | OutgoingImage
   | OutgoingRecord
   | OutgoingVideo
@@ -235,7 +226,7 @@ export type OutgoingMessageBase =
   | Text
   | Mention
   | MentionAll
-  | OutgoingReply
+  | Reply
   | OutgoingImage
   | OutgoingRecord
   | OutgoingVideo

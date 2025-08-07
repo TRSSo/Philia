@@ -31,7 +31,7 @@ export function decodeMessageID(id: string): {
   }
 }
 
-export enum FileScene {
+export const enum FileScene {
   Resource,
   Private,
   Group,
@@ -63,5 +63,24 @@ export function decodeFileID(file_id: string): {
     scene,
     id: file_id.replace(match[0], ""),
     peer_id: scene === FileScene.Resource ? undefined : buffer.readUint32BE(1),
+  }
+}
+
+export const enum RequestScene {
+  Friend,
+  Group,
+  GroupInvitation,
+}
+
+export function encodeRequestID(scene: RequestScene, id: string) {
+  return `${scene}|${id}`
+}
+
+export function decodeRequestID(id: string) {
+  const match = id.match(/^(\d+)\|/)
+  if (!match) throw Error("无法解析的请求ID")
+  return {
+    scene: Number(match[0]) as RequestScene,
+    id: id.replace(match[0], ""),
   }
 }

@@ -2,7 +2,7 @@ import type * as Message from "./message.js"
 
 /** 用户 */
 export interface User {
-  /** 用户 QQ 号 */
+  /** 用户QQ号 */
   user_id: number
   /** 用户昵称 */
   nickname: string
@@ -12,7 +12,7 @@ export interface User {
 
 /** 好友 */
 export interface Friend extends User {
-  /** 好友 QID */
+  /** 好友QID */
   qid?: string
   /** 好友备注 */
   remark: string
@@ -22,7 +22,7 @@ export interface Friend extends User {
 
 /** 好友分组 */
 export interface FriendCategory {
-  /** 好友分组 ID */
+  /** 好友分组ID */
   category_id: number
   /** 好友分组名称 */
   category_name: string
@@ -52,10 +52,12 @@ export interface GroupMember extends User {
   level: number
   /** 权限等级 */
   role: "owner" | "admin" | "member"
-  /** 入群时间，Unix时间戳（秒） */
+  /** 入群时的Unix时间戳（秒） */
   join_time: number
-  /** 最后发言时间，Unix时间戳（秒） */
+  /** 最后发言时的Unix时间戳（秒） */
   last_sent_time: number
+  /** 禁言结束时的Unix时间戳（秒） */
+  shut_up_end_time: number
 }
 
 /** 群公告 */
@@ -86,9 +88,9 @@ export interface GroupFile {
   parent_folder_id: string
   /** 文件大小（字节） */
   file_size: number
-  /** 上传时间，Unix时间戳（秒） */
+  /** 上传时的Unix时间戳（秒） */
   uploaded_time: number
-  /** 过期时间，Unix时间戳（秒） */
+  /** 过期时的Unix时间戳（秒） */
   expire_time?: number
   /** 上传者QQ号 */
   uploader_id: number
@@ -103,12 +105,12 @@ export interface GroupFolder {
   /** 文件夹ID */
   folder_id: string
   /** 父文件夹ID */
-  parent_folder_id?: string
+  parent_folder_id: string
   /** 文件夹名称 */
   folder_name: string
-  /** 创建时间，Unix时间戳（秒） */
+  /** 创建时的Unix时间戳（秒） */
   created_time: number
-  /** 最后修改时间，Unix时间戳（秒） */
+  /** 最后修改时的Unix时间戳（秒） */
   last_modified_time: number
   /** 创建者QQ号 */
   creator_id: number
@@ -120,7 +122,7 @@ export interface GroupFolder {
 export interface FriendRequest {
   /** 请求ID，用于同意/拒绝请求 */
   request_id: string
-  /** 请求发起时间，Unix时间戳（秒） */
+  /** 请求发起时的Unix时间戳（秒） */
   time: number
   /** 请求是否被过滤（发起自风险账户） */
   is_filtered: boolean
@@ -134,11 +136,11 @@ export interface FriendRequest {
   via?: string
 }
 
-/** 入群请求基础信息 */
+/** 入群请求基类 */
 export interface AGroupRequest {
   /** 请求ID，用于同意/拒绝请求 */
   request_id: string
-  /** 请求发起时间，Unix时间戳（秒） */
+  /** 请求发起时的Unix时间戳（秒） */
   time: number
   /** 请求是否被过滤（发起自风险账户） */
   is_filtered: boolean
@@ -154,14 +156,14 @@ export interface AGroupRequest {
   request_type: string
 }
 
-/** 自主申请入群请求（join） */
+/** 自主申请入群请求 */
 export interface JoinGroupRequest extends AGroupRequest {
   request_type: "join"
   /** 入群请求附加信息 */
   comment?: string
 }
 
-/** 他人邀请入群请求（invite） */
+/** 他人邀请入群请求 */
 export interface InviteGroupRequest extends AGroupRequest {
   request_type: "invite"
   /** 被邀请者QQ号 */
@@ -175,7 +177,7 @@ export type GroupRequest = JoinGroupRequest | InviteGroupRequest
 export interface GroupInvitation {
   /** 请求ID，用于同意/拒绝请求 */
   request_id: string
-  /** 请求发起时间，Unix时间戳（秒） */
+  /** 请求发起时的Unix时间戳（秒） */
   time: number
   /** 请求是否被过滤（发起自风险账户） */
   is_filtered: boolean
@@ -187,7 +189,7 @@ export interface GroupInvitation {
   group_id: number
 }
 
-/** 接收消息基础信息 */
+/** 接收消息基类 */
 export interface AIncomingMessage {
   /** 好友QQ号或群号 */
   peer_id: number
@@ -195,7 +197,7 @@ export interface AIncomingMessage {
   message_seq: number
   /** 发送者QQ号 */
   sender_id: number
-  /** 消息时间，Unix时间戳（秒） */
+  /** 消息时的Unix时间戳（秒） */
   time: number
   /** 消息段列表 */
   segments: Message.IncomingSegment[]
@@ -226,10 +228,10 @@ export interface TempIncomingMessage extends AIncomingMessage {
   group?: Group
 }
 
-/** 所有类型的接收消息联合类型 */
+/** 接收消息 */
 export type IncomingMessage = FriendIncomingMessage | GroupIncomingMessage | TempIncomingMessage
 
-/** 接收的转发消息 */
+/** 接收转发消息 */
 export interface IncomingForwardedMessage {
   /** 发送者名称 */
   name: string

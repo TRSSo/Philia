@@ -69,7 +69,7 @@ export class MilkyToPhilia {
     this.summary += `@全体成员`
   }
 
-  reply(ms: Milky.Message.IncomingReply) {
+  reply(ms: Milky.Message.Reply) {
     this.after.push({
       type: "reply",
       data: Common.encodeMessageID(

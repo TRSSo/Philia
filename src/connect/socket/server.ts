@@ -23,7 +23,7 @@ export class Server {
 
   constructor(
     public logger: Logger,
-    public handle: type.Handles = {},
+    public handle: type.HandleMap = {},
     public opts: ServerOptions = {},
   ) {
     if (opts.limit) this.limit = opts.limit
@@ -82,7 +82,7 @@ class Client extends OClient {
   server: Server
   constructor(
     public logger: Logger,
-    handle: type.Handles,
+    handle: type.HandleMap,
     server: Server,
     socket: Socket,
     opts: ServerOptions,
@@ -96,7 +96,6 @@ class Client extends OClient {
     this.onconnect().then(() => {
       server.add(this)
       server.socket.emit("connected", this)
-      opts.onconnected?.(this)
     })
   }
 }

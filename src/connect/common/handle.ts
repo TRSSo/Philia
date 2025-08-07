@@ -4,7 +4,7 @@ import type Client from "./client.js"
 import * as type from "./type.js"
 
 export default class Handle {
-  default_handle: [keyof type.OHandle, type.Handle | type.HandleDefault][] = [
+  default_handle: [keyof type.HandleMap, type.HandleMap[keyof type.HandleMap]][] = [
     ["heartbeat", () => {}],
     ["getHandleList", () => Array.from(this.map.keys())],
     [
@@ -18,18 +18,23 @@ export default class Handle {
   reply_cache: { [key: string]: type.Reply } = {}
 
   constructor(
-    handle: type.Handles,
+    handle: type.HandleMap,
     public client: Client,
   ) {
-    this.set(handle)
+    this.setMap(handle)
   }
 
-  set(handle: type.Handles) {
-    for (const i of Array.isArray(handle) ? handle : [handle])
-      for (const k of getAllProps(i)) if (typeof i[k] === "function") this.map.set(k, i[k].bind(i))
+  set(...args: Parameters<typeof this.map.set>) {
+    return this.map.set(...args)
   }
 
-  del(name: keyof type.OHandle) {
+  setMap(handle: type.HandleMap) {
+    for (const i of getAllProps(handle))
+      if (typeof handle[i] === "function") this.set(i, handle[i].bind(handle))
+  }
+
+  del(name: Parameters<typeof this.map.delete>[0] | Parameters<typeof this.map.delete>[0][]) {
+    if (Array.isArray(name)) return name.map(this.map.delete.bind(this.map))
     return this.map.delete(name)
   }
 
@@ -66,13 +71,18 @@ export default class Handle {
     reply: (code: type.Reply["code"], data?: type.Response["data"]) => void,
   ) {
     try {
-      const handle = this.map.get(req.name) as type.Handle
+      const handle = this.map.get(req.name)
       let ret: type.Response["data"]
       if (handle) {
-        this.client.logger.debug(
-          `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
-        )
-        ret = handle(req.data, this.client)
+        if (typeof handle === "function") {
+          this.client.logger.debug(
+            `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
+          )
+          ret = handle(req.data, this.client)
+        } else {
+          this.client.logger.debug(`得到值 ${req.name} => ${Loging(handle)}`)
+          ret = handle
+        }
       } else {
         this.client.logger.debug(
           `执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`,
@@ -119,15 +129,7 @@ export default class Handle {
     cache.finally()
     cache.finally = () => delete this.client.cache[req.id]
     const time = req.time ? req.time * 1000 : this.client.timeout.wait
-    const timeout = () => {
-      if (cache.retry > this.client.timeout.retry)
-        return cache.reject(makeError("等待异步响应超时", { cache, req, timeout: time }))
-      cache.retry++
-      this.client.logger.warn(`等待异步响应 ${req.id} 超时，重试${cache.retry}次`)
-      cache.timeout = setTimeout(timeout, time)
-      this.client.send(cache.data)
-    }
-    cache.timeout = setTimeout(timeout, time)
+    this.client.setTimeout(cache, time)
     this.client.cache[req.id] = cache
   }
 

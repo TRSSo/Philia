@@ -13,7 +13,7 @@ export default class Client extends AClient {
   buffer!: Buffer
   buffer_split?: Buffer
 
-  constructor(logger: Logger, handle: type.Handles, opts: ClientOptions = {}) {
+  constructor(logger: Logger, handle: type.HandleMap, opts: ClientOptions = {}) {
     super(logger, handle, opts)
     if (opts.path) this.path = opts.path
     if (opts.socket instanceof Socket) this.event = opts.socket
@@ -30,15 +30,14 @@ export default class Client extends AClient {
   }
 
   onclose() {
-    this.open = false
+    super.onclose()
     this.buffer = Buffer.alloc(0)
-    for (const i in this.listener) this.event.off(i, this.listener[i])
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
     data: this.receive,
     end(this: Client) {
-      this.logger.info(`${this.meta.remote?.id} 请求关闭`)
+      this.logger.debug(`${this.meta.remote?.id} 请求关闭`)
     },
     close(this: Client) {
       this.onclose()
@@ -49,12 +48,9 @@ export default class Client extends AClient {
     },
     connected(this: Client) {
       this.logger.info("已连接", this.meta.remote)
-      this.open = true
-      this.sender()
+      this.onconnected()
     },
-    error(this: Client, error) {
-      this.logger.error("错误", error)
-    },
+    error: this.onerror,
   }
 
   getMetaInfo(): Promise<type.MetaInfo> {

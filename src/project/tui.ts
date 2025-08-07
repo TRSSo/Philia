@@ -2,14 +2,14 @@ import fs from "node:fs/promises"
 import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import YAML from "yaml"
-import { getLogger } from "#logger"
+import type { Logger } from "#logger"
 import { continueTui, selectArray } from "#util/tui.js"
 import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
-export class Tui {
-  logger = getLogger()
+export default class Tui {
   path = "project"
+  constructor(public logger: Logger) {}
 
   async main() {
     while (true)

@@ -1,2 +1,2 @@
 export { default as createAPI } from "./api.js"
-export * as Event from "./event.js"
+export { default as EventHandle } from "./event.js"

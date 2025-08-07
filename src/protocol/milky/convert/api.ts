@@ -436,7 +436,9 @@ export default class PhiliaToMilky implements API.ServerAPI {
     const res = await this.client.api.get_forwarded_messages({
       forward_id: id,
     })
-    return Promise.all(res.messages.map(this.client.event.IncomingMessage.bind(this.client.event)))
+    return Promise.all(
+      res.messages.map(this.client.event.IncomingForwardedMessage.bind(this.client.event)),
+    )
   }
 
   async getChatHistory({
@@ -562,9 +564,21 @@ export default class PhiliaToMilky implements API.ServerAPI {
   }
 
   setRequest({ id, result, reason }: { id: string; result: boolean; reason?: string }) {
-    return result
-      ? this.client.api.accept_request({ request_id: id })
-      : this.client.api.reject_request({ request_id: id, reason })
+    const req = Common.decodeRequestID(id)
+    switch (req.scene) {
+      case Common.RequestScene.Friend:
+        return result
+          ? this.client.api.accept_friend_request({ request_id: id })
+          : this.client.api.reject_friend_request({ request_id: id, reason })
+      case Common.RequestScene.Group:
+        return result
+          ? this.client.api.accept_group_request({ request_id: id })
+          : this.client.api.reject_group_request({ request_id: id, reason })
+      case Common.RequestScene.GroupInvitation:
+        return result
+          ? this.client.api.accept_group_invitation({ request_id: id })
+          : this.client.api.reject_group_invitation({ request_id: id })
+    }
   }
 
   uploadCacheFile(): string {

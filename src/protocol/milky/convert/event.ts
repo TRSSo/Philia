@@ -16,6 +16,19 @@ export default class Event {
     throw makeError(`未知事件：${event.event_type}`, { event })
   }
 
+  async IncomingForwardedMessage(data: Milky.Struct.IncomingForwardedMessage) {
+    const message = await new Message.MilkyToPhilia(
+      this.client,
+      data as unknown as Milky.Struct.IncomingMessage,
+    ).convert()
+    const event: Philia.Message.Forward = {
+      message: message.after,
+      time: data.time,
+      user: { name: data.name, avatar: data.avatar_url },
+    }
+    return event
+  }
+
   async IncomingMessage(data: Milky.Struct.IncomingMessage) {
     const message = await new Message.MilkyToPhilia(this.client, data).convert()
     const event = {
@@ -115,7 +128,7 @@ export default class Event {
 
   async FriendRequest(data: Milky.Struct.FriendRequest) {
     const event: Philia.Event.UserRequest = {
-      id: data.request_id,
+      id: Common.encodeRequestID(Common.RequestScene.Friend, data.request_id),
       type: "request",
       time: data.time,
       scene: "user",
@@ -133,7 +146,7 @@ export default class Event {
 
   async GroupRequest(data: Milky.Struct.GroupRequest) {
     const event: Philia.Event.GroupRequest = {
-      id: data.request_id,
+      id: Common.encodeRequestID(Common.RequestScene.Group, data.request_id),
       type: "request",
       time: data.time,
       scene: "group_add",
@@ -167,7 +180,7 @@ export default class Event {
 
   async GroupInvitation(data: Milky.Struct.GroupInvitation) {
     const event: Philia.Event.GroupRequest = {
-      id: data.request_id,
+      id: Common.encodeRequestID(Common.RequestScene.GroupInvitation, data.request_id),
       type: "request",
       time: data.time,
       scene: "group_invite",

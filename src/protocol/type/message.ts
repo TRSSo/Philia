@@ -147,8 +147,8 @@ export interface Button extends AMessage {
 export interface Forward {
   message: Message
   time?: number
-  user?: Contact.User
-  group?: Contact.Group
+  user?: Partial<Contact.User>
+  group?: Partial<Contact.Group>
 }
 
 /** 扩展消息 */

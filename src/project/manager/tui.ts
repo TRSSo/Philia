@@ -68,9 +68,9 @@ export default class ProjectManagerTui {
   async followLog(level: ManagerType.LoggerLevel, time = -1) {
     await this.getLog({ level, time, lines: 10 })
     const handle = "receiveLog"
-    this.client.handle.set({
-      [handle]: (event: ManagerType.LoggerEvent) => process.stdout.write(this.printLog(event)),
-    })
+    this.client.handle.set(handle, (event: ManagerType.LoggerEvent) =>
+      process.stdout.write(this.printLog(event)),
+    )
     this.api.followLog({ level, handle })
     await continueTui("按回车键结束")
     this.api.unfollowLog()

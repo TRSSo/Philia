@@ -4,8 +4,8 @@ import type { Client } from "../client.js"
 import { GroupMessage, PrivateMessage } from "../message/message.js"
 import type * as types from "./types.js"
 
-export default class Handle implements SocketType.OHandle {
-  [key: string]: ((data: unknown) => unknown) | unknown
+export default class Handle implements SocketType.HandleMap {
+  [key: string]: SocketType.HandleMap[string]
   static event = [
     { type: "message", scene: "user" },
     { type: "message", scene: "group" },

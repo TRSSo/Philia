@@ -46,6 +46,36 @@ export interface SystemAPI {
     }
   }
 
+  /** 获取用户个人信息 */
+  get_user_profile: {
+    request: {
+      /** 用户 QQ 号 */
+      user_id: number
+    }
+    response: {
+      /** 昵称 */
+      nickname: string
+      /** QID */
+      qid?: string
+      /** 年龄 */
+      age: number
+      /** 性别 */
+      sex: "male" | "female" | "unknown"
+      /** 备注 */
+      remark?: string
+      /** 个性签名 */
+      bio?: string
+      /** QQ 等级 */
+      level?: number
+      /** 国家或地区 */
+      country?: string
+      /** 城市 */
+      city?: string
+      /** 学校 */
+      school?: string
+    }
+  }
+
   /** 获取好友列表 */
   get_friend_list: {
     request: void | {
@@ -188,9 +218,9 @@ export interface MessageAPI {
       peer_id: number
       /** 起始消息序列号，不提供则从最新消息开始 */
       start_message_seq?: number
-      /** 消息获取方向，可能值：newer, older */
+      /** 消息获取方向 */
       direction: "newer" | "older"
-      /** 获取的最大消息数量 */
+      /** 获取的最大消息数量（默认值：20） */
       limit?: number
     }
     response: {
@@ -219,7 +249,7 @@ export interface MessageAPI {
     }
     response: {
       /** 转发消息内容 */
-      messages: Struct.IncomingMessage[]
+      messages: Struct.IncomingForwardedMessage[]
     }
   }
 
@@ -253,8 +283,8 @@ export interface FriendAPI {
     request: {
       /** 好友 QQ 号 */
       user_id: number
-      /** 是否戳自己 */
-      is_self: boolean
+      /** 是否戳自己（默认值：false） */
+      is_self?: boolean
     }
     response: void
   }
@@ -426,7 +456,7 @@ export interface GroupAPI {
       /** 表情 ID */
       reaction: string
       /** 是否添加表情 */
-      is_add: boolean
+      is_add?: boolean
     }
     response: void
   }
@@ -448,7 +478,7 @@ export interface RequestAPI {
   /** 获取好友请求列表 */
   get_friend_requests: {
     request: void | {
-      /** 获取的最大请求数量 */
+      /** 获取的最大请求数量（默认值：20） */
       limit?: number
     }
     response: {
@@ -460,7 +490,7 @@ export interface RequestAPI {
   /** 获取群请求列表 */
   get_group_requests: {
     request: void | {
-      /** 获取的最大请求数量 */
+      /** 获取的最大请求数量（默认值：20） */
       limit?: number
     }
     response: {
@@ -472,7 +502,7 @@ export interface RequestAPI {
   /** 获取群邀请列表 */
   get_group_invitations: {
     request: void | {
-      /** 获取的最大邀请数量 */
+      /** 获取的最大邀请数量（默认值：20） */
       limit?: number
     }
     response: {
@@ -481,8 +511,8 @@ export interface RequestAPI {
     }
   }
 
-  /** 同意请求 */
-  accept_request: {
+  /** 同意好友请求 */
+  accept_friend_request: {
     request: {
       /** 请求 ID */
       request_id: string
@@ -490,13 +520,51 @@ export interface RequestAPI {
     response: void
   }
 
-  /** 拒绝请求 */
-  reject_request: {
+  /** 拒绝好友请求 */
+  reject_friend_request: {
     request: {
       /** 请求 ID */
       request_id: string
       /** 拒绝理由 */
       reason?: string
+    }
+    response: void
+  }
+
+  /** 同意群请求 */
+  accept_group_request: {
+    request: {
+      /** 请求 ID */
+      request_id: string
+    }
+    response: void
+  }
+
+  /** 拒绝群请求 */
+  reject_group_request: {
+    request: {
+      /** 请求 ID */
+      request_id: string
+      /** 拒绝理由 */
+      reason?: string
+    }
+    response: void
+  }
+
+  /** 同意群邀请 */
+  accept_group_invitation: {
+    request: {
+      /** 请求 ID */
+      request_id: string
+    }
+    response: void
+  }
+
+  /** 拒绝群邀请 */
+  reject_group_invitation: {
+    request: {
+      /** 请求 ID */
+      request_id: string
     }
     response: void
   }

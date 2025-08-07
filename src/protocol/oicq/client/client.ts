@@ -170,7 +170,7 @@ export class Client extends events {
     super()
     if (uin instanceof Connect.Common.Client) {
       this.client = uin
-      this.client.handle.set(this.handle)
+      this.client.handle.setMap(this.handle)
       this.api = createAPI<Philia.API.ClientAPI>(this.client)
     } else {
       if (typeof uin === "object") conf = uin

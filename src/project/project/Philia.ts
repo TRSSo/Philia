@@ -20,7 +20,7 @@ export class Project extends Common.Project {
 
   constructor(
     config: IConfig,
-    public handles: type.Handles = {},
+    public handles: type.HandleMap = {},
   ) {
     super(config)
   }

@@ -20,7 +20,8 @@
       "suspicious": {
         "noAssignInExpressions": "off",
         "noConfusingVoidType": "off",
-        "noExplicitAny": "off"
+        "noExplicitAny": "off",
+        "noConstEnum": "off"
       },
       "style": {
         "noNonNullAssertion": "off"

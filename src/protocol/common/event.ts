@@ -5,7 +5,7 @@ import { isEqualObj, modeMatch } from "#util"
 type Client = Philia.Project["clients"] extends Set<infer U> ? U : never
 type HandleMap = Omit<Event.Handle, "type" | "scene"> & { client: Client }
 
-export class Handle {
+export default class EventHandle {
   philia: Philia.Project
   handles: Map<string, HandleMap[]> = new Map()
   constructor(philia: Philia.Project) {

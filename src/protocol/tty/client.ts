@@ -1,14 +1,14 @@
 import fs from "node:fs/promises"
 import type { Logger } from "#logger"
 import { Philia } from "#project/project"
-import { Event } from "#protocol/common"
+import { EventHandle } from "#protocol/common"
 import type * as Type from "#protocol/type"
 import * as Convert from "./convert/index.js"
 
 export default class Client {
   handle = new Convert.API(this)
   philia: Philia.Project
-  event_handle: Event.Handle
+  event_handle: EventHandle
 
   path = process.cwd()
   self: Type.Contact.Self = { id: "tty", name: "终端" }
@@ -26,7 +26,7 @@ export default class Client {
       philia,
       this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
     )
-    this.event_handle = new Event.Handle(this.philia)
+    this.event_handle = new EventHandle(this.philia)
   }
 
   async start() {

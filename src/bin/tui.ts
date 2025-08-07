@@ -1,3 +1,4 @@
-import { Tui } from "#project/tui.js"
+import { getLogger } from "#logger"
+import Tui from "#project/tui.js"
 
-new Tui().main()
+new Tui(getLogger("MAN TUI")).main()

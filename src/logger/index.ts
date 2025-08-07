@@ -3,14 +3,14 @@ import type { LoggerLevelStr } from "#project/manager/type.js"
 import { chalk, Loging } from "#util"
 
 type hookFn = (name: string, level: log4js.Level, data: string[]) => void
+let hook: hookFn | undefined
 export type Logger = log4js.Logger & {
   setHook(fn?: hookFn): void
   inspect: Parameters<typeof Loging>[1]
 }
 const _log = Symbol("_log")
-const logger_map = new Map() as Map<string, Logger & { [_log]: log4js.Logger["_log"] }> & {
-  hook?: hookFn
-}
+const logger_map = new Map<string, Logger & { [_log]: log4js.Logger["_log"] }>()
+
 export const log4js_config: log4js.Configuration = {
   appenders: {
     stdout: {
@@ -50,12 +50,12 @@ export function makeLogger(
     logger = Object.create(null)
     logger._log = function (level, args) {
       args = args.map((i: any) => Loging(i, this.inspect))
-      logger_map.hook?.(name, level, args)
+      hook?.(name, level, args)
       return level.level >= level_num && this[_log](level, args)
     }
     logger.setHook =
       name === "default"
-        ? fn => (logger_map.hook = fn)
+        ? fn => (hook = fn)
         : function (this: typeof logger, fn) {
             this._log = fn
               ? function (this: typeof logger, level, args) {

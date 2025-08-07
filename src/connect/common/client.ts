@@ -30,7 +30,7 @@ export default abstract class Client {
 
   constructor(
     public logger: Logger,
-    handle: type.Handles,
+    handle: type.HandleMap,
     opts: type.Options = {},
   ) {
     this.handle = new Handle(handle, this)
@@ -55,56 +55,69 @@ export default abstract class Client {
   }
 
   async onconnect() {
-    await this.onconnectMeta()
-    for (const i in this.listener) this.event.on(i, this.listener[i])
-    this.event.emit("connected", this)
-  }
-
-  async onconnectMeta() {
     try {
       this.meta.remote = await this.getMetaInfo()
       if (this.meta.local.version !== this.meta.remote.version)
         throw makeError("协议版本不支持", this.meta)
       this.encoder = new Encoder(this.meta.local, this.meta.remote)
+      for (const i in this.listener) this.event.on(i, this.listener[i])
+      this.event.emit("connected", this)
     } catch (err) {
       this.forceClose()
       throw err
     }
   }
 
-  sender(): true | undefined {
-    if (!this.open) {
-      for (const i of this.queue) this.cache[i].reject(Error("连接关闭"))
-      this.queue = []
-      return (this.idle = true)
+  onconnected() {
+    this.open = true
+    this.sender()
+  }
+
+  onclose() {
+    this.open = false
+    for (const i in this.listener) this.event.off(i, this.listener[i])
+  }
+
+  onerror(error: Error) {
+    this.logger.error("错误", error)
+  }
+
+  setTimeout(cache: type.Cache, timeout = this.timeout.send) {
+    const fn = () => {
+      if (cache.retry > this.timeout.retry)
+        return cache.reject(makeError("等待消息超时", { timeout }))
+      cache.retry++
+      this.logger.warn(`发送 ${cache.data.id} 超时，重试${cache.retry}次`)
+      cache.finally = () => {
+        delete this.cache[cache.data.id]
+        this.sender()
+      }
+      this.queue.push(cache.data.id)
+      if (this.idle) {
+        this.idle = false
+        this.sender()
+      }
     }
-    if (this.queue.length === 0) return (this.idle = true)
-    const id = this.queue.shift() as type.Status["id"]
+    cache.timeout = setTimeout(fn, timeout)
+  }
+
+  sender(): true | undefined {
+    if (!this.open) return (this.idle = true)
+    const id = this.queue.shift()
+    if (!id) return (this.idle = true)
     const cache = this.cache[id]
     if (!cache?.data) return this.sender()
-    const timeout = () => {
-      if (cache.retry > this.timeout.retry)
-        return cache.reject(makeError("等待消息超时", { timeout: this.timeout.send }))
-      cache.retry++
-      this.logger.warn(`发送 ${id} 超时，重试${cache.retry}次`)
-      cache.timeout = setTimeout(timeout, this.timeout.send)
-      this.send(cache.data)
-    }
-    cache.timeout = setTimeout(timeout, this.timeout.send)
+    this.setTimeout(cache)
     this.send(cache.data)
   }
 
   request(name: type.Request["name"], data?: type.Request["data"]) {
     const id = ulid()
     const cache = {
-      data: { id, code: type.EStatus.Request as const, name, data },
+      data: { id, code: type.EStatus.Request, name, data },
       retry: 0,
       ...Promise.withResolvers(),
-      finally: () => {
-        delete this.cache[id]
-        this.sender()
-      },
-    }
+    } as type.Cache
 
     this.cache[id] = cache
     this.queue.push(id)

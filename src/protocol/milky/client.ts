@@ -1,6 +1,6 @@
 import type { Logger } from "#logger"
 import { Philia } from "#project/project"
-import { createAPI, Event } from "#protocol/common"
+import { createAPI, EventHandle } from "#protocol/common"
 import { makeError } from "#util"
 import * as Convert from "./convert/index.js"
 import type { API } from "./type/index.js"
@@ -16,7 +16,7 @@ export default class Client {
   api = createAPI<API.ClientAPI>(this)
   handle = new Convert.API(this)
   event = new Convert.Event(this)
-  event_handle: Event.Handle
+  event_handle: EventHandle
 
   constructor(
     public logger: Logger,
@@ -27,7 +27,7 @@ export default class Client {
       philia,
       this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
     )
-    this.event_handle = new Event.Handle(this.philia)
+    this.event_handle = new EventHandle(this.philia)
     this.url = url instanceof URL ? url : new URL(url)
   }
 

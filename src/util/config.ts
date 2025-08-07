@@ -14,8 +14,8 @@ export default async function makeConfig<T extends object>(
   name: string,
   config: T,
   keep: Partial<T> = {},
-  opts: { replacer?: (data: string) => string | Promise<string> } = {},
-): Promise<{ config: T; configSave: () => Promise<void> }> {
+  opts: { replacer?(data: string): string | Promise<string> } = {},
+): Promise<{ config: T; configSave(): Promise<void> }> {
   if (map.has(name)) return map.get(name)
 
   const configFile = `${name}.yaml`
