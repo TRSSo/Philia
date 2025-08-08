@@ -19,9 +19,8 @@ export default class Client extends AClient {
     for (const i in this.listener) this.listener[i] = this.listener[i].bind(this)
   }
 
-  connect(path = this.path) {
-    this.event ??= new WebSocket(path, this.ws_opts).on("open", this.onconnect.bind(this))
-    return promiseEvent<this>(this.event, "connected", "error")
+  connectOpen(path: string) {
+    this.event = new WebSocket(path, this.ws_opts).on("open", this.onconnect.bind(this))
   }
 
   heartbeat_timeout?: NodeJS.Timeout
@@ -33,18 +32,18 @@ export default class Client extends AClient {
   }
 
   onclose() {
-    super.onclose()
     clearTimeout(this.heartbeat_timeout)
+    super.onclose()
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
     message: this.receive,
     close(this: Client) {
       this.onclose()
-      this.logger.info(`${this.meta.remote?.id} 已断开连接`)
+      this.logger.debug(`${this.meta.remote?.id} 已断开连接`)
     },
     connected(this: Client) {
-      this.logger.info("已连接", this.meta.remote)
+      this.logger.debug("已连接", this.meta.remote)
       this.onconnected()
       this.heartbeat()
     },
@@ -77,8 +76,13 @@ export default class Client extends AClient {
     })
   }
 
-  forceClose = () => this.event.terminate()
+  forceClose = () => {
+    this.prepareClose()
+    this.event.terminate()
+  }
+
   close() {
+    this.prepareClose()
     this.event.close()
     const timeout = setTimeout(this.forceClose, this.timeout.wait)
     return promiseEvent<void>(this.event, "close", "error").finally(() => clearTimeout(timeout))

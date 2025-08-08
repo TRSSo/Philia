@@ -3,6 +3,7 @@ import * as Connect from "#connect"
 import { getLogger, type Logger } from "#logger"
 import { createAPI } from "#protocol/common"
 import type * as Philia from "#protocol/type"
+import { promiseEvent } from "#util"
 import { timestamp } from "./common.js"
 import { Friend, User } from "./contact/friend.js"
 import { Group } from "./contact/group.js"
@@ -196,57 +197,65 @@ export class Client extends events {
    * @param path Socket 连接地址
    */
   login(uin?: string, path?: string): Promise<void>
-  async login(uin?: string, path?: string) {
-    try {
-      if (this.isOnline()) return await this.online()
+  login(uin?: string, path?: string) {
+    if (this.isOnline()) {
+      this.online()
+    } else {
       if (this.uin) path = uin || this.path
       else this.uin = String(uin)
       this.path = path
-      return await this.connect()
-    } catch (err) {
-      this.em("system.login.error", err)
-      throw err
+      this.connect()
     }
+    return promiseEvent<undefined>(this, "system.online", "system.login.error")
   }
 
-  async connect(path = this.path) {
-    if (!path) throw new Error("连接地址为空")
+  connect(path = this.path) {
+    if (!path) return this.em("system.login.error", Error("连接地址为空"))
     this.logger.mark(`正在连接`, path)
     this.client = /^(http|ws)s?:\/\//.test(path)
-      ? new Connect.WebSocket.Client(this.logger, this.handle, { path })
-      : (this.client = new Connect.Socket.Client(this.logger, this.handle, { path }))
+      ? new Connect.WebSocket.Client(this.logger, this.handle, {
+          path,
+          connected_fn: this.online.bind(this),
+        })
+      : (this.client = new Connect.Socket.Client(this.logger, this.handle, {
+          path,
+          connected_fn: this.online.bind(this),
+        }))
     this.client.logger = this.logger
     this.api = createAPI<Philia.API.ClientAPI>(this.client)
-    await this.client.connect()
-    return this.online()
+    return this.client.connect()
   }
 
   async online() {
-    this.self_info = await this.api.getSelfInfo()
-    this.uin = this.self_info.id
-    this.logger.mark(`欢迎 ${this.nickname}(${this.uin})！正在加载资源……`)
+    try {
+      this.self_info = await this.api.getSelfInfo()
+      this.uin = this.self_info.id
+      this.logger.mark(`欢迎 ${this.nickname}(${this.uin})！正在加载资源……`)
 
-    await this.reloadFriendList()
-    if (this.config.cache_group_member) await this.reloadGroupMemberList()
-    else await this.reloadGroupList()
-    this.logger.mark(
-      `加载了${this.fl.size}个好友，${this.gl.size}个群，${Array.from(this.gml.values()).reduce(
-        (n, i) => n + i.size,
-        0,
-      )}个群成员`,
-    )
+      await this.reloadFriendList()
+      if (this.config.cache_group_member) await this.reloadGroupMemberList()
+      else await this.reloadGroupList()
+      this.logger.mark(
+        `加载了${this.fl.size}个好友，${this.gl.size}个群，${Array.from(this.gml.values()).reduce(
+          (n, i) => n + i.size,
+          0,
+        )}个群成员`,
+      )
 
-    this.api
-      .getSelfCookie()
-      .then(d => (this.cookies = d as { [domain in Domain]: string }))
-      .catch(() => {})
-    this.api
-      .getSelfCSRFToken()
-      .then(d => (this.bkn = d))
-      .catch(() => {})
+      this.api
+        .getSelfCookie()
+        .then(d => (this.cookies = d as { [domain in Domain]: string }))
+        .catch(() => {})
+      this.api
+        .getSelfCSRFToken()
+        .then(d => (this.bkn = d))
+        .catch(() => {})
 
-    await this.api.receiveEvent({ event: Handle.event })
-    this.em("system.online")
+      await this.api.receiveEvent({ event: Handle.event })
+      this.em("system.online")
+    } catch (err) {
+      this.em("system.login.error", err)
+    }
   }
 
   /** 上传文件到缓存目录 */
@@ -628,7 +637,7 @@ export class Client extends events {
       configurable: true,
     })
 
-    while (true) {
+    for (;;) {
       this.emit(name, data)
       const i = name.lastIndexOf(".")
       if (i === -1) break

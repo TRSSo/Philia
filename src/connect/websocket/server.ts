@@ -62,7 +62,7 @@ export class Server {
     close(this: Client) {
       this.onclose()
       this.server.del(this)
-      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
+      this.logger.debug(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
     },
   }
 

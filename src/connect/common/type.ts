@@ -23,6 +23,8 @@ export interface Options {
   }
   path?: string
   compress?: boolean
+  connected_fn?(client: Client): void
+  closed_fn?(client: Client): void
 }
 
 export interface ServerOptions extends Options {

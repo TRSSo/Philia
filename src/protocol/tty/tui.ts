@@ -3,7 +3,7 @@ import path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
-import { Philia } from "#project/project"
+import * as Philia from "#project/project/Philia.js"
 import type * as Type from "#protocol/type"
 import { continueTui } from "#util/tui.js"
 import Client from "./client.js"
@@ -18,7 +18,7 @@ export class Tui {
     process.chdir(this.path)
     this.client = new Client(this.logger, await Philia.Project.createConfig())
     await this.client.start()
-    while (true)
+    for (;;)
       try {
         if (this.client.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.client.philia.config.path)

@@ -8,21 +8,33 @@ import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
 export default class Tui {
-  path = "project"
+  server_path = Path.join("project", "Server")
+  client_path = Path.join("project", "Client")
   constructor(public logger: Logger) {}
 
   async main() {
-    while (true)
+    for (;;)
       try {
-        const choose = await inquirer.select({
+        const create = Symbol("create")
+        const exit = Symbol("exit")
+        const choose = await inquirer.select<symbol | string>({
           message: "欢迎使用 Philia 项目管理器",
           choices: [
-            { name: "📂 项目列表", value: "list" },
-            { name: "🆕 创建项目", value: "create" },
-            { name: "🔚 退出", value: "exit" },
+            ...(await this.list()),
+            { name: "🆕 创建项目", value: create },
+            { name: "🔚 退出", value: exit },
           ],
         } as const)
-        await this[choose]()
+        switch (choose) {
+          case create:
+            await this.create()
+            break
+          case exit:
+            this.exit()
+            break
+          default:
+            await new ProjectManagerTui(this.logger, choose as string).main()
+        }
       } catch (error) {
         this.logger.error(error)
         await continueTui()
@@ -30,35 +42,60 @@ export default class Tui {
   }
 
   async list() {
-    const list = await fs.readdir(this.path).catch(() => [])
-    if (!list.length) return continueTui("没有项目")
-    const back = Symbol("back") as unknown as string
-    const path = await inquirer.select({
-      message: "项目列表",
-      choices: [...selectArray(list), { name: "🔙 返回", value: back }],
-    })
-    if (path === back) return
-    return new ProjectManagerTui(this.logger, Path.join(this.path, path)).main()
+    const ret: Exclude<Parameters<typeof inquirer.select<string>>[0]["choices"][0], string>[] = []
+    const server_list = await fs.readdir(this.server_path).catch(() => [])
+    if (server_list.length) {
+      ret.push(new inquirer.Separator("────实现端────"))
+      for (const i of server_list)
+        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.server_path, i) })
+    }
+    const client_list = await fs.readdir(this.client_path).catch(() => [])
+    if (client_list.length) {
+      ret.push(new inquirer.Separator("────应用端────"))
+      for (const i of client_list)
+        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.client_path, i) })
+    }
+    if (ret.length) ret.push(new inquirer.Separator("──────────────"))
+    return ret
   }
 
   async create() {
-    const path = await inquirer.input({
+    const type = await inquirer.select({
+      message: "请选择 Philia 类型",
+      choices: [
+        { name: "实现端", value: "server" },
+        { name: "应用端", value: "client" },
+      ],
+    } as const)
+
+    const name = await inquirer.select({
+      message: "选择创建项目",
+      choices: selectArray(
+        // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
+        Object.keys(Project[type]) as (keyof (typeof Project.server & typeof Project.client))[],
+      ),
+    })
+    // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
+    const config = await (Project[type] as typeof Project.server & typeof Project.client)[
+      name
+    ].Project.createConfig()
+
+    let path = await inquirer.input({
       message: "请输入项目名",
       validate: async input => {
         if (Path.basename(input) !== input) return "输入无效"
-        if (await fs.stat(Path.join(this.path, input)).catch(() => false)) return "项目已存在"
+        if (await fs.stat(Path.join(this[`${type}_path`], input)).catch(() => false))
+          return "项目已存在"
         return true
       },
       required: true,
+      default: config.name,
     })
-    const name = await inquirer.select({
-      message: "选择创建项目",
-      choices: selectArray(Object.keys(Project) as (keyof typeof Project)[]),
-    })
-    // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
-    const config = await Project[name].Project.createConfig()
-    await fs.mkdir(Path.join(this.path, path), { recursive: true })
-    await fs.writeFile(Path.join(this.path, path, "config.yml"), YAML.stringify(config))
+    path = Path.join(this[`${type}_path`], path)
+
+    await fs.mkdir(path, { recursive: true })
+    await fs.writeFile(Path.join(path, "config.yml"), YAML.stringify(config))
+    await new ProjectManagerTui(this.logger, path).main()
   }
 
   exit() {

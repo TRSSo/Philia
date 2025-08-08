@@ -18,6 +18,7 @@ const ROOT_DIR = Path.relative(
 )
 
 export default class ProjectManagerTui {
+  name: string
   client: SocketClient
   api: ReturnType<
     typeof createAPI<ReturnType<typeof ManagerAPI> & { [key: string]: (data: any) => unknown }>
@@ -27,6 +28,7 @@ export default class ProjectManagerTui {
     public logger: Logger,
     public path: string,
   ) {
+    this.name = Path.basename(this.path)
     this.client = new SocketClient(logger, {})
     this.api = createAPI<ReturnType<typeof ManagerAPI> & { [key: string]: (data: any) => unknown }>(
       this.client,
@@ -35,10 +37,10 @@ export default class ProjectManagerTui {
 
   async main() {
     await this.connect().catch(() => {})
-    while (true) {
+    for (;;) {
       const choose = await (this.client.open
         ? inquirer.select({
-            message: `${this.path} 项目运行中`,
+            message: `${this.name} 项目运行中`,
             choices: [
               { name: "📝 日志", value: "log" },
               { name: "⏹️ 停止", value: "stop" },
@@ -46,7 +48,7 @@ export default class ProjectManagerTui {
             ],
           } as const)
         : inquirer.select({
-            message: `${this.path} 项目管理`,
+            message: `${this.name} 项目管理`,
             choices: [
               { name: "▶️ 启动", value: "start" },
               { name: "📝 日志", value: "log" },
@@ -62,7 +64,7 @@ export default class ProjectManagerTui {
   }
 
   connect() {
-    return this.client.connect(`${Path.resolve(this.path)}/Manager`)
+    return this.client.connect(`${Path.resolve(this.path)}/Manager`, 0)
   }
 
   async followLog(level: ManagerType.LoggerLevel, time = -1) {
@@ -201,15 +203,18 @@ export default class ProjectManagerTui {
     )
   }
 
-  stop() {
-    return this.api.stop()
+  async stop() {
+    await this.api.stop()
+    const promise = Promise.withResolvers<SocketClient>()
+    this.client.closed_fn = promise.resolve
+    return promise.promise
   }
 
   config() {}
 
   async delete() {
     if (!(await inquirer.confirm({ message: "是否删除项目？" }))) return
-    fs.rm(this.path, { recursive: true })
+    await fs.rm(this.path, { recursive: true })
     return false
   }
 

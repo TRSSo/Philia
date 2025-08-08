@@ -1,6 +1,6 @@
 import fs from "node:fs/promises"
 import type { Logger } from "#logger"
-import { Philia } from "#project/project"
+import * as Philia from "#project/project/Philia.js"
 import { EventHandle } from "#protocol/common"
 import type * as Type from "#protocol/type"
 import * as Convert from "./convert/index.js"

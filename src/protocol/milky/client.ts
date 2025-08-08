@@ -1,5 +1,5 @@
 import type { Logger } from "#logger"
-import { Philia } from "#project/project"
+import * as Philia from "#project/project/Philia.js"
 import { createAPI, EventHandle } from "#protocol/common"
 import { makeError } from "#util"
 import * as Convert from "./convert/index.js"
@@ -31,39 +31,52 @@ export default class Client {
     this.url = url instanceof URL ? url : new URL(url)
   }
 
-  event_promise?: ReturnType<typeof Promise.withResolvers>
+  event_promise?: ReturnType<
+    typeof Promise.withResolvers<Parameters<NonNullable<typeof this.ws.onopen>>[0]>
+  >
   promiseEvent() {
+    if (this.event_promise) return this.event_promise.promise
     this.event_promise = Promise.withResolvers()
     return this.event_promise.promise.finally(() => (this.event_promise = undefined))
   }
 
   start() {
     if (this.open === true) return Promise.resolve()
+    this.reconnect_delay ||= 5e3
     const url = new URL(this.url)
     url.pathname += "event"
     this.ws = new WebSocket(url)
     this.logger.info(`WebSocket 正在连接 ${this.ws.url}`)
     this.ws.onopen = event => {
       this.open = true
+      this.reconnect_delay = 5e3
       this.event_promise?.resolve(event)
       this.logger.info(`WebSocket 已连接 ${this.ws.url}`)
       this.philia.start()
     }
     this.ws.onerror = err => {
-      this.event_promise?.reject(err)
       this.logger.error("WebSocket 错误", err)
     }
     this.ws.onclose = event => {
       this.open = false
-      this.event_promise?.resolve(event)
       this.logger.info(`WebSocket 已断开 ${event.reason}(${event.code})`)
       this.philia.stop()
+      this.reconnect()
     }
     this.ws.onmessage = this.message.bind(this)
     return this.promiseEvent()
   }
 
+  reconnect_delay = 5e3
+  reconnect() {
+    if (!this.reconnect_delay) return
+    this.logger.info(`WebSocket ${this.reconnect_delay / 1e3} 秒后重连`)
+    setTimeout(this.start.bind(this), this.reconnect_delay)
+    this.reconnect_delay += 5e3
+  }
+
   close() {
+    this.reconnect_delay = 0
     this.ws.close()
     return this.promiseEvent()
   }

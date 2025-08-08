@@ -22,16 +22,15 @@ export default class Client extends AClient {
     for (const i in this.listener) this.listener[i] = this.listener[i].bind(this)
   }
 
-  connect(path = this.path) {
+  connectOpen(path: string) {
     if (process.platform === "win32") this.event.path = Path.join("\\\\?\\pipe", path)
     else this.event.path = `\0${path}`
     this.event.connect(this.event.path as string)
-    return promiseEvent<this>(this.event, "connected", "error")
   }
 
   onclose() {
-    super.onclose()
     this.buffer = Buffer.alloc(0)
+    super.onclose()
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
@@ -41,13 +40,13 @@ export default class Client extends AClient {
     },
     close(this: Client) {
       this.onclose()
-      this.logger.info(`${this.meta.remote?.id} 已断开连接`)
+      this.logger.debug(`${this.meta.remote?.id} 已断开连接`)
     },
     timeout(this: Client) {
       this.request("heartbeat").catch(this.forceClose)
     },
     connected(this: Client) {
-      this.logger.info("已连接", this.meta.remote)
+      this.logger.debug("已连接", this.meta.remote)
       this.onconnected()
     },
     error: this.onerror,
@@ -84,8 +83,13 @@ export default class Client extends AClient {
     })
   }
 
-  forceClose = () => this.event.destroy()
+  forceClose = () => {
+    this.prepareClose()
+    this.event.destroy()
+  }
+
   close() {
+    this.prepareClose()
     this.event.end()
     const timeout = setTimeout(this.forceClose, this.timeout.wait)
     return promiseEvent<void>(this.event, "close", "error").finally(() => clearTimeout(timeout))

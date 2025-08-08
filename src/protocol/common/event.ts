@@ -1,4 +1,4 @@
-import type { Philia } from "#project/project"
+import type * as Philia from "#project/project/Philia.js"
 import type { Event } from "#protocol/type"
 import { isEqualObj, modeMatch } from "#util"
 

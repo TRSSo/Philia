@@ -1,7 +1,7 @@
 import type { IncomingMessage } from "node:http"
 import { type WebSocket, WebSocketServer } from "ws"
 import type { Logger } from "#logger"
-import type { Philia } from "#project/project"
+import type * as Philia from "#project/project/Philia.js"
 import { promiseEvent } from "#util"
 import Client from "./client.js"
 
