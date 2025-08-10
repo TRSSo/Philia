@@ -31,9 +31,7 @@ export default class Client {
     this.url = url instanceof URL ? url : new URL(url)
   }
 
-  event_promise?: ReturnType<
-    typeof Promise.withResolvers<Parameters<NonNullable<typeof this.ws.onopen>>[0]>
-  >
+  event_promise?: ReturnType<typeof Promise.withResolvers<Event>>
   promiseEvent() {
     if (this.event_promise) return this.event_promise.promise
     this.event_promise = Promise.withResolvers()
@@ -69,7 +67,7 @@ export default class Client {
 
   reconnect_delay = 5e3
   reconnect() {
-    if (!this.reconnect_delay) return
+    if (!this.reconnect_delay) return this.event_promise?.reject()
     this.logger.info(`WebSocket ${this.reconnect_delay / 1e3} 秒后重连`)
     setTimeout(this.start.bind(this), this.reconnect_delay)
     this.reconnect_delay += 5e3
@@ -78,7 +76,7 @@ export default class Client {
   close() {
     this.reconnect_delay = 0
     this.ws.close()
-    return this.promiseEvent()
+    return this.promiseEvent().catch(() => {})
   }
 
   async message(event: MessageEvent) {

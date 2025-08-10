@@ -35,6 +35,10 @@ export default class Client extends AClient {
 
   listener: { [key: string]: (...args: any[]) => void } = {
     data: this.receive,
+    connected(this: Client) {
+      this.logger.debug("已连接", this.meta.remote)
+      this.onconnected()
+    },
     end(this: Client) {
       this.logger.debug(`${this.meta.remote?.id} 请求关闭`)
     },
@@ -44,10 +48,6 @@ export default class Client extends AClient {
     },
     timeout(this: Client) {
       this.request("heartbeat").catch(this.forceClose)
-    },
-    connected(this: Client) {
-      this.logger.debug("已连接", this.meta.remote)
-      this.onconnected()
     },
     error: this.onerror,
   }

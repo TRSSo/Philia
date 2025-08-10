@@ -3,6 +3,7 @@ import type * as Common from "../project/common.js"
 import * as Philia from "../project/Philia.js"
 import API from "./api.js"
 import LoggerManager from "./logger.js"
+import NoticeManager from "./notice.js"
 import type * as type from "./type.js"
 
 export default class Manager {
@@ -21,13 +22,14 @@ export default class Manager {
   logger_manager: LoggerManager
   handle: ReturnType<typeof API>
   philia: Philia.Project
+  notice = new NoticeManager()
 
   constructor(
     public project: Common.Project,
-    config: Common.IConfig,
+    config: Common.IConfig["manager"],
   ) {
-    Object.assign(this.config.logger, config.manager?.logger)
-    if (config.manager?.philia) this.config.philia = config.manager.philia
+    Object.assign(this.config.logger, config?.logger)
+    if (config?.philia) this.config.philia = config.philia
 
     this.logger = makeLogger("Manager", this.config.logger.level, this.config.logger.inspect)
     this.logger_manager = new LoggerManager(this)

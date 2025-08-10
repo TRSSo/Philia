@@ -43,6 +43,9 @@ export class Server {
         }
         new Client(this.logger, this.handle, this, socket, opts)
       })
+      .on("close", () => {
+        this.logger.info(`Socket 服务器已关闭`)
+      })
   }
 
   listen(path = this.path, ...args: any[]) {
@@ -63,10 +66,14 @@ export class Server {
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
+    connected(this: Client) {
+      this.logger.info("已连接", this.meta.remote, `共${this.server.sockets.size}个连接`)
+      this.onconnected()
+    },
     close(this: Client) {
       this.onclose()
       this.server.del(this)
-      this.logger.debug(`${this.meta.remote?.id} 已断开连接，剩余${this.server.sockets.size}个连接`)
+      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.sockets.size}个连接`)
     },
   }
 

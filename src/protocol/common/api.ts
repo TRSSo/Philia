@@ -2,10 +2,20 @@
 export default function createAPI<T extends { [key: string]: (data: any) => unknown }>(client: {
   request: (name: string, data: any) => Promise<unknown>
 }) {
-  return new Proxy(
-    {},
-    { get: (_, name: string) => client.request.bind(client, name) as T[typeof name] },
-  ) as {
-    [K in keyof T]: (...args: Parameters<T[K]>) => Promise<Awaited<ReturnType<T[K]>>>
+  return new Proxy(Object.create(null), {
+    get: (_, name: string) => client.request.bind(client, name) as T[typeof name],
+  }) as {
+    [K in keyof T]: // 可选参数
+    T[K] extends { (): any; (arg: infer P, ...args: any[]): any }
+      ? unknown extends P
+        ? () => Promise<Awaited<ReturnType<T[K]>>>
+        : (data?: P) => Promise<Awaited<ReturnType<T[K]>>>
+      : // 未定义参数
+        T[K] extends (arg: undefined, ...args: any[]) => any
+        ? () => Promise<Awaited<ReturnType<T[K]>>>
+        : // 必选参数
+          T[K] extends (arg: infer P, ...args: any[]) => any
+          ? (data: P) => Promise<Awaited<ReturnType<T[K]>>>
+          : never
   }
 }

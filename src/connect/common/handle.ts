@@ -24,20 +24,46 @@ export default class Handle {
     this.setMap(handle)
   }
 
+  /**
+   * 设置处理器
+   * @param name 名称
+   * @param handle 函数
+   */
   set(...args: Parameters<typeof this.map.set>) {
     return this.map.set(...args)
   }
 
+  /**
+   * 设置处理器对象
+   * @param handle \{ 名称: 函数 }
+   */
   setMap(handle: type.HandleMap) {
     for (const i of getAllProps(handle))
       if (typeof handle[i] === "function") this.set(i, handle[i].bind(handle))
   }
 
+  /**
+   * 设置单次处理器
+   * @param name 名称
+   * @param handle 函数
+   */
+  setOnce(name: Parameters<typeof this.map.set>[0], handle: Parameters<typeof this.map.set>[1]) {
+    return this.map.set(name, (...args) => {
+      this.map.delete(name)
+      return typeof handle === "function" ? handle(...args) : handle
+    })
+  }
+
+  /**
+   * 删除处理器
+   * @param name 名称或名称数组
+   */
   del(name: Parameters<typeof this.map.delete>[0] | Parameters<typeof this.map.delete>[0][]) {
     if (Array.isArray(name)) return name.map(this.map.delete.bind(this.map))
     return this.map.delete(name)
   }
 
+  /** 清空处理器 */
   clear() {
     this.map = new Map(this.default_handle)
   }

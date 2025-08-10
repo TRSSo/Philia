@@ -1,28 +1,33 @@
+import fs from "node:fs/promises"
 import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import type { type } from "#connect/common"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
-import * as Common from "./common.js"
+import { type Logger, makeLogger } from "#logger"
+import { selectArray } from "#util/tui.js"
+import type { type as ManagerType } from "../manager/index.js"
 
-export interface IConfig extends Common.IConfig {
+export interface IConfig {
   name: "Philia"
   type: "Socket" | "WebSocket"
   role: "Server" | "Client"
   path?: string | string[] | number
   opts?: type.Options
+  logger?: ManagerType.LoggerConfig
 }
 
-export class Project extends Common.Project {
-  declare config: IConfig
+export class Project {
+  logger: Logger
   server?: Socket.Server | WebSocket.Server
   clients = new Set<Socket.Client | WebSocket.Client>()
 
   constructor(
-    config: IConfig,
+    public config: IConfig,
     public handles: type.HandleMap = {},
   ) {
-    super(config)
+    this.verifyConfig()
+    this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
   }
 
   static async createConfig(role?: IConfig["role"]): Promise<IConfig> {
@@ -45,13 +50,32 @@ export class Project extends Common.Project {
     switch (type) {
       case "Socket":
         if (role === "Client") {
-          /** TODO 获取客户端列表，多选 */
+          const list = await fs.readdir(Path.join("project", "Client")).catch(() => [])
+          const custom = Symbol("custom") as unknown as string
+          path = await inquirer.checkbox<string>({
+            message: "请选择项目",
+            choices: [...selectArray(list), { name: "自定义", value: custom }],
+          })
+          const index = path.indexOf(custom)
+          if (index !== -1) {
+            path.splice(index, 1)
+            path.push(
+              ...(
+                await inquirer.input({
+                  message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔：",
+                })
+              )
+                .split(",")
+                .filter(i => i),
+            )
+          }
+          if (!path.length) throw TypeError("连接地址不能为空")
         }
         break
       case "WebSocket":
         if (role === "Server")
           path = await inquirer.number({
-            message: "请输入 Philia WebSocket 服务器监听端口",
+            message: "请输入 Philia WebSocket 服务器监听端口：",
             min: 1,
             max: 65535,
             required: true,
@@ -59,7 +83,7 @@ export class Project extends Common.Project {
         else
           path = (
             await inquirer.input({
-              message: "请输入 Philia WebSocket 服务器地址，多个按半角逗号分隔",
+              message: "请输入 Philia WebSocket 服务器地址，多个按半角逗号分隔：",
               default: "ws://localhost:2536",
               required: true,
             })

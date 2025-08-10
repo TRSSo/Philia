@@ -3,7 +3,7 @@ import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import YAML from "yaml"
 import type { Logger } from "#logger"
-import { continueTui, selectArray } from "#util/tui.js"
+import { selectArray, sendInfo } from "#util/tui.js"
 import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
@@ -37,7 +37,7 @@ export default class Tui {
         }
       } catch (error) {
         this.logger.error(error)
-        await continueTui()
+        await sendInfo()
       }
   }
 
@@ -81,7 +81,7 @@ export default class Tui {
     ].Project.createConfig()
 
     let path = await inquirer.input({
-      message: "请输入项目名",
+      message: "请输入项目名：",
       validate: async input => {
         if (Path.basename(input) !== input) return "输入无效"
         if (await fs.stat(Path.join(this[`${type}_path`], input)).catch(() => false))

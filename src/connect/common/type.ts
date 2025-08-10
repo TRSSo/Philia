@@ -87,11 +87,14 @@ export type HandleDefault = (
   data: Request["data"],
   client: Client,
 ) => Response["data"] | Promise<Response["data"]>
-export type Handle = (
-  data: Request["data"],
-  client: Client,
-) => Response["data"] | Promise<Response["data"]>
+export type Handle<T, U> = (data: T, client: Client) => U | Promise<U>
 export interface HandleMap {
-  [key: Request["name"]]: Handle | undefined | string | number | boolean | object
+  [key: Request["name"]]:
+    | Handle<Request["data"], Response["data"]>
+    | undefined
+    | string
+    | number
+    | boolean
+    | object
   default?: HandleDefault
 }

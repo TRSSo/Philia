@@ -8,7 +8,7 @@ import { Client as SocketClient } from "#connect/socket"
 import type { Logger } from "#logger"
 import { createAPI } from "#protocol/common"
 import { chalk, getDateTime, getTime } from "#util"
-import { continueTui, selectArray } from "#util/tui.js"
+import { selectArray, sendInfo } from "#util/tui.js"
 import type ManagerAPI from "./api.js"
 import * as ManagerType from "./type.js"
 
@@ -42,6 +42,7 @@ export default class ProjectManagerTui {
         ? inquirer.select({
             message: `${this.name} 项目运行中`,
             choices: [
+              ...(await this.checkNotice()),
               { name: "📝 日志", value: "log" },
               { name: "⏹️ 停止", value: "stop" },
               { name: "🔙 返回", value: "back" },
@@ -67,6 +68,54 @@ export default class ProjectManagerTui {
     return this.client.connect(`${Path.resolve(this.path)}/Manager`, 0)
   }
 
+  async checkNotice() {
+    const count = await this.api.countNotice()
+    if (count) return [{ name: `🔔 通知(${count})`, value: "notice" }] as const
+    return []
+  }
+
+  async handleNotice(notice: Awaited<ReturnType<typeof this.api.listNotice>>[0]) {
+    const choose = await inquirer.select({
+      message: notice.desc,
+      choices: [
+        notice.handle
+          ? ({ name: "📥 处理", value: "handle" } as const)
+          : ({ name: "✅ 已读", value: "readed" } as const),
+        { name: "🔙 返回", value: "back" },
+      ],
+    } as const)
+    if (choose === "back") return
+    const data =
+      choose === "readed"
+        ? undefined
+        : await inquirer.input({
+            message: "请输入数据：",
+            required: true,
+          })
+    const ret = await this.api.handleNotice({ name: notice.name, data })
+    if (ret) await sendInfo(`处理结果：${ret}`)
+  }
+
+  async notice() {
+    for (;;) {
+      const notice = await this.api.listNotice()
+      if (!notice.length) break
+      const back = Symbol("back") as unknown as number
+      const choose = await inquirer.select({
+        message: "通知列表",
+        choices: [
+          ...selectArray(
+            notice.map((_, i) => i),
+            notice.map(({ name, desc }) => ({ name, desc })),
+          ),
+          { name: "🔙 返回", value: back },
+        ],
+      })
+      if (choose === back) break
+      await this.handleNotice(notice[choose])
+    }
+  }
+
   async followLog(level: ManagerType.LoggerLevel, time = -1) {
     await this.getLog({ level, time, lines: 10 })
     const handle = "receiveLog"
@@ -74,7 +123,7 @@ export default class ProjectManagerTui {
       process.stdout.write(this.printLog(event)),
     )
     this.api.followLog({ level, handle })
-    await continueTui("按回车键结束")
+    await inquirer.confirm({ message: "按回车键结束" })
     this.api.unfollowLog()
     this.client.handle.del(handle)
   }
@@ -87,7 +136,7 @@ export default class ProjectManagerTui {
 
   async getLog(data: Parameters<typeof this.api.getLog>["0"]) {
     const events = await this.api.getLog(data)
-    if (events.length === 0) return
+    if (!events.length) return
     let log = ""
     for (const i of events) log += this.printLog(i)
     process.stdout.write(log)
@@ -112,7 +161,7 @@ export default class ProjectManagerTui {
       if (err.code === "ENOENT") return []
       else throw err
     })
-    if (!files.length) return continueTui("没有日志文件")
+    if (!files.length) return sendInfo("没有日志文件")
     const choose = await inquirer.select({
       message: "选择日志文件",
       choices: selectArray(files.filter(i => i.endsWith(".log"))),
@@ -121,7 +170,7 @@ export default class ProjectManagerTui {
     const res = child_process.spawnSync("less", ["-RM+F", path], { stdio: "inherit" })
     if ((res.error as NodeJS.ErrnoException)?.code === "ENOENT") {
       process.stdout.write(await fs.readFile(path))
-      await continueTui()
+      await sendInfo()
     }
   }
 
@@ -151,12 +200,12 @@ export default class ProjectManagerTui {
     if (choose === "now") return this.followLog(level)
 
     const lines = await inquirer.number({
-      message: "请输入获取行数",
+      message: "请输入获取行数：",
       default: 10,
       min: 1,
     })
     const time = await inquirer.input({
-      message: "请输入开始时间",
+      message: "请输入开始时间：",
       default: getDateTime(new Date(Date.now() - 6e5)),
       validate: i => {
         if (i && Number.isNaN(Date.parse(i))) return "时间格式错误"
@@ -188,11 +237,11 @@ export default class ProjectManagerTui {
           p.stdout.destroy()
           p.stderr.destroy()
           p.unref()
-          return continueTui("启动成功")
+          return sendInfo("启动成功")
         }
       } catch {}
     p.kill()
-    return continueTui("启动失败")
+    return sendInfo("启动失败")
   }
 
   foreground() {

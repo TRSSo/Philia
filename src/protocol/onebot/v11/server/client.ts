@@ -86,7 +86,7 @@ export default class Client {
   }
 
   sendQueue(): undefined {
-    if (this.queue.length === 0 || !this.open) return
+    if (!(this.queue.length && this.open)) return
     const data = this.cache.get(this.queue.shift() as string)?.request
     if (data) {
       this.logger.trace("WebSocket 发送", data)

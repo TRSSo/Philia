@@ -5,7 +5,7 @@ import { ulid } from "ulid"
 import type { Logger } from "#logger"
 import * as Philia from "#project/project/Philia.js"
 import type * as Type from "#protocol/type"
-import { continueTui } from "#util/tui.js"
+import { sendInfo } from "#util/tui.js"
 import Client from "./client.js"
 
 export class Tui {
@@ -23,7 +23,7 @@ export class Tui {
         if (this.client.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.client.philia.config.path)
         else await this.send()
-        await continueTui()
+        await sendInfo()
       } catch (err) {
         this.logger.error("错误", err)
       }
@@ -55,7 +55,7 @@ export class Tui {
   }
 
   async sendMsg() {
-    const answer = await inquirer.input({ message: "请输入消息" })
+    const answer = await inquirer.input({ message: "请输入消息：" })
     const event: Type.Event.Message = {
       id: ulid(),
       type: "message",

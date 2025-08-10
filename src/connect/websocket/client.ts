@@ -38,14 +38,14 @@ export default class Client extends AClient {
 
   listener: { [key: string]: (...args: any[]) => void } = {
     message: this.receive,
-    close(this: Client) {
-      this.onclose()
-      this.logger.debug(`${this.meta.remote?.id} 已断开连接`)
-    },
     connected(this: Client) {
       this.logger.debug("已连接", this.meta.remote)
       this.onconnected()
       this.heartbeat()
+    },
+    close(this: Client) {
+      this.onclose()
+      this.logger.debug(`${this.meta.remote?.id} 已断开连接`)
     },
     error: this.onerror,
   }

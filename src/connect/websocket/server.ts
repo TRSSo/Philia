@@ -45,6 +45,9 @@ export class Server {
         }
         new Client(this.logger, this.handle, this, ws, this.opts)
       })
+      .on("close", () => {
+        this.logger.info(`WebSocket 服务器已关闭`)
+      })
     return promiseEvent<this>(this.ws, "listening", "error")
   }
 
@@ -59,10 +62,15 @@ export class Server {
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
+    connected(this: Client) {
+      this.logger.info("已连接", this.meta.remote, `共${this.server.wss.size}个连接`)
+      this.onconnected()
+      this.heartbeat()
+    },
     close(this: Client) {
       this.onclose()
       this.server.del(this)
-      this.logger.debug(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
+      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
     },
   }
 

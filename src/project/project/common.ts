@@ -1,9 +1,12 @@
 import { type Logger, makeLogger } from "#logger"
-import type { type as ManagerType } from "../manager/index.js"
+import { type type as ManagerType, Server } from "../manager/index.js"
+import type * as Philia from "./Philia.js"
 
 export interface IConfig {
   /** 项目名 */
   name: string
+  /** 项目客户端配置 */
+  client: Philia.IConfig
   /** 日志配置 */
   logger?: ManagerType.LoggerConfig
   /** 项目管理器配置 */
@@ -12,11 +15,12 @@ export interface IConfig {
 
 export abstract class Project {
   logger: Logger
-  config: IConfig
+  manager: Server
 
-  constructor(config: IConfig) {
-    this.config = config
+  constructor(public config: IConfig) {
     this.verifyConfig()
+    if (this.config.logger) this.config.client.logger ??= this.config.logger
+    this.manager = new Server(this, config.manager)
     this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
   }
 
