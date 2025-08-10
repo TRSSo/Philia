@@ -14,7 +14,7 @@ import { PrivateMessage, segment } from "../message/index.js"
 import { Contactable } from "./contactable.js"
 import type { FriendInfo } from "./types.js"
 
-type Client = import("../client.js").Client
+type Client = import("../app.js").Client
 
 const weakmap = new WeakMap<FriendInfo, User>()
 

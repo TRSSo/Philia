@@ -1,6 +1,6 @@
 import type * as Philia from "#protocol/type"
 import { makeError } from "#util"
-import type Client from "../server/client.js"
+import type Client from "../impl/client.js"
 import type * as OBv11 from "../type/index.js"
 import * as Message from "./message.js"
 

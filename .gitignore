@@ -1,6 +1,6 @@
 /lib
-/log
 /node_modules
-/project
-/test
+/plugin
 /pnpm-lock.yaml
+/Log
+/Project

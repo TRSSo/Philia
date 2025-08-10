@@ -1,7 +1,7 @@
 import { ulid } from "ulid"
 import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
-import type Client from "../client.js"
+import type Client from "../impl.js"
 import * as Milky from "../type/index.js"
 import * as Common from "./common.js"
 

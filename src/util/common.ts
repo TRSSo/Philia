@@ -308,3 +308,13 @@ export function getTimeDiff(time1: number, time2 = Date.now()) {
   if (ms) ret += ms
   return ret || "0秒"
 }
+
+/** 获取代码根目录 */
+export function getCodeDir() {
+  return path.relative(process.cwd(), path.dirname(import.meta.dirname))
+}
+
+/** 获取项目根目录 */
+export function getRootDir() {
+  return path.relative(process.cwd(), path.dirname(path.dirname(import.meta.dirname)))
+}

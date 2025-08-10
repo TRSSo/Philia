@@ -2,20 +2,14 @@ import child_process from "node:child_process"
 import fs from "node:fs/promises"
 import Path from "node:path"
 import { setTimeout } from "node:timers/promises"
-import { fileURLToPath } from "node:url"
 import * as inquirer from "@inquirer/prompts"
 import { Client as SocketClient } from "#connect/socket"
 import type { Logger } from "#logger"
 import { createAPI } from "#protocol/common"
-import { chalk, getDateTime, getTime } from "#util"
+import { chalk, getCodeDir, getDateTime, getTime } from "#util"
 import { selectArray, sendInfo } from "#util/tui.js"
 import type ManagerAPI from "./api.js"
 import * as ManagerType from "./type.js"
-
-const ROOT_DIR = Path.relative(
-  process.cwd(),
-  Path.dirname(Path.dirname(Path.dirname(fileURLToPath(import.meta.url)))),
-)
 
 export default class ProjectManagerTui {
   name: string
@@ -100,6 +94,7 @@ export default class ProjectManagerTui {
     for (;;) {
       const notice = await this.api.listNotice()
       if (!notice.length) break
+      if (notice.length === 1) return this.handleNotice(notice[0])
       const back = Symbol("back") as unknown as number
       const choose = await inquirer.select({
         message: "通知列表",
@@ -156,7 +151,7 @@ export default class ProjectManagerTui {
   }
 
   async fileLog() {
-    let path = Path.join(this.path, "log")
+    let path = Path.join(this.path, "Log")
     const files = await fs.readdir(path).catch(err => {
       if (err.code === "ENOENT") return []
       else throw err
@@ -222,32 +217,34 @@ export default class ProjectManagerTui {
   async start() {
     const p = child_process.spawn(
       process.execPath,
-      [Path.join(ROOT_DIR, "bin", "run"), this.path],
+      [Path.join(getCodeDir(), "bin", "run"), this.path],
       { detached: true },
     )
     p.stdout.pipe(process.stdout)
     p.stderr.pipe(process.stderr)
 
-    for (let i = 0; i < 10; i++)
+    for (let i = 0; i < 30; i++)
       try {
-        await setTimeout(1000)
+        await setTimeout(500)
+        if (p.exitCode !== null) break
         await this.connect()
         if (this.client.open) {
           p.stdin.end()
           p.stdout.destroy()
           p.stderr.destroy()
           p.unref()
-          return sendInfo("启动成功")
+          return sendInfo("启动完成")
         }
       } catch {}
-    p.kill()
-    return sendInfo("启动失败")
+
+    p.kill("SIGKILL")
+    return sendInfo(`启动错误(${p.exitCode})`)
   }
 
   foreground() {
     return child_process.spawnSync(
       process.execPath,
-      [Path.join(ROOT_DIR, "bin", "run"), this.path],
+      [Path.join(getCodeDir(), "bin", "run"), this.path],
       { stdio: "inherit" },
     )
   }

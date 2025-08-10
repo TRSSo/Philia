@@ -1,6 +1,6 @@
 import type { type as SocketType } from "#connect/common"
 import type { Event } from "#protocol/type"
-import type { Client } from "../client.js"
+import type { Client } from "../app.js"
 import { GroupMessage, PrivateMessage } from "../message/message.js"
 import type * as types from "./types.js"
 

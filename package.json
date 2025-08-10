@@ -33,7 +33,8 @@
   },
   "imports": {
     "#*": "./lib/*/index.js",
-    "#*.js": "./lib/*.js"
+    "#*.js": "./lib/*.js",
+    "#root/*": "./*"
   },
   "exports": {
     ".": "./lib/index.js",

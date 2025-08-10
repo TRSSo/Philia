@@ -1,6 +1,6 @@
 import { type Logger, makeLogger } from "#logger"
 import type * as Common from "../project/common.js"
-import * as Philia from "../project/Philia.js"
+import * as Philia from "../project/philia.js"
 import API from "./api.js"
 import LoggerManager from "./logger.js"
 import NoticeManager from "./notice.js"

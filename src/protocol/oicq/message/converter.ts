@@ -1,7 +1,7 @@
 import fs from "node:fs/promises"
 import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
-import type { Client } from "../client.js"
+import type { Client } from "../app.js"
 import { lock } from "../common.js"
 import type { Contactable } from "../contact/contactable.js"
 import type { MemberInfo } from "../contact/types.js"

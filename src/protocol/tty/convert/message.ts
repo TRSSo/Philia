@@ -3,7 +3,7 @@ import path from "node:path"
 import { ulid } from "ulid"
 import type { Message } from "#protocol/type"
 import { modeMatch } from "#util"
-import type Client from "../client.js"
+import type Client from "../impl.js"
 
 export default class PhiliaToTTY {
   message: (string | Message.MessageSegment)[]

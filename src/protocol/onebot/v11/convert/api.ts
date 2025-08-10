@@ -1,6 +1,6 @@
 import type { API, Contact, Event, Message } from "#protocol/type"
 import { toJSON } from "#util"
-import type Client from "../server/client.js"
+import type Client from "../impl/client.js"
 import type * as OBv11 from "../type/index.js"
 import * as MessageConverter from "./message.js"
 

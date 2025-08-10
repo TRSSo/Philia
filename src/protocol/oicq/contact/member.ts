@@ -4,7 +4,7 @@ import { User } from "./friend.js"
 import type { GroupEventMap } from "./group.js"
 import type { MemberInfo } from "./types.js"
 
-type Client = import("../client.js").Client
+type Client = import("../app.js").Client
 
 const weakmap = new WeakMap<MemberInfo, Member>()
 

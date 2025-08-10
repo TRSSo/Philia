@@ -8,8 +8,8 @@ import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
 export default class Tui {
-  server_path = Path.join("project", "Server")
-  client_path = Path.join("project", "Client")
+  impl_path = Path.join("Project", "Impl")
+  app_path = Path.join("Project", "App")
   constructor(public logger: Logger) {}
 
   async main() {
@@ -43,17 +43,17 @@ export default class Tui {
 
   async list() {
     const ret: Exclude<Parameters<typeof inquirer.select<string>>[0]["choices"][0], string>[] = []
-    const server_list = await fs.readdir(this.server_path).catch(() => [])
-    if (server_list.length) {
+    const impl_list = await fs.readdir(this.impl_path).catch(() => [])
+    if (impl_list.length) {
       ret.push(new inquirer.Separator("────实现端────"))
-      for (const i of server_list)
-        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.server_path, i) })
+      for (const i of impl_list)
+        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.impl_path, i) })
     }
-    const client_list = await fs.readdir(this.client_path).catch(() => [])
-    if (client_list.length) {
+    const app_list = await fs.readdir(this.app_path).catch(() => [])
+    if (app_list.length) {
       ret.push(new inquirer.Separator("────应用端────"))
-      for (const i of client_list)
-        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.client_path, i) })
+      for (const i of app_list)
+        ret.push({ name: `${ret.length + 1}. ${i}`, value: Path.join(this.app_path, i) })
     }
     if (ret.length) ret.push(new inquirer.Separator("──────────────"))
     return ret
@@ -63,22 +63,20 @@ export default class Tui {
     const type = await inquirer.select({
       message: "请选择 Philia 类型",
       choices: [
-        { name: "实现端", value: "server" },
-        { name: "应用端", value: "client" },
+        { name: "实现端", value: "impl" },
+        { name: "应用端", value: "app" },
       ],
     } as const)
 
+    const project_list = Object.keys(Project[type])
+    if (!project_list.length) return sendInfo("没有可创建项目")
     const name = await inquirer.select({
       message: "选择创建项目",
-      choices: selectArray(
-        // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
-        Object.keys(Project[type]) as (keyof (typeof Project.server & typeof Project.client))[],
-      ),
+      choices: selectArray(project_list),
     })
-    // biome-ignore lint/performance/noDynamicNamespaceImportAccess::
-    const config = await (Project[type] as typeof Project.server & typeof Project.client)[
-      name
-    ].Project.createConfig()
+    const config = await (
+      await (Project[type] as typeof Project.impl & typeof Project.app)[name]()
+    ).Project.createConfig(name)
 
     let path = await inquirer.input({
       message: "请输入项目名：",

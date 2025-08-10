@@ -19,7 +19,7 @@ import { Contactable } from "./contactable.js"
 import { Gfs } from "./gfs.js"
 import type { GroupInfo, MemberInfo } from "./types.js"
 
-type Client = import("../client.js").Client
+type Client = import("../app.js").Client
 type Member = import("./member.js").Member
 
 const fetchmap = new Map<Group["gid"], Promise<Map<Member["uid"], MemberInfo>>>()

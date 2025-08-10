@@ -22,7 +22,7 @@ export const log4js_config: log4js.Configuration = {
     },
     dateFile_default: {
       type: "dateFile",
-      filename: `log/default.INFO`,
+      filename: `Log/default.INFO`,
       pattern: "yyyy-MM-dd.log",
       numBackups: 180,
       alwaysIncludePattern: true,

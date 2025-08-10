@@ -1,11 +1,10 @@
 import * as inquirer from "@inquirer/prompts"
-import { Server } from "#protocol/onebot/v11"
+import { Impl } from "#protocol/onebot/v11"
 import { promiseEvent } from "#util"
-import * as Common from "./common.js"
-import * as Philia from "./Philia.js"
+import * as Common from "../common.js"
+import * as Philia from "../philia.js"
 
 export interface IConfig extends Common.IConfig {
-  name: "OneBotv11"
   server: {
     type: "ws" | "ws-reverse"
     path: string | number
@@ -14,10 +13,10 @@ export interface IConfig extends Common.IConfig {
 
 export class Project extends Common.Project {
   declare config: IConfig
-  server?: Server.Server
-  client?: Server.Client
+  server?: Impl.Server
+  client?: Impl.Client
 
-  static async createConfig(): Promise<IConfig> {
+  static async createConfig(name: IConfig["name"]): Promise<IConfig> {
     const type = await inquirer.select({
       message: "请选择 OneBotv11 协议类型",
       choices: [
@@ -38,9 +37,9 @@ export class Project extends Common.Project {
           required: true,
         }))
     return {
-      name: "OneBotv11",
+      name,
       server: { type, path },
-      client: await Philia.Project.createConfig(type === "ws-reverse" ? "Client" : undefined),
+      philia: await Philia.Project.createConfig(type === "ws-reverse" ? "Client" : undefined),
     }
   }
 
@@ -61,21 +60,21 @@ export class Project extends Common.Project {
       default:
         throw TypeError("OneBotv11 协议类型必须为 ws 或 ws-reverse")
     }
-    new Philia.Project(this.config.client)
+    new Philia.Project(this.config.philia)
   }
 
   start() {
     if (this.config.server.type === "ws") {
-      this.client = new Server.Client(
+      this.client = new Impl.Client(
         this.logger,
-        this.config.client,
+        this.config.philia,
         this.config.server.path as string,
       )
       return promiseEvent(this.client.ws, "open", "error")
     }
-    this.server = new Server.Server(
+    this.server = new Impl.Server(
       this.logger,
-      this.config.client,
+      this.config.philia,
       this.config.server.path as number,
     )
     return promiseEvent(this.server.wss, "listening", "error")

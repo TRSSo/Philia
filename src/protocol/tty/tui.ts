@@ -3,10 +3,10 @@ import path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
-import * as Philia from "#project/project/Philia.js"
+import * as Philia from "#project/project/philia.js"
 import type * as Type from "#protocol/type"
 import { sendInfo } from "#util/tui.js"
-import Client from "./client.js"
+import Client from "./impl.js"
 
 export class Tui {
   path = path.join("project", "tty")

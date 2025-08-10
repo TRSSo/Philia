@@ -1,10 +1,9 @@
 import * as inquirer from "@inquirer/prompts"
 import { Client } from "#protocol/milky"
-import * as Common from "./common.js"
-import * as Philia from "./Philia.js"
+import * as Common from "../common.js"
+import * as Philia from "../philia.js"
 
 export interface IConfig extends Common.IConfig {
-  name: "Milky"
   server: string | URL
 }
 
@@ -14,10 +13,10 @@ export class Project extends Common.Project {
 
   constructor(config: IConfig) {
     super(config)
-    this.client = new Client(this.logger, this.config.client, this.config.server)
+    this.client = new Client(this.logger, this.config.philia, this.config.server)
   }
 
-  static async createConfig(): Promise<IConfig> {
+  static async createConfig(name: IConfig["name"]): Promise<IConfig> {
     const server = await inquirer.input({
       message: "请输入 Milky 服务器地址：",
       default: "http://localhost:2536",
@@ -25,9 +24,9 @@ export class Project extends Common.Project {
     })
 
     return {
-      name: "Milky",
+      name,
       server,
-      client: await Philia.Project.createConfig(),
+      philia: await Philia.Project.createConfig(),
     }
   }
 
@@ -37,7 +36,7 @@ export class Project extends Common.Project {
     } catch (err) {
       throw TypeError("Milky 服务器地址格式错误", { cause: err })
     }
-    new Philia.Project(this.config.client)
+    new Philia.Project(this.config.philia)
   }
 
   start() {

@@ -1,5 +1,5 @@
 import type { Loging } from "#util"
-import type * as Philia from "../project/Philia.js"
+import type * as Philia from "../project/philia.js"
 
 export enum LoggerLevel {
   ALL,

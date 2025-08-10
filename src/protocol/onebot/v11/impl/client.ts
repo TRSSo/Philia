@@ -1,7 +1,7 @@
 import { ulid } from "ulid"
 import { WebSocket } from "ws"
 import type { Logger } from "#logger"
-import * as Philia from "#project/project/Philia.js"
+import * as Philia from "#project/project/philia.js"
 import { createAPI, EventHandle } from "#protocol/common"
 import { makeError, promiseEvent, toJSON } from "#util"
 import * as Convert from "../convert/index.js"

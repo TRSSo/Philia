@@ -2,7 +2,7 @@ import fs from "node:fs/promises"
 import { ulid } from "ulid"
 import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
-import type Client from "../server/client.js"
+import type Client from "../impl/client.js"
 import * as OBv11 from "../type/index.js"
 
 /** 消息转换器 */

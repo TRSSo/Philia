@@ -1,7 +1,7 @@
 import * as common from "../common.js"
 import type { FileElem } from "../message/index.js"
 
-type Client = import("../client.js").Client
+type Client = import("../app.js").Client
 
 /** 群文件/目录共通属性 */
 export interface GfsBaseStat {

@@ -15,7 +15,7 @@ import {
   type VideoElem,
 } from "../message/index.js"
 
-type Client = import("../client.js").Client
+type Client = import("../app.js").Client
 
 /** 所有用户和群的基类 */
 export abstract class Contactable {

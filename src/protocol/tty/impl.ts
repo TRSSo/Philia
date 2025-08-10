@@ -1,11 +1,11 @@
 import fs from "node:fs/promises"
 import type { Logger } from "#logger"
-import * as Philia from "#project/project/Philia.js"
+import * as Philia from "#project/project/philia.js"
 import { EventHandle } from "#protocol/common"
 import type * as Type from "#protocol/type"
 import * as Convert from "./convert/index.js"
 
-export default class Client {
+export default class Impl {
   handle = new Convert.API(this)
   philia: Philia.Project
   event_handle: EventHandle

@@ -3,7 +3,7 @@ import path from "node:path"
 import { ulid } from "ulid"
 import type { API, Contact, Event, Message } from "#protocol/type"
 import { toBuffer } from "#util"
-import type Client from "../client.js"
+import type Client from "../impl.js"
 import MessageConvert from "./message.js"
 
 export default class PhiliaToTTY implements API.ServerAPI {

@@ -1,6 +1,6 @@
 import querystring from "node:querystring"
 import type { Event } from "#protocol/type"
-import type { Client } from "../client.js"
+import type { Client } from "../app.js"
 import { lock } from "../common.js"
 import type { Friend, Gender, Group, GroupRole, Member } from "../contact/index.js"
 import type { MessageRet } from "../event/types.js"
