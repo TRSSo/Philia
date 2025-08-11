@@ -26,7 +26,7 @@ import {
   type Sendable,
 } from "./message/index.js"
 
-/** 一个客户端 */
+/** 一个应用端 */
 export class Client extends events {
   uin: string = ""
   /**
@@ -668,7 +668,7 @@ export interface Config {
 /** 数据统计 */
 export type Statistics = Client["stat"]
 
-/** 创建一个客户端 (=new Client) */
+/** 创建一个应用端 (=new Client) */
 export function createClient(...args: ConstructorParameters<typeof Client>) {
   return new Client(...args)
 }

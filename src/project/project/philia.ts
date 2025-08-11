@@ -50,7 +50,7 @@ export class Project {
     switch (type) {
       case "Socket":
         if (role === "Client") {
-          const list = await fs.readdir(Path.join("project", "Client")).catch(() => [])
+          const list: string[] = await fs.readdir(Path.join("project", "Client")).catch(() => [])
           const custom = Symbol("custom") as unknown as string
           path = await inquirer.checkbox<string>({
             message: "请选择项目",

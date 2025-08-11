@@ -1,4 +1,4 @@
-export { default as API } from "./api.js"
+export * as API from "./api.js"
 export { default as Logger } from "./logger.js"
 export { default as Notice } from "./notice.js"
 export { default as Server } from "./server.js"

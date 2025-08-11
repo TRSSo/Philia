@@ -60,7 +60,6 @@ export class Project extends Common.Project {
       default:
         throw TypeError("OneBotv11 协议类型必须为 ws 或 ws-reverse")
     }
-    new Philia.Project(this.config.philia)
   }
 
   start() {

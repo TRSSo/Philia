@@ -79,7 +79,7 @@ export function makeLogger(
   const appender = `dateFile_${name}`
   log4js_config.appenders[appender] = {
     ...log4js_config.appenders.dateFile_default,
-    filename: `log/${name}-${level}`,
+    filename: `Log/${name}-${level}`,
   }
 
   const length = (category_length - name.length) / 2
@@ -87,7 +87,10 @@ export function makeLogger(
   else if (length < 0) name = `${name.slice(0, category_length - 1)}.`
   name = chalk.blue(`[${name}]`)
 
-  log4js_config.categories[name] = { appenders: ["stdout", appender], level: "ALL" }
+  log4js_config.categories[name] = {
+    appenders: stdout_closed ? [appender] : ["stdout", appender],
+    level: "ALL",
+  }
   log4js.configure(log4js_config)
 
   Object.setPrototypeOf(logger, log4js.getLogger(name))
@@ -98,4 +101,13 @@ export function makeLogger(
 
 export function getLogger(name = "default"): Logger {
   return logger_map.get(name) ?? makeLogger(name)
+}
+
+let stdout_closed = false
+export function closeStdout() {
+  if (stdout_closed) return
+  stdout_closed = true
+  delete log4js_config.appenders.stdout
+  for (const i in log4js_config.categories) log4js_config.categories[i].appenders.splice(0, 1)
+  log4js.configure(log4js_config)
 }

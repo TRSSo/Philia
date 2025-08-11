@@ -1,6 +1,6 @@
 import { type Logger, makeLogger } from "#logger"
 import { type type as ManagerType, Server } from "../manager/index.js"
-import type * as Philia from "./philia.js"
+import * as Philia from "./philia.js"
 
 export interface IConfig {
   /** 项目名 */
@@ -19,9 +19,14 @@ export abstract class Project {
 
   constructor(public config: IConfig) {
     this.verifyConfig()
+    this.verifyPhiliaConfig()
     if (this.config.logger) this.config.philia.logger ??= this.config.logger
     this.manager = new Server(this, config.manager)
     this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
+  }
+
+  verifyPhiliaConfig() {
+    new Philia.Project(this.config.philia)
   }
 
   /** 创建配置文件，静态方法 */

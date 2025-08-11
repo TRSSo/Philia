@@ -63,9 +63,12 @@ export class Server {
 
   listener: { [key: string]: (...args: any[]) => void } = {
     connected(this: Client) {
-      this.logger.info("已连接", this.meta.remote, `共${this.server.wss.size}个连接`)
+      this.server.add(this)
+      this.logger.info(`${this.meta.remote?.id} 已连接，共${this.server.wss.size}个连接`)
+      this.logger.debug(this.meta.remote)
       this.onconnected()
       this.heartbeat()
+      this.server.ws.emit("connected", this)
     },
     close(this: Client) {
       this.onclose()
@@ -97,9 +100,6 @@ class Client extends OClient {
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
-    this.onconnect().then(() => {
-      server.add(this)
-      server.ws.emit("connected", this)
-    })
+    this.onconnect()
   }
 }

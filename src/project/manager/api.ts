@@ -3,8 +3,13 @@ import type Manager from "./server.js"
 
 export default function API(manager: Manager) {
   return {
-    stop: () => {
+    stop() {
       process.nextTick(() => manager.stop().finally(() => process.exit()))
+    },
+    closeConsole() {
+      process.stdin.destroy()
+      process.stdout.end()
+      process.stderr.end()
     },
     getLog: manager.logger_manager.get.bind(manager.logger_manager),
     followLog: manager.logger_manager.follow.bind(manager.logger_manager) as (

@@ -41,8 +41,10 @@ export function StringOrNull(data: object): string {
  * @param base64 是否转成 base64
  * @returns 字符串
  */
+export function StringOrBuffer(data: Buffer, base64: true): string
+export function StringOrBuffer(data: Buffer, base64?: false): string | Buffer
 export function StringOrBuffer(data: Buffer, base64 = false): string | Buffer {
-  const string = StringOrNull(data)
+  const string = String(data)
   return string.includes("\ufffd")
     ? base64
       ? `base64://${data.toString("base64")}`

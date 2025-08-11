@@ -3,7 +3,7 @@ import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import YAML from "yaml"
 import type { Logger } from "#logger"
-import { selectArray, sendInfo } from "#util/tui.js"
+import { type inquirerSelect, selectArray, sendInfo } from "#util/tui.js"
 import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
@@ -42,7 +42,7 @@ export default class Tui {
   }
 
   async list() {
-    const ret: Exclude<Parameters<typeof inquirer.select<string>>[0]["choices"][0], string>[] = []
+    const ret: inquirerSelect<string> = []
     const impl_list = await fs.readdir(this.impl_path).catch(() => [])
     if (impl_list.length) {
       ret.push(new inquirer.Separator("────实现端────"))
@@ -74,9 +74,10 @@ export default class Tui {
       message: "选择创建项目",
       choices: selectArray(project_list),
     })
-    const config = await (
-      await (Project[type] as typeof Project.impl & typeof Project.app)[name]()
-    ).Project.createConfig(name)
+    const project = (await (Project[type] as typeof Project.impl & typeof Project.app)[name]())
+      .Project
+    const config = await project.createConfig(name)
+    new project(config)
 
     let path = await inquirer.input({
       message: "请输入项目名：",

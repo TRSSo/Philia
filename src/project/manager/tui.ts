@@ -8,14 +8,14 @@ import type { Logger } from "#logger"
 import { createAPI } from "#protocol/common"
 import { chalk, getCodeDir, getDateTime, getTime } from "#util"
 import { selectArray, sendInfo } from "#util/tui.js"
-import type ManagerAPI from "./api.js"
-import * as ManagerType from "./type.js"
+import type API from "./api.js"
+import * as type from "./type.js"
 
 export default class ProjectManagerTui {
   name: string
   client: SocketClient
   api: ReturnType<
-    typeof createAPI<ReturnType<typeof ManagerAPI> & { [key: string]: (data: any) => unknown }>
+    typeof createAPI<ReturnType<typeof API> & { [key: string]: (data: unknown) => unknown }>
   >
 
   constructor(
@@ -24,7 +24,7 @@ export default class ProjectManagerTui {
   ) {
     this.name = Path.basename(this.path)
     this.client = new SocketClient(logger, {})
-    this.api = createAPI<ReturnType<typeof ManagerAPI> & { [key: string]: (data: any) => unknown }>(
+    this.api = createAPI<ReturnType<typeof API> & { [key: string]: (data: unknown) => unknown }>(
       this.client,
     )
   }
@@ -36,7 +36,16 @@ export default class ProjectManagerTui {
         ? inquirer.select({
             message: `${this.name} 项目运行中`,
             choices: [
-              ...(await this.checkNotice()),
+              ...(await this.checkNotice().then(i =>
+                i === 0
+                  ? []
+                  : ([
+                      {
+                        name: `🔔 通知${typeof i === "string" ? `：${i}` : `(${i})`}`,
+                        value: "notice",
+                      },
+                    ] as const),
+              )),
               { name: "📝 日志", value: "log" },
               { name: "⏹️ 停止", value: "stop" },
               { name: "🔙 返回", value: "back" },
@@ -64,8 +73,8 @@ export default class ProjectManagerTui {
 
   async checkNotice() {
     const count = await this.api.countNotice()
-    if (count) return [{ name: `🔔 通知(${count})`, value: "notice" }] as const
-    return []
+    if (count === 1) return (await this.api.listNotice())[0].name
+    return count
   }
 
   async handleNotice(notice: Awaited<ReturnType<typeof this.api.listNotice>>[0]) {
@@ -100,8 +109,8 @@ export default class ProjectManagerTui {
         message: "通知列表",
         choices: [
           ...selectArray(
-            notice.map((_, i) => i),
-            notice.map(({ name, desc }) => ({ name, desc })),
+            notice.map(({ name }, i) => [i, name] as const),
+            notice.map(({ desc }) => desc),
           ),
           { name: "🔙 返回", value: back },
         ],
@@ -111,22 +120,50 @@ export default class ProjectManagerTui {
     }
   }
 
-  async followLog(level: ManagerType.LoggerLevel, time = -1) {
-    await this.getLog({ level, time, lines: 10 })
+  async followLog(level: type.LoggerLevel, time = -1, resolver = Promise.withResolvers<void>()) {
+    const notice_count = await this.checkNotice()
+    if (notice_count) {
+      if (typeof notice_count === "string") this.logger.info(`收到新通知：${notice_count}`)
+      await this.notice()
+    }
     const handle = "receiveLog"
-    this.client.handle.set(handle, (event: ManagerType.LoggerEvent) =>
+    this.client.handle.set(handle, (event: type.LoggerEvent) =>
       process.stdout.write(this.printLog(event)),
     )
-    this.api.followLog({ level, handle })
-    await inquirer.confirm({ message: "按回车键结束" })
-    this.api.unfollowLog()
-    this.client.handle.del(handle)
+    const controller = new AbortController()
+    let notice: Parameters<typeof this.handleNotice>[0]
+    this.client.handle.setOnce("newNotice", (n: typeof notice) => {
+      notice = n
+      controller.abort()
+    })
+    inquirer
+      .confirm({ message: "正在监听实时日志，按回车键结束" }, { signal: controller.signal })
+      .then(
+        () => notice ?? resolver.resolve(),
+        i => notice ?? resolver.reject(i),
+      )
+      .finally(() => {
+        this.api.unfollowLog()
+        this.client.handle.del(handle)
+        if (notice) {
+          time = Date.now()
+          this.logger.info(`收到新通知：${notice.name}`)
+          this.handleNotice(notice).then(
+            this.followLog.bind(this, level, time, resolver),
+            resolver.reject,
+          )
+        }
+      })
+    process.stdout.write("\n")
+    await this.getLog({ level, time, lines: 10 })
+    await this.api.followLog({ level, handle })
+    return resolver.promise
   }
 
-  printLog(data: ManagerType.LoggerEvent) {
+  printLog(data: type.LoggerEvent) {
     const time = getTime(new Date(data.time))
-    const level = ManagerType.LoggerLevel[data.level] as keyof typeof ManagerType.LoggerLevelColor
-    return `${chalk[ManagerType.LoggerLevelColor[level]](`[${time}][${level.slice(0, 4)}]`)}${data.name} ${data.data.join(" ")}\n`
+    const level = type.LoggerLevel[data.level] as keyof typeof type.LoggerLevelColor
+    return `${chalk[type.LoggerLevelColor[level]](`[${time}][${level.slice(0, 4)}]`)}${data.name} ${data.data.join(" ")}\n`
   }
 
   async getLog(data: Parameters<typeof this.api.getLog>["0"]) {
@@ -141,7 +178,7 @@ export default class ProjectManagerTui {
   async requestLog(data: Parameters<typeof this.getLog>["0"]) {
     if (!data.lines || (data.time && data.time < 0)) return this.getLog(data)
     let time = data.time,
-      event: ManagerType.LoggerEvent | undefined
+      event: type.LoggerEvent | undefined
     while ((event = await this.getLog({ ...data, time }))) {
       if (!(await inquirer.confirm({ message: `往下查看${data.lines}条日志` }))) return
       time = event.time + 1
@@ -182,13 +219,11 @@ export default class ProjectManagerTui {
     if (choose === "file") return this.fileLog()
 
     const level =
-      ManagerType.LoggerLevel[
+      type.LoggerLevel[
         await inquirer.select({
           message: "请选择日志等级",
           choices: selectArray(
-            Object.keys(
-              ManagerType.LoggerLevelColor,
-            ) as (keyof typeof ManagerType.LoggerLevelColor)[],
+            Object.keys(type.LoggerLevelColor) as (keyof typeof type.LoggerLevelColor)[],
           ),
         })
       ]
@@ -202,7 +237,7 @@ export default class ProjectManagerTui {
     const time = await inquirer.input({
       message: "请输入开始时间：",
       default: getDateTime(new Date(Date.now() - 6e5)),
-      validate: i => {
+      validate(i) {
         if (i && Number.isNaN(Date.parse(i))) return "时间格式错误"
         return true
       },
@@ -229,6 +264,7 @@ export default class ProjectManagerTui {
         if (p.exitCode !== null) break
         await this.connect()
         if (this.client.open) {
+          await this.api.closeConsole()
           p.stdin.end()
           p.stdout.destroy()
           p.stderr.destroy()

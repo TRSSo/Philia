@@ -22,7 +22,7 @@ export default class Manager {
   logger_manager: LoggerManager
   handle: ReturnType<typeof API>
   philia: Philia.Project
-  notice = new NoticeManager()
+  notice = new NoticeManager(this)
 
   constructor(
     public project: Common.Project,

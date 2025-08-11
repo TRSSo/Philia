@@ -1,7 +1,9 @@
 import type { Client, type } from "#connect/common"
+import type Manager from "./server.js"
 
 export default class NoticeManager {
-  notice_map = new Map<string, { desc: string; handle?: type.Handle<string, string> }>()
+  notice_map = new Map<string, { desc: string; handle?: type.Handle<string, string | void> }>()
+  constructor(public manager: Manager) {}
 
   /**
    * 发布通知
@@ -9,7 +11,11 @@ export default class NoticeManager {
    * @param desc 描述
    * @param handle 处理函数
    */
-  set(name: string, desc: string, handle?: type.Handle<string, string>) {
+  set(name: string, desc: string, handle?: type.Handle<string, string | void>) {
+    for (const i of this.manager.logger_manager.follows)
+      i.client
+        .request("newNotice", { name, desc, handle: typeof handle === "function" })
+        .catch(() => {})
     return this.notice_map.set(name, { desc, handle })
   }
 

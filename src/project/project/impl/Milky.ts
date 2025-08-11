@@ -21,6 +21,14 @@ export class Project extends Common.Project {
       message: "请输入 Milky 服务器地址：",
       default: "http://localhost:2536",
       required: true,
+      validate(input) {
+        try {
+          new URL(input)
+        } catch {
+          return "请输入正确的URL"
+        }
+        return true
+      },
     })
 
     return {
@@ -36,7 +44,6 @@ export class Project extends Common.Project {
     } catch (err) {
       throw TypeError("Milky 服务器地址格式错误", { cause: err })
     }
-    new Philia.Project(this.config.philia)
   }
 
   start() {

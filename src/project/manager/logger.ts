@@ -1,13 +1,38 @@
 import { Writable } from "node:stream"
 import type log4js from "log4js"
 import type { Client } from "#connect/common"
-import { getLogger } from "#logger"
+import { closeStdout, getLogger } from "#logger"
+import { promiseEvent, StringOrBuffer } from "#util"
 import type Manager from "./server.js"
 import { type LoggerEvent, LoggerLevel, type LoggerLevelStr, type ManagerConfig } from "./type.js"
 
-const stream = new Writable({ write: (_, __, c) => c() })
-for (const i of ["stdout", "stderr"] as const)
-  process[i].once("error", () => (process[i].write = stream.write.bind(stream)))
+const logger = getLogger("Console")
+for (const i of [process.stdout, process.stderr])
+  promiseEvent(i, "close", "error")
+    .catch(() => {})
+    .finally(() => {
+      if (i === process.stdout) closeStdout()
+      const stream = new Writable({
+        write:
+          i === process.stdout
+            ? (chunk, _, cb) => {
+                StringOrBuffer(chunk, true)
+                  .trim()
+                  .split("\n")
+                  .map(i => logger.info(i))
+                cb()
+              }
+            : (chunk, _, cb) => {
+                StringOrBuffer(chunk, true)
+                  .trim()
+                  .split("\n")
+                  .map(i => logger.error(i))
+                cb()
+              },
+      })
+      i.write = stream.write.bind(stream)
+      i.isTTY = true
+    })
 
 export default class LoggerManager {
   events: LoggerEvent[] = []
@@ -29,7 +54,8 @@ export default class LoggerManager {
       level: LoggerLevel[l.levelStr as LoggerLevelStr],
       data,
     }
-    for (const i of this.follows) if (event.level >= i.level) i.client.request(i.handle, event)
+    for (const i of this.follows)
+      if (event.level >= i.level) i.client.request(i.handle, event).catch(() => {})
     if (this.events.length === this.config.max_lines) this.events.unshift()
     this.events.push(event)
   }

@@ -21,7 +21,6 @@ export const app = {} as type
 
 const path = Path.join(getRootDir(), "plugin")
 for (const i of await fs.readdir(path, { withFileTypes: true }).catch(() => [])) {
-  console.log(i)
   if (!i.isDirectory()) continue
   for (const j of await fs
     .readdir(Path.join(path, i.name, "lib"), { withFileTypes: true })

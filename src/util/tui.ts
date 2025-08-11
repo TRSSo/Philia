@@ -13,17 +13,36 @@ export async function sendInfo(message = "请选择操作") {
     process.exit()
 }
 
+export type inquirerSelect<T> = Exclude<
+  Parameters<typeof inquirer.select<T>>[0]["choices"][0],
+  string
+>[]
+
+export function selectArray<T>(
+  value: (readonly [T, string])[],
+  desc?: string[],
+): { name: string; value: T; description?: string }[]
 export function selectArray<T>(
   value: T[],
-  opts?: { name?: string; desc?: string }[],
-): Exclude<Parameters<typeof inquirer.select<T>>[0]["choices"][0], string>[] {
+  desc?: string[],
+): { name: string; value: T; description?: string }[]
+export function selectArray<T>(value: (readonly [T, string])[] | T[], desc?: string[]) {
+  const pad = String(value.length + 1).length
+  const fn = (Array.isArray(value[0])
+    ? ([value, name]: [T, string], i: number) => ({
+        name: `${String(i + 1).padStart(pad)}. ${name}`,
+        value,
+      })
+    : (value: T, i: number) => ({
+        name: `${String(i + 1).padStart(pad)}. ${value}`,
+        value,
+      })) as unknown as (v: (typeof value)[0], i: number) => ReturnType<typeof selectArray<T>>[0]
   return value.map(
-    opts
+    desc
       ? (value, i) => ({
-          name: `${i + 1}. ${opts[i].name ?? value}`,
-          value,
-          description: opts[i].desc,
+          ...fn(value, i),
+          description: desc[i],
         })
-      : (value, i) => ({ name: `${i + 1}. ${value}`, value }),
+      : fn,
   )
 }
