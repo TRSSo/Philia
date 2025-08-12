@@ -3,7 +3,7 @@ import type log4js from "log4js"
 import type { Client } from "#connect/common"
 import { closeStdout, getLogger } from "#logger"
 import { promiseEvent, StringOrBuffer } from "#util"
-import type Manager from "./server.js"
+import type Manager from "./manager.js"
 import { type LoggerEvent, LoggerLevel, type LoggerLevelStr, type ManagerConfig } from "./type.js"
 
 const logger = getLogger("Console")

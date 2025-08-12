@@ -18,7 +18,7 @@ export class Project extends Common.Project {
 
   static async createConfig(name: IConfig["name"]): Promise<IConfig> {
     const server = await inquirer.input({
-      message: "请输入 Milky 服务器地址：",
+      message: "请输入 Milky 服务器地址:",
       default: "http://localhost:2536",
       required: true,
       validate(input) {

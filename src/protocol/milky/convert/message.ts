@@ -151,7 +151,7 @@ export class PhiliaToMilky {
     switch (ms.data) {
       case "user":
         this.after.push({ type: "mention", data: { user_id: +ms.id } })
-        this.summary += `[提及：${ms.id}]`
+        this.summary += `[提及: ${ms.id}]`
         break
       case "all":
         this.after.push({ type: "mention_all", data: {} })

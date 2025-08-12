@@ -26,12 +26,12 @@ export class Project extends Common.Project {
     } as const)
     const path = await (type === "ws"
       ? inquirer.input({
-          message: "请输入 OneBotv11 服务器地址：",
+          message: "请输入 OneBotv11 服务器地址:",
           default: "ws://localhost:2536",
           required: true,
         })
       : inquirer.number({
-          message: "请输入 OneBotv11 服务器监听端口：",
+          message: "请输入 OneBotv11 服务器监听端口:",
           min: 1,
           max: 65535,
           required: true,

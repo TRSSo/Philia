@@ -80,7 +80,7 @@ export default class Tui {
     new project(config)
 
     let path = await inquirer.input({
-      message: "请输入项目名：",
+      message: "请输入项目名:",
       validate: async input => {
         if (Path.basename(input) !== input) return "输入无效"
         if (await fs.stat(Path.join(this[`${type}_path`], input)).catch(() => false))

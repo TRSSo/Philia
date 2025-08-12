@@ -1,5 +1,5 @@
 import type { Client } from "#connect/common"
-import type Manager from "./server.js"
+import type Manager from "./manager.js"
 
 export default function API(manager: Manager) {
   return {

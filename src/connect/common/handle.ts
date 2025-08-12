@@ -124,7 +124,7 @@ export default class Handle {
     } catch (err) {
       let error: type.Error["data"] = {
         name: "HandleError",
-        message: `处理器 ${req.name} 错误：${err}`,
+        message: `处理器 ${req.name} 错误: ${err}`,
       }
       if (err instanceof Error) {
         Object.assign(error, err)

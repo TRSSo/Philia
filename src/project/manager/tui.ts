@@ -33,24 +33,7 @@ export default class ProjectManagerTui {
     await this.connect().catch(() => {})
     for (;;) {
       const choose = await (this.client.open
-        ? inquirer.select({
-            message: `${this.name} 项目运行中`,
-            choices: [
-              ...(await this.checkNotice().then(i =>
-                i === 0
-                  ? []
-                  : ([
-                      {
-                        name: `🔔 通知${typeof i === "string" ? `：${i}` : `(${i})`}`,
-                        value: "notice",
-                      },
-                    ] as const),
-              )),
-              { name: "📝 日志", value: "log" },
-              { name: "⏹️ 停止", value: "stop" },
-              { name: "🔙 返回", value: "back" },
-            ],
-          } as const)
+        ? this.openMenu()
         : inquirer.select({
             message: `${this.name} 项目管理`,
             choices: [
@@ -62,9 +45,38 @@ export default class ProjectManagerTui {
               { name: "🔙 返回", value: "back" },
             ],
           } as const))
-      if ((await this[choose]()) === false) break
+      if (choose && (await this[choose]()) === false) break
     }
     this.client.close().catch(() => {})
+  }
+
+  async openMenu() {
+    const check_notice = await this.checkNotice()
+    const notice: { name: string; value: "notice" }[] = []
+    if (check_notice !== 0)
+      notice.push({
+        name: `🔔 通知${typeof check_notice === "object" ? `: ${check_notice.name}` : `(${check_notice})`}`,
+        value: "notice",
+      })
+
+    const controller = new AbortController()
+    this.client.handle.setOnce("newNotice", () => controller.abort())
+    return inquirer
+      .select(
+        {
+          message: `${this.name} 项目运行中`,
+          choices: [
+            ...notice,
+            { name: "📝 日志", value: "log" },
+            { name: "⏹️ 停止", value: "stop" },
+            { name: "🔙 返回", value: "back" },
+          ],
+        } as const,
+        { signal: controller.signal },
+      )
+      .catch(i => {
+        if (!controller.signal.aborted) throw i
+      })
   }
 
   connect() {
@@ -73,7 +85,7 @@ export default class ProjectManagerTui {
 
   async checkNotice() {
     const count = await this.api.countNotice()
-    if (count === 1) return (await this.api.listNotice())[0].name
+    if (count === 1) return (await this.api.listNotice())[0]
     return count
   }
 
@@ -81,28 +93,26 @@ export default class ProjectManagerTui {
     const choose = await inquirer.select({
       message: notice.desc,
       choices: [
-        notice.handle
+        notice.input
           ? ({ name: "📥 处理", value: "handle" } as const)
-          : ({ name: "✅ 已读", value: "readed" } as const),
+          : ({ name: "✅ 完成", value: "done" } as const),
         { name: "🔙 返回", value: "back" },
       ],
     } as const)
-    if (choose === "back") return
-    const data =
-      choose === "readed"
-        ? undefined
-        : await inquirer.input({
-            message: "请输入数据：",
-            required: true,
-          })
-    const ret = await this.api.handleNotice({ name: notice.name, data })
-    if (ret) await sendInfo(`处理结果：${ret}`)
+    let data: string | undefined
+    switch (choose) {
+      case "back":
+        return
+      case "handle":
+        data = await inquirer.input({ message: "请输入数据:", required: true })
+    }
+    const ret = await this.api.handleNotice({ id: notice.id, data })
+    if (ret) await sendInfo(`处理结果: ${ret}`)
   }
 
-  async notice() {
-    for (;;) {
-      const notice = await this.api.listNotice()
-      if (!notice.length) break
+  async notice(notice?: Awaited<ReturnType<typeof this.api.listNotice>>) {
+    notice ??= await this.api.listNotice()
+    while (notice.length) {
       if (notice.length === 1) return this.handleNotice(notice[0])
       const back = Symbol("back") as unknown as number
       const choose = await inquirer.select({
@@ -117,45 +127,48 @@ export default class ProjectManagerTui {
       })
       if (choose === back) break
       await this.handleNotice(notice[choose])
+      notice = await this.api.listNotice()
     }
   }
 
   async followLog(level: type.LoggerLevel, time = -1, resolver = Promise.withResolvers<void>()) {
-    const notice_count = await this.checkNotice()
-    if (notice_count) {
-      if (typeof notice_count === "string") this.logger.info(`收到新通知：${notice_count}`)
-      await this.notice()
+    if (time === -1) {
+      const notice = await this.checkNotice()
+      if (notice) {
+        if (typeof notice === "object") {
+          this.logger.info(`收到新通知: ${notice.name}`)
+          await this.notice([notice])
+        } else await this.notice()
+      }
+    } else {
+      const notice = await this.api.listNotice()
+      if (notice.length) {
+        this.logger.info(`收到新通知: ${notice[notice.length - 1].name}`)
+        await this.notice(notice)
+      }
     }
+
     const handle = "receiveLog"
     this.client.handle.set(handle, (event: type.LoggerEvent) =>
       process.stdout.write(this.printLog(event)),
     )
     const controller = new AbortController()
-    let notice: Parameters<typeof this.handleNotice>[0]
-    this.client.handle.setOnce("newNotice", (n: typeof notice) => {
-      notice = n
-      controller.abort()
-    })
+    this.client.handle.setOnce("newNotice", () => controller.abort())
     inquirer
       .confirm({ message: "正在监听实时日志，按回车键结束" }, { signal: controller.signal })
       .then(
-        () => notice ?? resolver.resolve(),
-        i => notice ?? resolver.reject(i),
+        () => controller.signal.aborted || resolver.resolve(),
+        i => controller.signal.aborted || resolver.reject(i),
       )
       .finally(() => {
         this.api.unfollowLog()
         this.client.handle.del(handle)
-        if (notice) {
-          time = Date.now()
-          this.logger.info(`收到新通知：${notice.name}`)
-          this.handleNotice(notice).then(
-            this.followLog.bind(this, level, time, resolver),
-            resolver.reject,
-          )
-        }
+        if (controller.signal.aborted)
+          this.followLog(level, Date.now(), resolver).catch(resolver.reject)
       })
+
     process.stdout.write("\n")
-    await this.getLog({ level, time, lines: 10 })
+    await this.getLog({ level, time, ...(time === -1 ? { lines: 10 } : {}) })
     await this.api.followLog({ level, handle })
     return resolver.promise
   }
@@ -230,12 +243,12 @@ export default class ProjectManagerTui {
     if (choose === "now") return this.followLog(level)
 
     const lines = await inquirer.number({
-      message: "请输入获取行数：",
+      message: "请输入获取行数:",
       default: 10,
       min: 1,
     })
     const time = await inquirer.input({
-      message: "请输入开始时间：",
+      message: "请输入开始时间:",
       default: getDateTime(new Date(Date.now() - 6e5)),
       validate(i) {
         if (i && Number.isNaN(Date.parse(i))) return "时间格式错误"

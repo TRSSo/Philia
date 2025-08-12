@@ -62,7 +62,7 @@ export class Project {
             path.push(
               ...(
                 await inquirer.input({
-                  message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔：",
+                  message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔:",
                 })
               )
                 .split(",")
@@ -75,7 +75,7 @@ export class Project {
       case "WebSocket":
         if (role === "Server")
           path = await inquirer.number({
-            message: "请输入 Philia WebSocket 服务器监听端口：",
+            message: "请输入 Philia WebSocket 服务器监听端口:",
             min: 1,
             max: 65535,
             required: true,
@@ -83,7 +83,7 @@ export class Project {
         else
           path = (
             await inquirer.input({
-              message: "请输入 Philia WebSocket 服务器地址，多个按半角逗号分隔：",
+              message: "请输入 Philia WebSocket 服务器地址，多个按半角逗号分隔:",
               default: "ws://localhost:2536",
               required: true,
             })

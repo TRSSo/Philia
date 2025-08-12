@@ -13,7 +13,7 @@ export class OBv11toPhilia {
   convert(event: OBv11.Event.Event) {
     if (typeof this[event.post_type] === "function")
       return this[event.post_type](event as never) as Promise<Philia.Event.Event>
-    throw makeError(`未知事件：${event.post_type}`, { event })
+    throw makeError(`未知事件: ${event.post_type}`, { event })
   }
 
   async message(data: OBv11.Event.Message) {
@@ -79,7 +79,7 @@ export class PhiliaToOBv11 {
   constructor(public client: Client) {}
 
   convert(event: Philia.Event.Event) {
-    if (typeof this[event.type] !== "function") throw Error(`未知事件：${event.type}`)
+    if (typeof this[event.type] !== "function") throw Error(`未知事件: ${event.type}`)
     return this[event.type](event as never) as Promise<OBv11.Event.Event>
   }
 }*/

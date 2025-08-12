@@ -1,8 +1,13 @@
+import { ulid } from "ulid"
 import type { Client, type } from "#connect/common"
-import type Manager from "./server.js"
+import type Manager from "./manager.js"
 
+type HandleFn<T> = type.Handle<T, void | string>
 export default class NoticeManager {
-  notice_map = new Map<string, { desc: string; handle?: type.Handle<string, string | void> }>()
+  notice_map = new Map<
+    string,
+    { name: string; desc: string; input: boolean; handle?: HandleFn<void> | HandleFn<string> }
+  >()
   constructor(public manager: Manager) {}
 
   /**
@@ -10,22 +15,13 @@ export default class NoticeManager {
    * @param name 名称
    * @param desc 描述
    * @param handle 处理函数
+   * @param input 是否需要输入
    */
-  set(name: string, desc: string, handle?: type.Handle<string, string | void>) {
-    for (const i of this.manager.logger_manager.follows)
-      i.client
-        .request("newNotice", { name, desc, handle: typeof handle === "function" })
-        .catch(() => {})
-    return this.notice_map.set(name, { desc, handle })
-  }
-
-  /**
-   * 删除通知
-   * @param name 名称或名称数组
-   */
-  del(name: string | string[]) {
-    if (Array.isArray(name)) return name.map(this.notice_map.delete.bind(this.notice_map))
-    return this.notice_map.delete(name)
+  set(name: string, desc: string, handle?: HandleFn<void>, input?: false): void
+  set(name: string, desc: string, handle: HandleFn<string>, input: true): void
+  set(name: string, desc: string, handle?: HandleFn<void> | HandleFn<string>, input = false) {
+    for (const i of this.manager.philia.clients) i.request("newNotice").catch(() => {})
+    return this.notice_map.set(ulid(), { name, desc, input, handle })
   }
 
   /** 查询通知数量 */
@@ -35,17 +31,16 @@ export default class NoticeManager {
 
   /** 列出所有通知 */
   list() {
-    const ret: { name: string; desc: string; handle: boolean }[] = []
-    for (const [name, { desc, handle }] of this.notice_map)
-      ret.push({ name, desc, handle: typeof handle === "function" })
+    const ret: { id: string; name: string; desc: string; input: boolean }[] = []
+    for (const [id, { name, desc, input }] of this.notice_map) ret.push({ id, name, desc, input })
     return ret
   }
 
   /** 处理通知 */
-  handle({ name, data }: { name: string; data?: string }, client: Client) {
-    const notice = this.notice_map.get(name)
-    if (!notice) throw Error(`通知不存在: ${name}`)
-    this.notice_map.delete(name)
-    if (data) return notice.handle?.(data, client)
+  handle({ id, data }: { id: string; data?: string }, client: Client) {
+    const notice = this.notice_map.get(id)
+    if (!notice) throw Error(`通知不存在: ${id}`)
+    this.notice_map.delete(id)
+    return notice.handle?.(data as never, client)
   }
 }

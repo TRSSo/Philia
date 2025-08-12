@@ -1,5 +1,5 @@
 import { type Logger, makeLogger } from "#logger"
-import { type type as ManagerType, Server } from "../manager/index.js"
+import { Manager, type type as ManagerType } from "../manager/index.js"
 import * as Philia from "./philia.js"
 
 export interface IConfig {
@@ -15,13 +15,13 @@ export interface IConfig {
 
 export abstract class Project {
   logger: Logger
-  manager: Server
+  manager: Manager
 
   constructor(public config: IConfig) {
     this.verifyConfig()
     this.verifyPhiliaConfig()
     if (this.config.logger) this.config.philia.logger ??= this.config.logger
-    this.manager = new Server(this, config.manager)
+    this.manager = new Manager(this, config.manager)
     this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
   }
 

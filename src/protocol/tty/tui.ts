@@ -55,7 +55,7 @@ export class Tui {
   }
 
   async sendMsg() {
-    const answer = await inquirer.input({ message: "请输入消息：" })
+    const answer = await inquirer.input({ message: "请输入消息:" })
     const event: Type.Event.Message = {
       id: ulid(),
       type: "message",

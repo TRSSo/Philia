@@ -13,7 +13,7 @@ export default class Event {
   convert(event: Milky.Event.Event) {
     if (typeof this[event.event_type] === "function")
       return this[event.event_type](event as never) as Promise<Philia.Event.Event>
-    throw makeError(`未知事件：${event.event_type}`, { event })
+    throw makeError(`未知事件: ${event.event_type}`, { event })
   }
 
   async IncomingForwardedMessage(data: Milky.Struct.IncomingForwardedMessage) {
