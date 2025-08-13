@@ -9,16 +9,15 @@ export default class Protocol {
   }
 
   handle(data: object) {
-    if ("echo" in data) return this.echo(data as OBv11.API.Response<string>)
+    if ("echo" in data) return this.echo(data as OBv11.API.Response)
     if ("post_type" in data) return this.post(data as OBv11.Event.Event)
     this.client.logger.warn("未知消息", data)
   }
 
-  echo(data: OBv11.API.Response<string>) {
+  echo(data: OBv11.API.Response) {
     const cache = this.client.cache.get(data.echo)
     if (!cache) return
-    if (data.retcode === 0 || data.retcode === 1)
-      cache.resolve((data as OBv11.API.ResponseOK<string>).data)
+    if (data.retcode === 0 || data.retcode === 1) cache.resolve((data as OBv11.API.ResponseOK).data)
     else cache.reject(data)
   }
 

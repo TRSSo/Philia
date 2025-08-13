@@ -5,7 +5,7 @@ import type * as OBv11 from "../type/index.js"
 import * as MessageConverter from "./message.js"
 
 /** API 转换器 */
-export class PhiliaToOBv11 implements API.ServerAPI {
+export class PhiliaToOBv11 implements API.API {
   cache = new Map<string, unknown>()
   user_cache = new Map<Contact.User["id"], Contact.User>()
   group_cache = new Map<Contact.Group["id"], Contact.Group>()
@@ -54,7 +54,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     if (data.avatar) await this.client.api.set_qq_avatar({ file: toJSON(data.avatar) })
   }
 
-  _convertUserInfo(res: OBv11.API.API["get_stranger_info"]["response"] | OBv11.Event.Sender) {
+  _convertUserInfo(res: OBv11.API.IAPI["get_stranger_info"]["response"] | OBv11.Event.Sender) {
     const id = String(res.user_id)
     const ret: Contact.User = {
       ...this.user_cache.get(id),
@@ -79,7 +79,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
     return this._convertUserInfo(res)
   }
 
-  _convertGroupInfo(res: OBv11.API.API["get_group_info"]["response"]) {
+  _convertGroupInfo(res: OBv11.API.IAPI["get_group_info"]["response"]) {
     const id = String(res.group_id)
     const ret: Contact.Group = {
       ...this.group_cache.get(id),
@@ -107,7 +107,7 @@ export class PhiliaToOBv11 implements API.ServerAPI {
 
   _convertGroupMemberInfo(
     gid: Contact.Group["id"],
-    res: OBv11.API.API["get_group_member_info"]["response"] | OBv11.Event.GroupSender,
+    res: OBv11.API.IAPI["get_group_member_info"]["response"] | OBv11.Event.GroupSender,
   ) {
     const id = String(res.user_id)
     const ret: Contact.GroupMember = {

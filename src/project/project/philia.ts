@@ -1,7 +1,7 @@
 import fs from "node:fs/promises"
 import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
-import type { type } from "#connect/common"
+import type { Client, type } from "#connect/common"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
 import { type Logger, makeLogger } from "#logger"
@@ -20,7 +20,7 @@ export interface IConfig {
 export class Project {
   logger: Logger
   server?: Socket.Server | WebSocket.Server
-  clients = new Set<Socket.Client | WebSocket.Client>()
+  clients = new Set<Client>()
 
   constructor(
     public config: IConfig,

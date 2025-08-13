@@ -109,7 +109,7 @@ export class Client extends events {
   }
 
   handle = new Handle(this)
-  api!: ReturnType<typeof createAPI<Philia.API.ClientAPI>>
+  api!: ReturnType<typeof createAPI<Philia.API.API>>
   client!: Connect.Common.Client
   /** 是否为在线状态 (可以收发业务包的状态) */
   isOnline() {
@@ -172,7 +172,7 @@ export class Client extends events {
     if (uin instanceof Connect.Common.Client) {
       this.client = uin
       this.client.handle.setMap(this.handle)
-      this.api = createAPI<Philia.API.ClientAPI>(this.client)
+      this.api = createAPI<Philia.API.API>(this.client)
     } else {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
@@ -222,7 +222,7 @@ export class Client extends events {
           connected_fn: this.online.bind(this),
         }))
     this.client.logger = this.logger
-    this.api = createAPI<Philia.API.ClientAPI>(this.client)
+    this.api = createAPI<Philia.API.API>(this.client)
     return this.client.connect()
   }
 

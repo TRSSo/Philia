@@ -1,8 +1,8 @@
+import type { Client } from "#connect/common"
 import type * as Philia from "#project/project/philia.js"
 import type { Event } from "#protocol/type"
 import { isEqualObj, modeMatch } from "#util"
 
-type Client = Philia.Project["clients"] extends Set<infer U> ? U : never
 type HandleMap = Omit<Event.Handle, "type" | "scene"> & { client: Client }
 
 export default class EventHandle {

@@ -13,7 +13,7 @@ export default class Client {
   timeout = 6e4
   open = false
 
-  api = createAPI<API.ClientAPI>(this)
+  api = createAPI<API.API>(this)
   handle = new Convert.API(this)
   event = new Convert.Event(this)
   event_handle: EventHandle
@@ -89,7 +89,7 @@ export default class Client {
     }
   }
 
-  async request<T extends string>(name: T, data: API.Request<T> = {}) {
+  async request<T extends keyof API.IAPI>(name: T, data: API.Request<T> = {}) {
     const url = new URL(this.url)
     url.pathname += `api/${name}`
     this.logger.trace("HTTP 请求", name, data)

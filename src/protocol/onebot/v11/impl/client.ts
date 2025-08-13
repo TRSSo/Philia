@@ -13,15 +13,15 @@ export default class Client {
   ws: WebSocket
   path?: string
 
-  api = createAPI<API.ClientAPI>(this)
+  api = createAPI<API.API>(this)
   handle = new Convert.API.PhiliaToOBv11(this)
   protocol = new Protocol(this)
   event_handle: EventHandle
 
   cache = new Map<
     string,
-    ReturnType<typeof Promise.withResolvers<API.ResponseOK<string>["data"]>> & {
-      request: API.Request<string>
+    ReturnType<typeof Promise.withResolvers<API.ResponseOK["data"]>> & {
+      request: API.Request
       timeout: NodeJS.Timeout
     }
   >()
@@ -95,13 +95,13 @@ export default class Client {
     return this.sendQueue()
   }
 
-  request<T extends string>(action: T, params: API.Request<T>["params"] = {}) {
+  request<T extends keyof API.IAPI>(action: T, params = {}) {
     const echo = ulid()
     const request: API.Request<T> = { action, params, echo }
     this.logger.trace("WebSocket 请求", request)
     if (this.open) this.ws.send(toJSON(request))
     else this.queue.push(echo)
-    const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK<string>["data"]>()
+    const { promise, resolve, reject } = Promise.withResolvers<API.ResponseOK["data"]>()
     this.cache.set(echo, {
       promise,
       resolve,

@@ -6,7 +6,7 @@ import { Common } from "./index.js"
 import * as MessageConverter from "./message.js"
 
 /** API 转换器 */
-export default class PhiliaToMilky implements API.ServerAPI {
+export default class PhiliaToMilky implements API.API {
   cache = new Map<string, unknown>()
   user_cache = new Map<Contact.User["id"], Contact.User>()
   group_cache = new Map<Contact.Group["id"], Contact.Group>()

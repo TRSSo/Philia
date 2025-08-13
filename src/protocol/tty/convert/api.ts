@@ -6,7 +6,7 @@ import { toBuffer } from "#util"
 import type Client from "../impl.js"
 import MessageConvert from "./message.js"
 
-export default class PhiliaToTTY implements API.ServerAPI {
+export default class PhiliaToTTY implements API.API {
   constructor(public client: Client) {}
 
   receiveEvent(

@@ -2,12 +2,7 @@ import type { API as PhiliaAPI } from "#protocol/type"
 import type * as Event from "./event.js"
 import type * as Message from "./message.js"
 
-export interface API {
-  [key: string]: {
-    request: unknown
-    response: unknown
-  }
-
+export interface IAPI {
   get_login_info: {
     request: void
     response: {
@@ -251,19 +246,19 @@ export interface API {
 
   get_friend_list: {
     request: void
-    response: API["get_stranger_info"]["response"][]
+    response: IAPI["get_stranger_info"]["response"][]
   }
 
   get_group_list: {
     request: void
-    response: API["get_group_info"]["response"][]
+    response: IAPI["get_group_info"]["response"][]
   }
 
   get_group_member_list: {
     request: {
       group_id: number
     }
-    response: API["get_group_member_info"]["response"][]
+    response: IAPI["get_group_member_info"]["response"][]
   }
 
   set_friend_add_request: {
@@ -343,16 +338,16 @@ export interface API {
   }
 }
 
-export interface Request<T extends keyof API> {
+export interface Request<T extends keyof IAPI = keyof IAPI> {
   /** 请求的 API 名称 */
   action: T
   /** 请求参数 */
-  params: API[T]["request"]
+  params: IAPI[T]["request"]
   /** '回声', 如果指定了 echo 字段, 那么响应包也会同时包含一个 echo 字段, 它们会有相同的值 */
   echo: string
 }
 
-export interface ResponseOK<T extends keyof API> {
+export interface ResponseOK<T extends keyof IAPI = keyof IAPI> {
   /**
    * 状态, 表示 API 是否调用成功
    * ok 表示操作成功，同时 retcode （返回码）会等于 0
@@ -365,7 +360,7 @@ export interface ResponseOK<T extends keyof API> {
    * 对于获取群成员信息这类操作，这里为所获取的数据的对象，具体的数据内容将会在相应的 API 描述中给出。
    * 注意，异步版本的 API，data 永远是 null，即使其相应的同步接口本身是有数据。
    */
-  data: API[T]["response"]
+  data: IAPI[T]["response"]
   /** '回声', 如果请求时指定了 echo, 那么响应也会包含 echo */
   echo: string
 }
@@ -381,8 +376,5 @@ export interface ResponseFailed {
   echo: string
 }
 
-export type Response<T extends keyof API> = ResponseOK<T> | ResponseFailed
-
-export type IAPI = PhiliaAPI.IAPI<API>
-export type ServerAPI = IAPI["Server"]
-export type ClientAPI = IAPI["Client"]
+export type Response<T extends keyof IAPI = keyof IAPI> = ResponseOK<T> | ResponseFailed
+export type API = PhiliaAPI.IAPI<IAPI>

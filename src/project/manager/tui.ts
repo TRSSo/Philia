@@ -14,9 +14,7 @@ import * as type from "./type.js"
 export default class ProjectManagerTui {
   name: string
   client: SocketClient
-  api: ReturnType<
-    typeof createAPI<ReturnType<typeof API> & { [key: string]: (data: unknown) => unknown }>
-  >
+  api: ReturnType<typeof createAPI<ReturnType<typeof API>>>
 
   constructor(
     public logger: Logger,
@@ -24,9 +22,7 @@ export default class ProjectManagerTui {
   ) {
     this.name = Path.basename(this.path)
     this.client = new SocketClient(logger, {})
-    this.api = createAPI<ReturnType<typeof API> & { [key: string]: (data: unknown) => unknown }>(
-      this.client,
-    )
+    this.api = createAPI<ReturnType<typeof API>>(this.client)
   }
 
   async main() {

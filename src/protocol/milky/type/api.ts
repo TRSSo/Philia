@@ -4,11 +4,6 @@ import type * as Struct from "./struct.js"
 
 /** 系统 API */
 export interface SystemAPI {
-  [key: string]: {
-    request: unknown
-    response: unknown
-  }
-
   /** 获取登录信息 */
   get_login_info: {
     request: void
@@ -726,24 +721,19 @@ export interface FileAPI {
   }
 }
 
-export type API = SystemAPI & MessageAPI & FriendAPI & GroupAPI & RequestAPI & FileAPI
+export type IAPI = SystemAPI & MessageAPI & FriendAPI & GroupAPI & RequestAPI & FileAPI
 
-export type Request<T extends keyof API> = API[T]["request"]
-
-export interface ResponseOK<T extends keyof API> {
+export type Request<T extends keyof IAPI = keyof IAPI> = IAPI[T]["request"]
+export interface ResponseOK<T extends keyof IAPI = keyof IAPI> {
   status: "ok"
   retcode: 0
-  data: API[T]["response"]
+  data: IAPI[T]["response"]
 }
-
 export interface ResponseFailed {
   status: "failed"
   retcode: number
   message: string
 }
 
-export type Response<T extends keyof API> = ResponseOK<T> | ResponseFailed
-
-export type IAPI = PhiliaAPI.IAPI<API>
-export type ServerAPI = IAPI["Server"]
-export type ClientAPI = IAPI["Client"]
+export type Response<T extends keyof IAPI = keyof IAPI> = ResponseOK<T> | ResponseFailed
+export type API = PhiliaAPI.IAPI<IAPI>

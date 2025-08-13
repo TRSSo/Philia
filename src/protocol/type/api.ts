@@ -1,3 +1,4 @@
+import type { Client } from "#connect/common"
 import type * as Contact from "./contact.js"
 import type * as Event from "./event.js"
 import type * as Message from "./message.js"
@@ -525,20 +526,14 @@ export interface OICQExtendAPI {
   }
 }
 
-export type ExtendAPI = OICQExtendAPI
+export type ExtendAPI = Partial<IAPI<OICQExtendAPI>>
 
-export interface IAPI<T extends Record<keyof T, { request: unknown; response: unknown }>> {
-  Server: {
-    [K in keyof T]: (data: T[K]["request"]) => T[K]["response"] | Promise<T[K]["response"]>
-  }
-  Client: {
-    [K in keyof T]: (data: T[K]["request"]) => Promise<T[K]["response"]>
-  }
+export type IAPI<T extends Record<keyof T, { request: unknown; response: unknown }>> = {
+  [K in keyof T]: (
+    data: T[K]["request"],
+    client?: Client,
+  ) => T[K]["response"] | Promise<T[K]["response"]>
 }
-export type IBaseAPI = IAPI<BaseAPI>
-export type IExtendAPI = IAPI<ExtendAPI>
 
-/** 服务端 API 可返回同步或异步 Promise */
-export type ServerAPI = IBaseAPI["Server"] & Partial<IExtendAPI["Server"]>
-/** 客户端 API 只返回异步 Promise */
-export type ClientAPI = IBaseAPI["Client"] & IExtendAPI["Client"]
+/** API 可返回同步或异步 Promise */
+export type API = IAPI<BaseAPI> & ExtendAPI
