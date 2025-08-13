@@ -1,6 +1,6 @@
 import type { API, Contact, Event, Message } from "#protocol/type"
 import { toJSON } from "#util"
-import type Client from "../impl.js"
+import type Impl from "../impl.js"
 import type * as Milky from "../type/index.js"
 import { Common } from "./index.js"
 import * as MessageConverter from "./message.js"
@@ -15,19 +15,19 @@ export default class PhiliaToMilky implements API.API {
     Map<Contact.GroupMember["id"], Contact.GroupMember>
   >()
 
-  constructor(public client: Client) {}
+  constructor(public impl: Impl) {}
 
   receiveEvent(
     { event }: { event: Event.Handle | Event.Handle[] },
-    client?: Parameters<typeof this.client.event_handle.receive>[1],
+    client?: Parameters<typeof this.impl.event_handle.receive>[1],
   ) {
-    return this.client.event_handle.receive(event, client!)
+    return this.impl.event_handle.receive(event, client!)
   }
   unreceiveEvent(
     { event }: { event: Event.Handle | Event.Handle[] },
-    client?: Parameters<typeof this.client.event_handle.unreceive>[1],
+    client?: Parameters<typeof this.impl.event_handle.unreceive>[1],
   ) {
-    return this.client.event_handle.unreceive(event, client!)
+    return this.impl.event_handle.unreceive(event, client!)
   }
 
   async getSelfInfo({ refresh }: void | { refresh?: boolean } = {}) {
@@ -35,7 +35,7 @@ export default class PhiliaToMilky implements API.API {
       const cache = this.cache.get("self_info") as Contact.Self
       if (cache) return cache
     }
-    const res = await this.client.api.get_login_info()
+    const res = await this.impl.api.get_login_info()
     const ret: Contact.Self = {
       avatar: `https://q.qlogo.cn/g?b=qq&s=0&nk=${res.uin}`,
       ...res,
@@ -66,7 +66,7 @@ export default class PhiliaToMilky implements API.API {
       const cache = this.user_cache.get(id)
       if (cache) return cache
     }
-    const res = await this.client.api.get_friend_info({
+    const res = await this.impl.api.get_friend_info({
       user_id: +id,
       no_cache: refresh,
     })
@@ -91,7 +91,7 @@ export default class PhiliaToMilky implements API.API {
       const cache = this.group_cache.get(id)
       if (cache) return cache
     }
-    const res = await this.client.api.get_group_info({
+    const res = await this.impl.api.get_group_info({
       group_id: +id,
       no_cache: refresh,
     })
@@ -130,7 +130,7 @@ export default class PhiliaToMilky implements API.API {
       const cache = this.group_member_cache.get(id)?.get(uid)
       if (cache) return cache
     }
-    const res = await this.client.api.get_group_member_info({
+    const res = await this.impl.api.get_group_member_info({
       group_id: +id,
       user_id: +uid,
       no_cache: refresh,
@@ -152,17 +152,17 @@ export default class PhiliaToMilky implements API.API {
         break
       case "group":
         if (data.name !== undefined)
-          await this.client.api.set_group_name({
+          await this.impl.api.set_group_name({
             group_id: +id,
             name: data.name,
           })
         if (data.avatar !== undefined)
-          await this.client.api.set_group_avatar({
+          await this.impl.api.set_group_avatar({
             group_id: +id,
             image_uri: toJSON(data.avatar),
           })
         if (data.whole_mute !== undefined)
-          await this.client.api.set_group_whole_mute({
+          await this.impl.api.set_group_whole_mute({
             group_id: +id,
             is_mute: (data as Contact.Group).whole_mute,
           })
@@ -180,25 +180,25 @@ export default class PhiliaToMilky implements API.API {
     data: Partial<Contact.GroupMember>
   }) {
     if (data.card !== undefined)
-      await this.client.api.set_group_member_card({
+      await this.impl.api.set_group_member_card({
         group_id: +id,
         user_id: +uid,
         card: data.card,
       })
     if (data.title !== undefined)
-      await this.client.api.set_group_member_special_title({
+      await this.impl.api.set_group_member_special_title({
         group_id: +id,
         user_id: +uid,
         special_title: data.title,
       })
     if (data.role !== undefined)
-      await this.client.api.set_group_member_admin({
+      await this.impl.api.set_group_member_admin({
         group_id: +id,
         user_id: +uid,
         is_set: data.role === "admin",
       })
     if (data.mute_time !== undefined)
-      await this.client.api.set_group_member_mute({
+      await this.impl.api.set_group_member_mute({
         group_id: +id,
         user_id: +uid,
         duration: data.mute_time,
@@ -219,7 +219,7 @@ export default class PhiliaToMilky implements API.API {
       )
         return
     }
-    return this.client.api.quit_group({ group_id: +id })
+    return this.impl.api.quit_group({ group_id: +id })
   }
 
   delGroupMember({
@@ -231,7 +231,7 @@ export default class PhiliaToMilky implements API.API {
     uid: Contact.GroupMember["id"]
     block?: boolean
   }) {
-    return this.client.api.kick_group_member({
+    return this.impl.api.kick_group_member({
       group_id: +id,
       user_id: +uid,
       reject_add_request: block,
@@ -247,7 +247,7 @@ export default class PhiliaToMilky implements API.API {
     id: (Contact.User | Contact.Group)["id"]
     data: Message.Message
   }) {
-    const message = await new MessageConverter.PhiliaToMilky(this.client, {
+    const message = await new MessageConverter.PhiliaToMilky(this.impl, {
       message: data,
     } as Event.Message).convert()
     if (!message.after.length) {
@@ -259,11 +259,11 @@ export default class PhiliaToMilky implements API.API {
     }
     const peer_id = +id
     const res = await (scene === "user"
-      ? this.client.api.send_private_message({
+      ? this.impl.api.send_private_message({
           user_id: peer_id,
           message: message.after,
         })
-      : this.client.api.send_group_message({
+      : this.impl.api.send_group_message({
           group_id: peer_id,
           message: message.after,
         }))
@@ -287,7 +287,7 @@ export default class PhiliaToMilky implements API.API {
   }) {
     const messages: Milky.Struct.OutgoingForwardedMessage[] = []
     for (const i of data) {
-      const message = await new MessageConverter.PhiliaToMilky(this.client, {
+      const message = await new MessageConverter.PhiliaToMilky(this.impl, {
         message: i.message,
       } as Event.Message).convert()
       if (!message.after.length) continue
@@ -348,7 +348,7 @@ export default class PhiliaToMilky implements API.API {
     let file_id: string, type: Common.FileScene
     if (scene === "user") {
       file_id = (
-        await this.client.api.upload_private_file({
+        await this.impl.api.upload_private_file({
           user_id: peer_id,
           file_uri,
           file_name: data.name,
@@ -357,7 +357,7 @@ export default class PhiliaToMilky implements API.API {
       type = Common.FileScene.Private
     } else {
       file_id = (
-        await this.client.api.upload_group_file({
+        await this.impl.api.upload_group_file({
           group_id: peer_id,
           file_uri,
           file_name: data.name,
@@ -369,15 +369,15 @@ export default class PhiliaToMilky implements API.API {
   }
 
   async getMsg({ id }: { id: Event.Message["id"] }) {
-    const res = await this.client.api.get_message(Common.decodeMessageID(id))
-    return this.client.event.IncomingMessage(res.message)
+    const res = await this.impl.api.get_message(Common.decodeMessageID(id))
+    return this.impl.event.IncomingMessage(res.message)
   }
 
   delMsg({ id }: { id: Event.Message["id"] }) {
     const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
     return message_scene === "group"
-      ? this.client.api.recall_group_message({ group_id: peer_id, message_seq })
-      : this.client.api.recall_private_message({
+      ? this.impl.api.recall_group_message({ group_id: peer_id, message_seq })
+      : this.impl.api.recall_private_message({
           user_id: peer_id,
           message_seq,
         })
@@ -392,7 +392,7 @@ export default class PhiliaToMilky implements API.API {
     id: (Contact.User | Contact.Group)["id"]
     mid: Event.Message["id"]
   }) {
-    const { message } = await this.client.api.get_message(Common.decodeMessageID(mid))
+    const { message } = await this.impl.api.get_message(Common.decodeMessageID(mid))
     return this.sendMsg({
       scene,
       id,
@@ -410,11 +410,11 @@ export default class PhiliaToMilky implements API.API {
     const ret = { data: "url" } as Message.URLFile
     switch (scene) {
       case Common.FileScene.Resource:
-        ret.url = (await this.client.api.get_resource_temp_url({ resource_id: file_id })).url
+        ret.url = (await this.impl.api.get_resource_temp_url({ resource_id: file_id })).url
         break
       case Common.FileScene.Private:
         ret.url = (
-          await this.client.api.get_private_file_download_url({
+          await this.impl.api.get_private_file_download_url({
             user_id: peer_id!,
             file_id,
           })
@@ -422,7 +422,7 @@ export default class PhiliaToMilky implements API.API {
         break
       case Common.FileScene.Group:
         ret.url = (
-          await this.client.api.get_group_file_download_url({
+          await this.impl.api.get_group_file_download_url({
             group_id: peer_id!,
             file_id,
           })
@@ -433,11 +433,11 @@ export default class PhiliaToMilky implements API.API {
   }
 
   async getForwardMsg({ id }: { id: string }) {
-    const res = await this.client.api.get_forwarded_messages({
+    const res = await this.impl.api.get_forwarded_messages({
       forward_id: id,
     })
     return Promise.all(
-      res.messages.map(this.client.event.IncomingForwardedMessage.bind(this.client.event)),
+      res.messages.map(this.impl.event.IncomingForwardedMessage.bind(this.impl.event)),
     )
   }
 
@@ -455,7 +455,7 @@ export default class PhiliaToMilky implements API.API {
     let res: { messages: Milky.Struct.IncomingMessage[] }
     if (type === "message") {
       const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
-      res = await this.client.api.get_history_messages({
+      res = await this.impl.api.get_history_messages({
         message_scene,
         peer_id,
         start_message_seq: message_seq,
@@ -463,67 +463,59 @@ export default class PhiliaToMilky implements API.API {
         limit: count,
       })
     } else {
-      res = await this.client.api.get_history_messages({
+      res = await this.impl.api.get_history_messages({
         message_scene: type === "user" ? "friend" : type,
         peer_id: +id,
         direction: newer ? "newer" : "older",
         limit: count,
       })
     }
-    return Promise.all(res.messages.map(this.client.event.IncomingMessage.bind(this.client.event)))
+    return Promise.all(res.messages.map(this.impl.event.IncomingMessage.bind(this.impl.event)))
   }
 
   async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.keys())
-    const res = await this.client.api.get_friend_list({ no_cache: refresh })
-    const ret: Contact.User["id"][] = res.friends.map(i => String(i.user_id))
-    return ret
+    const res = await this.impl.api.get_friend_list({ no_cache: refresh })
+    return res.friends.map(i => String(i.user_id))
   }
-
   async getUserArray({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.values())
-    const res = await this.client.api.get_friend_list({ no_cache: refresh })
-    const ret: Contact.User[] = res.friends.map(this._convertUserInfo.bind(this))
-    return ret
+    const res = await this.impl.api.get_friend_list({ no_cache: refresh })
+    return res.friends.map(this._convertUserInfo.bind(this))
   }
 
   async getGroupList({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.keys())
-    const res = await this.client.api.get_group_list({ no_cache: refresh })
-    const ret: Contact.Group["id"][] = res.groups.map(i => String(i.group_id))
-    return ret
+    const res = await this.impl.api.get_group_list({ no_cache: refresh })
+    return res.groups.map(i => String(i.group_id))
   }
-
   async getGroupArray({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.values())
-    const res = await this.client.api.get_group_list({ no_cache: refresh })
-    const ret: Contact.Group[] = res.groups.map(this._convertGroupInfo.bind(this))
-    return ret
+    const res = await this.impl.api.get_group_list({ no_cache: refresh })
+    return res.groups.map(this._convertGroupInfo.bind(this))
   }
+
   async getGroupMemberList({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
     }
-    const res = await this.client.api.get_group_member_list({
+    const res = await this.impl.api.get_group_member_list({
       group_id: +id,
       no_cache: refresh,
     })
-    const ret: Contact.GroupMember["id"][] = res.members.map(i => String(i.user_id))
-    return ret
+    return res.members.map(i => String(i.user_id))
   }
-
   async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(group.values())
     }
-    const res = await this.client.api.get_group_member_list({
+    const res = await this.impl.api.get_group_member_list({
       group_id: +id,
       no_cache: refresh,
     })
-    const ret: Contact.GroupMember[] = res.members.map(i => this._convertGroupMemberInfo(i))
-    return ret
+    return res.members.map(i => this._convertGroupMemberInfo(i))
   }
 
   async getRequestArray({
@@ -533,20 +525,20 @@ export default class PhiliaToMilky implements API.API {
     let ret: (Promise<Event.Request> | Event.Request)[]
     switch (scene) {
       case "user": {
-        const res = await this.client.api.get_friend_requests({ limit: count })
-        ret = res.requests.map(this.client.event.FriendRequest.bind(this.client.event))
+        const res = await this.impl.api.get_friend_requests({ limit: count })
+        ret = res.requests.map(this.impl.event.FriendRequest.bind(this.impl.event))
         break
       }
       case "group_add": {
-        const res = await this.client.api.get_group_requests({ limit: count })
-        ret = res.requests.map(this.client.event.GroupRequest.bind(this.client.event))
+        const res = await this.impl.api.get_group_requests({ limit: count })
+        ret = res.requests.map(this.impl.event.GroupRequest.bind(this.impl.event))
         break
       }
       case "group_invite": {
-        const res = await this.client.api.get_group_invitations({
+        const res = await this.impl.api.get_group_invitations({
           limit: count,
         })
-        ret = res.invitations.map(this.client.event.GroupInvitation.bind(this.client.event))
+        ret = res.invitations.map(this.impl.event.GroupInvitation.bind(this.impl.event))
         break
       }
       default:
@@ -568,16 +560,16 @@ export default class PhiliaToMilky implements API.API {
     switch (req.scene) {
       case Common.RequestScene.Friend:
         return result
-          ? this.client.api.accept_friend_request({ request_id: id })
-          : this.client.api.reject_friend_request({ request_id: id, reason })
+          ? this.impl.api.accept_friend_request({ request_id: id })
+          : this.impl.api.reject_friend_request({ request_id: id, reason })
       case Common.RequestScene.Group:
         return result
-          ? this.client.api.accept_group_request({ request_id: id })
-          : this.client.api.reject_group_request({ request_id: id, reason })
+          ? this.impl.api.accept_group_request({ request_id: id })
+          : this.impl.api.reject_group_request({ request_id: id, reason })
       case Common.RequestScene.GroupInvitation:
         return result
-          ? this.client.api.accept_group_invitation({ request_id: id })
-          : this.client.api.reject_group_invitation({ request_id: id })
+          ? this.impl.api.accept_group_invitation({ request_id: id })
+          : this.impl.api.reject_group_invitation({ request_id: id })
     }
   }
 

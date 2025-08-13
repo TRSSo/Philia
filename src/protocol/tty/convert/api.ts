@@ -3,31 +3,31 @@ import path from "node:path"
 import { ulid } from "ulid"
 import type { API, Contact, Event, Message } from "#protocol/type"
 import { toBuffer } from "#util"
-import type Client from "../impl.js"
+import type Impl from "../impl.js"
 import MessageConvert from "./message.js"
 
 export default class PhiliaToTTY implements API.API {
-  constructor(public client: Client) {}
+  constructor(public impl: Impl) {}
 
   receiveEvent(
     { event }: { event: Event.Handle | Event.Handle[] },
-    client?: Parameters<typeof this.client.event_handle.receive>[1],
+    client?: Parameters<typeof this.impl.event_handle.receive>[1],
   ) {
-    return this.client.event_handle.receive(event, client!)
+    return this.impl.event_handle.receive(event, client!)
   }
   unreceiveEvent(
     { event }: { event: Event.Handle | Event.Handle[] },
-    client?: Parameters<typeof this.client.event_handle.unreceive>[1],
+    client?: Parameters<typeof this.impl.event_handle.unreceive>[1],
   ) {
-    return this.client.event_handle.unreceive(event, client!)
+    return this.impl.event_handle.unreceive(event, client!)
   }
 
   getSelfInfo() {
-    return this.client.self
+    return this.impl.self
   }
 
   setSelfInfo({ data }: { data: Partial<Contact.Self> }) {
-    Object.assign(this.client.self, data)
+    Object.assign(this.impl.self, data)
   }
 
   getUserInfo({ id }: { id: Contact.User["id"] }) {
@@ -108,8 +108,8 @@ export default class PhiliaToTTY implements API.API {
     id: (Contact.User | Contact.Group)["id"]
     data: Message.Message
   }) {
-    const message = await new MessageConvert(this.client, data).convert()
-    this.client.logger.info(`发送${scene === "user" ? "用户" : "群"}消息 ${id} ${message}`)
+    const message = await new MessageConvert(this.impl, data).convert()
+    this.impl.logger.info(`发送${scene === "user" ? "用户" : "群"}消息 ${id} ${message}`)
     const ret: Message.RSendMsg = { id: ulid(), time: Date.now() / 1000 }
     const event = {
       ...ret,
@@ -125,7 +125,7 @@ export default class PhiliaToTTY implements API.API {
       event.user = this.getSelfInfo()
       event.group = this.getGroupInfo({ id })
     }
-    this.client.event_message_map.set(ret.id, event)
+    this.impl.event_message_map.set(ret.id, event)
     return ret
   }
 
@@ -145,7 +145,7 @@ export default class PhiliaToTTY implements API.API {
   }
 
   getMsg({ id }: { id: Event.Message["id"] }) {
-    const ret = this.client.event_message_map.get(id)
+    const ret = this.impl.event_message_map.get(id)
     if (!ret) throw Error("未找到消息")
     return ret
   }
@@ -172,7 +172,7 @@ export default class PhiliaToTTY implements API.API {
       type: "file",
       name: id,
       data: "binary",
-      binary: await fs.readFile(path.join(this.client.path, "temp", id)),
+      binary: await fs.readFile(path.join(this.impl.path, "temp", id)),
     }
     return ret
   }
@@ -191,7 +191,7 @@ export default class PhiliaToTTY implements API.API {
     const ret: Event.Message[] = []
     if (type === "message") {
       const message = this.getMsg({ id })
-      for (const i of [...this.client.event_message_map.values()].reverse())
+      for (const i of [...this.impl.event_message_map.values()].reverse())
         if (
           i.scene === message.scene &&
           i[message.scene]?.id === message[message.scene]?.id &&
@@ -201,7 +201,7 @@ export default class PhiliaToTTY implements API.API {
           if (count && ret.length === count) break
         }
     } else {
-      for (const i of [...this.client.event_message_map.values()].reverse())
+      for (const i of [...this.impl.event_message_map.values()].reverse())
         if (i.scene === type && i[type]?.id === id) {
           ret.push(i)
           if (count && ret.length === count) break
@@ -214,13 +214,13 @@ export default class PhiliaToTTY implements API.API {
     return this.getUserArray().map(i => i.id)
   }
   getUserArray() {
-    return [this.client.user, this.client.self]
+    return [this.impl.user, this.impl.self]
   }
   getGroupList() {
     return this.getGroupArray().map(i => i.id)
   }
   getGroupArray() {
-    return [this.client.group]
+    return [this.impl.group]
   }
   getGroupMemberList({ id }: { id: Contact.Group["id"] }) {
     return this.getGroupMemberArray({ id }).map(i => i.id)
@@ -233,26 +233,26 @@ export default class PhiliaToTTY implements API.API {
     scene,
     count,
   }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
-    let ret: Event.Request[] = Array.from(this.client.event_request_map.values())
+    let ret: Event.Request[] = Array.from(this.impl.event_request_map.values())
     if (scene) ret = ret.filter(i => i.scene === scene)
     if (count) ret = ret.slice(0, count)
     return ret
   }
 
   async setRequest({ id, result }: { id: string; result: boolean }) {
-    const event = this.client.event_request_map.get(id)
+    const event = this.impl.event_request_map.get(id)
     if (!event) throw Error("未找到请求")
     event.state = result ? "accepted" : "rejected"
   }
 
   async uploadCacheFile({ file }: { file: string | Buffer }) {
     const id = ulid()
-    await fs.writeFile(path.join(this.client.path, "temp", id), await toBuffer(file))
+    await fs.writeFile(path.join(this.impl.path, "temp", id), await toBuffer(file))
     return id
   }
 
   async clearCache() {
-    const dir = path.join(this.client.path, "temp")
+    const dir = path.join(this.impl.path, "temp")
     await fs.rm(dir, { recursive: true, force: true })
     await fs.mkdir(dir)
   }

@@ -3,14 +3,14 @@ import path from "node:path"
 import { ulid } from "ulid"
 import type { Message } from "#protocol/type"
 import { modeMatch } from "#util"
-import type Client from "../impl.js"
+import type Impl from "../impl.js"
 
 export default class PhiliaToTTY {
   message: (string | Message.MessageSegment)[]
   summary = ""
 
   constructor(
-    public client: Client,
+    public impl: Impl,
     message: Message.Message,
   ) {
     this.message = Array.isArray(message) ? message : [message]
@@ -58,16 +58,16 @@ export default class PhiliaToTTY {
   }
 
   async file(ms: Message.AFile, name = "文件"): Promise<void> {
-    if (!this.client.path) {
+    if (!this.impl.path) {
       this.summary += ms.summary ?? `[${name}: ${ms.name}]`
       return
     }
     try {
       switch (ms.data) {
         case "id":
-          return this.file(await this.client.handle.getFile({ id: ms.id as string }))
+          return this.file(await this.impl.handle.getFile({ id: ms.id as string }))
         case "binary": {
-          const save_path = path.join(this.client.path, "data", `${ulid()}-${ms.name || "Buffer"}`)
+          const save_path = path.join(this.impl.path, "data", `${ulid()}-${ms.name || "Buffer"}`)
           if (typeof ms.binary === "string")
             ms.binary = Buffer.from(ms.binary.replace("base64://", ""), "base64")
           await fs.writeFile(save_path, ms.binary as Buffer)
@@ -85,7 +85,7 @@ export default class PhiliaToTTY {
           )
         case "path": {
           const save_path = path.join(
-            this.client.path,
+            this.impl.path,
             "data",
             `${ulid()}-${ms.name || path.basename(ms.path as string)}`,
           )
@@ -95,7 +95,7 @@ export default class PhiliaToTTY {
         }
       }
     } catch (err) {
-      this.client.logger.error(`${name}保存错误`, ms, err)
+      this.impl.logger.error(`${name}保存错误`, ms, err)
     }
   }
 

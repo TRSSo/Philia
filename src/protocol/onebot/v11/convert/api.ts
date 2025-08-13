@@ -452,29 +452,23 @@ export class PhiliaToOBv11 implements API.API {
   async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.keys())
     const res = await this.client.api.get_friend_list()
-    const ret: Contact.User["id"][] = res.map(i => String(i.user_id))
-    return ret
+    return res.map(i => String(i.user_id))
   }
-
   async getUserArray({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.values())
     const res = await this.client.api.get_friend_list()
-    const ret: Contact.User[] = res.map(this._convertUserInfo.bind(this))
-    return ret
+    return res.map(this._convertUserInfo.bind(this))
   }
 
   async getGroupList({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.keys())
     const res = await this.client.api.get_group_list()
-    const ret: Contact.Group["id"][] = res.map(i => String(i.group_id))
-    return ret
+    return res.map(i => String(i.group_id))
   }
-
   async getGroupArray({ refresh }: void | { refresh?: boolean } = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.values())
     const res = await this.client.api.get_group_list()
-    const ret: Contact.Group[] = res.map(this._convertGroupInfo.bind(this))
-    return ret
+    return res.map(this._convertGroupInfo.bind(this))
   }
 
   async getGroupMemberList({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
@@ -483,18 +477,15 @@ export class PhiliaToOBv11 implements API.API {
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
     }
     const res = await this.client.api.get_group_member_list({ group_id: +id })
-    const ret: Contact.GroupMember["id"][] = res.map(i => String(i.user_id))
-    return ret
+    return res.map(i => String(i.user_id))
   }
-
   async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(group.values())
     }
     const res = await this.client.api.get_group_member_list({ group_id: +id })
-    const ret: Contact.GroupMember[] = res.map(i => this._convertGroupMemberInfo(id, i))
-    return ret
+    return res.map(i => this._convertGroupMemberInfo(id, i))
   }
 
   getRequestArray({

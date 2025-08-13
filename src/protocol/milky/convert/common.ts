@@ -80,7 +80,7 @@ export function decodeRequestID(id: string) {
   const match = id.match(/^(\d+)\|/)
   if (!match) throw Error("无法解析的请求ID")
   return {
-    scene: Number(match[0]) as RequestScene,
+    scene: +match[0] as RequestScene,
     id: id.replace(match[0], ""),
   }
 }

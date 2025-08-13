@@ -55,7 +55,7 @@ export default class EventHandle {
         if (i.uid && !(event.user?.id && modeMatch(i.uid, event.user.id))) continue
         if (i.gid && !(event.group?.id && modeMatch(i.gid, event.group.id))) continue
         if (!this.philia.clients.has(i.client)) {
-          handles.splice(Number(index), 1)
+          handles.splice(+index, 1)
           continue
         }
         i.client.request(i.handle, event)

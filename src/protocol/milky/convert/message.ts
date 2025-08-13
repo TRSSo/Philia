@@ -1,7 +1,7 @@
 import { ulid } from "ulid"
 import type * as Philia from "#protocol/type"
 import { modeMatch } from "#util"
-import type Client from "../impl.js"
+import type Impl from "../impl.js"
 import * as Milky from "../type/index.js"
 import * as Common from "./common.js"
 
@@ -19,7 +19,7 @@ export class MilkyToPhilia {
    * @param event 消息事件
    */
   constructor(
-    public client: Client,
+    public impl: Impl,
     public event: Milky.Struct.IncomingMessage,
   ) {
     this.before = Array.isArray(event.segments) ? event.segments : [event.segments]
@@ -121,7 +121,7 @@ export class PhiliaToMilky {
   file_id?: string[]
 
   constructor(
-    public client: Client,
+    public impl: Impl,
     public event: Philia.Event.Message,
   ) {
     this.before = Array.isArray(event.message) ? event.message : [event.message]
@@ -192,7 +192,7 @@ export class PhiliaToMilky {
         ret = {
           type,
           data: {
-            uri: (await this.client.handle.getFile({ id: ms.id as string })).url,
+            uri: (await this.impl.handle.getFile({ id: ms.id as string })).url,
           },
         } as T
         break
@@ -218,7 +218,7 @@ export class PhiliaToMilky {
   }
 
   async file(ms: Philia.Message.File | Philia.Message.Audio) {
-    const ret = await this.client.handle._sendFile({
+    const ret = await this.impl.handle._sendFile({
       scene: this.event.scene,
       id: this.event.scene === "user" ? this.event.user.id : this.event.group.id,
       data: ms,

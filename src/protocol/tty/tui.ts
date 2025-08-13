@@ -6,22 +6,22 @@ import type { Logger } from "#logger"
 import * as Philia from "#project/project/philia.js"
 import type * as Type from "#protocol/type"
 import { sendInfo } from "#util/tui.js"
-import Client from "./impl.js"
+import Impl from "./impl.js"
 
 export class Tui {
   path = path.join("project", "tty")
-  client!: Client
+  impl!: Impl
   constructor(public logger: Logger) {}
 
   async main() {
     await fs.mkdir(this.path, { recursive: true })
     process.chdir(this.path)
-    this.client = new Client(this.logger, await Philia.Project.createConfig())
-    await this.client.start()
+    this.impl = new Impl(this.logger, await Philia.Project.createConfig())
+    await this.impl.start()
     for (;;)
       try {
-        if (this.client.philia.clients.size === 0)
-          this.logger.info("等待客户端连接中", this.client.philia.config.path)
+        if (this.impl.philia.clients.size === 0)
+          this.logger.info("等待客户端连接中", this.impl.philia.config.path)
         else await this.send()
         await sendInfo()
       } catch (err) {
@@ -61,11 +61,11 @@ export class Tui {
       type: "message",
       time: Date.now() / 1000,
       scene: "user",
-      user: this.client.self,
+      user: this.impl.self,
       message: [{ type: "text", data: answer }],
       summary: answer,
     }
-    this.client.event_message_map.set(event.id, event)
-    return this.client.event_handle.handle(event)
+    this.impl.event_message_map.set(event.id, event)
+    return this.impl.event_handle.handle(event)
   }
 }

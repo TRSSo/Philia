@@ -1,3 +1,4 @@
+import type { HandleMap } from "#connect/common/type.js"
 import { type Logger, makeLogger } from "#logger"
 import type * as Common from "../project/common.js"
 import * as Philia from "../project/philia.js"
@@ -35,10 +36,7 @@ export default class Manager {
     this.logger_manager = new LoggerManager(this)
 
     this.handle = API(this)
-    this.philia = new Philia.Project(
-      this.config.philia,
-      this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
-    )
+    this.philia = new Philia.Project(this.config.philia, this.handle as unknown as HandleMap)
     this.philia.logger = this.logger
   }
 

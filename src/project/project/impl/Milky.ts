@@ -1,5 +1,5 @@
 import * as inquirer from "@inquirer/prompts"
-import { Client } from "#protocol/milky"
+import { Impl } from "#protocol/milky"
 import * as Common from "../common.js"
 import * as Philia from "../philia.js"
 
@@ -9,11 +9,11 @@ export interface IConfig extends Common.IConfig {
 
 export class Project extends Common.Project {
   declare config: IConfig
-  client: Client
+  impl: Impl
 
   constructor(config: IConfig) {
     super(config)
-    this.client = new Client(this.logger, this.config.philia, this.config.server)
+    this.impl = new Impl(this.logger, this.config.philia, this.config.server)
   }
 
   static async createConfig(name: IConfig["name"]): Promise<IConfig> {
@@ -47,10 +47,10 @@ export class Project extends Common.Project {
   }
 
   start() {
-    return this.client.start()
+    return this.impl.start()
   }
 
   stop() {
-    return this.client.close()
+    return this.impl.close()
   }
 }

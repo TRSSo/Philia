@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "oxlint --fix src && biome check --write src",
     "compile": "rm -rf lib/* && tsc",
-    "minify": "node mod/oxc-minify lib",
+    "minify": "node mod/minify lib",
     "build": "pnpm lint && pnpm compile && pnpm minify",
     "main": "node lib/main"
   },
@@ -17,8 +17,8 @@
     "@biomejs/biome": "^2.1.4",
     "@types/node": "^24.2.1",
     "@types/ws": "^8.18.1",
-    "oxc-minify": "^0.81.0",
-    "oxlint": "^1.11.1",
+    "oxc-minify": "^0.82.1",
+    "oxlint": "^1.11.2",
     "typescript": "^5.9.2"
   },
   "dependencies": {

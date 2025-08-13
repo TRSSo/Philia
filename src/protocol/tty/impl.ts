@@ -1,4 +1,5 @@
 import fs from "node:fs/promises"
+import type { HandleMap } from "#connect/common/type.js"
 import type { Logger } from "#logger"
 import * as Philia from "#project/project/philia.js"
 import { EventHandle } from "#protocol/common"
@@ -22,10 +23,7 @@ export default class Impl {
     public logger: Logger,
     philia: Philia.IConfig,
   ) {
-    this.philia = new Philia.Project(
-      philia,
-      this.handle as unknown as ConstructorParameters<typeof Philia.Project>[1],
-    )
+    this.philia = new Philia.Project(philia, this.handle as unknown as HandleMap)
     this.event_handle = new EventHandle(this.philia)
   }
 
