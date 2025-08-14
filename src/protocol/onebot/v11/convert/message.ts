@@ -43,10 +43,11 @@ export class OBv11toPhilia {
   }
 
   _text(text: any, markdown?: string) {
-    text = String(text)
-    if (!text.length) return
-    this.after.push({ type: "text", data: text, markdown })
-    this.summary += text
+    const ms: Philia.Message.Text = { type: "text", data: String(text) }
+    if (!ms.data.length) return
+    if (markdown) ms.markdown = markdown
+    this.after.push(ms)
+    this.summary += ms.data
   }
 
   text(ms: OBv11.Message.Text) {
@@ -144,9 +145,11 @@ export class PhiliaToOBv11 {
   summary = ""
   constructor(
     public client: Client,
-    public event: Philia.Event.Message,
+    public scene: Philia.Event.Message["scene"],
+    public id: (Philia.Contact.User | Philia.Contact.Group)["id"],
+    message: Philia.Message.Message,
   ) {
-    this.before = Array.isArray(event.message) ? event.message : [event.message]
+    this.before = Array.isArray(message) ? message : [message]
   }
 
   async convert() {
@@ -231,11 +234,7 @@ export class PhiliaToOBv11 {
   }
 
   async file(ms: Philia.Message.File) {
-    await this.client.handle._sendFile({
-      scene: this.event.scene,
-      id: this.event.scene === "user" ? this.event.user.id : this.event.group.id,
-      data: ms,
-    })
+    await this.client.handle._sendFile({ scene: this.scene, id: this.id, data: ms })
     this.summary += ms.summary ?? `[文件: ${ms.name}]`
   }
 
@@ -250,11 +249,7 @@ export class PhiliaToOBv11 {
   }
 
   async audio(ms: Philia.Message.Audio) {
-    await this.client.handle._sendFile({
-      scene: this.event.scene,
-      id: this.event.scene === "user" ? this.event.user.id : this.event.group.id,
-      data: ms,
-    })
+    await this.client.handle._sendFile({ scene: this.scene, id: this.id, data: ms })
     this.summary += ms.summary ?? `[音频: ${ms.name}]`
   }
 

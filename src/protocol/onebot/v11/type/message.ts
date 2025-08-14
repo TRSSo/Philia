@@ -3,7 +3,7 @@ export interface AMessage {
   /** 消息类型 */
   type: string
   /** 消息数据 */
-  data: { [key: string]: unknown }
+  data: { [key in string]?: unknown }
 }
 
 /** 文本消息 */

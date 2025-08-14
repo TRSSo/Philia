@@ -97,9 +97,9 @@ export abstract class Message implements Quotable, Forwardable {
     } as unknown as typeof this.sender
     this.time = event.time
     this.message_id = event.id
-    this.seq = (event.seq as number) || this.message_id
-    this.rand = (event.rand as number) || 0
-    this.font = (event.font as string) || "unknown"
+    this.seq = (event.raw?.seq as number) || this.message_id
+    this.rand = (event.raw?.rand as number) || 0
+    this.font = (event.raw?.font as string) || "unknown"
     this.raw_message = event.summary
     this.parsed = new PhiliaToOICQ(this.c, event.message)
     lock(this, "parsed")

@@ -10,13 +10,13 @@ export default class PhiliaToTTY implements API.API {
   constructor(public impl: Impl) {}
 
   receiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"receiveEvent">,
     client?: Parameters<typeof this.impl.event_handle.receive>[1],
   ) {
     return this.impl.event_handle.receive(event, client!)
   }
   unreceiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"unreceiveEvent">,
     client?: Parameters<typeof this.impl.event_handle.unreceive>[1],
   ) {
     return this.impl.event_handle.unreceive(event, client!)
@@ -26,26 +26,26 @@ export default class PhiliaToTTY implements API.API {
     return this.impl.self
   }
 
-  setSelfInfo({ data }: { data: Partial<Contact.Self> }) {
+  setSelfInfo({ data }: API.Req<"setSelfInfo">) {
     Object.assign(this.impl.self, data)
   }
 
-  getUserInfo({ id }: { id: Contact.User["id"] }) {
+  getUserInfo({ id }: API.Req<"getUserInfo">) {
     for (const i of this.getUserArray()) if (i.id === id) return i
     throw Error("未找到用户")
   }
 
-  getGroupInfo({ id }: { id: Contact.Group["id"] }) {
+  getGroupInfo({ id }: API.Req<"getGroupInfo">) {
     for (const i of this.getGroupArray()) if (i.id === id) return i
     throw Error("未找到群")
   }
 
-  getGroupMemberInfo({ id, uid }: { id: Contact.Group["id"]; uid: Contact.User["id"] }) {
+  getGroupMemberInfo({ id, uid }: API.Req<"getGroupMemberInfo">) {
     for (const i of this.getGroupMemberArray({ id })) if (i.id === uid) return i
     throw Error("未找到群成员")
   }
 
-  getInfo({
+  _getInfo({
     scene,
     id,
   }: {
@@ -60,54 +60,30 @@ export default class PhiliaToTTY implements API.API {
     }
   }
 
-  setInfo({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Partial<Contact.User | Contact.Group>
-  }) {
-    Object.assign(this.getInfo({ scene, id }), data)
+  setInfo({ scene, id, data }: API.Req<"setInfo">) {
+    Object.assign(this._getInfo({ scene, id }), data)
   }
 
-  setGroupMemberInfo({
-    id,
-    uid,
-    data,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.User["id"]
-    data: Partial<Contact.GroupMember>
-  }) {
+  setGroupMemberInfo({ id, uid, data }: API.Req<"setGroupMemberInfo">) {
     Object.assign(this.getGroupMemberInfo({ id, uid }), data)
   }
 
-  delUser({ id }: { id: Contact.User["id"] }) {
+  delUser({ id }: API.Req<"delUser">) {
     this.getUserInfo({ id })
     throw Error("无法删除用户")
   }
 
-  delGroup({ id }: { id: Contact.Group["id"] }) {
+  delGroup({ id }: API.Req<"delGroup">) {
     this.getGroupInfo({ id })
     throw Error("无法删除群")
   }
 
-  delGroupMember({ id, uid }: { id: Contact.Group["id"]; uid: Contact.GroupMember["id"] }) {
+  delGroupMember({ id, uid }: API.Req<"delGroupMember">) {
     this.getGroupMemberInfo({ id, uid })
     throw Error("无法删除群成员")
   }
 
-  async sendMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Message
-  }) {
+  async sendMsg({ scene, id, data }: API.Req<"sendMsg">) {
     const message = await new MessageConvert(this.impl, data).convert()
     this.impl.logger.info(`发送${scene === "user" ? "用户" : "群"}消息 ${id} ${message}`)
     const ret: Message.RSendMsg = { id: ulid(), time: Date.now() / 1000 }
@@ -119,7 +95,7 @@ export default class PhiliaToTTY implements API.API {
       summary: message,
     } as Event.Message
     if (scene === "user") {
-      event.is_self = true
+      ;(event as Event.UserMessage).is_self = true
       event.user = this.getUserInfo({ id })
     } else {
       event.user = this.getSelfInfo()
@@ -129,45 +105,29 @@ export default class PhiliaToTTY implements API.API {
     return ret
   }
 
-  async sendMultiMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Forward[]
-  }) {
+  async sendMultiMsg({ scene, id, data }: API.Req<"sendMultiMsg">) {
     const ret: Message.RSendMsg[] = []
     for (const i of data)
       ret.push(await this.sendMsg({ scene, id: i.user?.id || id, data: i.message }))
     return ret
   }
 
-  getMsg({ id }: { id: Event.Message["id"] }) {
+  getMsg({ id }: API.Req<"getMsg">) {
     const ret = this.impl.event_message_map.get(id)
     if (!ret) throw Error("未找到消息")
     return ret
   }
 
-  delMsg({ id }: { id: Event.Message["id"] }) {
+  delMsg({ id }: API.Req<"delMsg">) {
     this.getMsg({ id })
   }
 
-  sendMsgForward({
-    scene,
-    id,
-    mid,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    mid: Event.Message["id"]
-  }) {
+  sendMsgForward({ scene, id, mid }: API.Req<"sendMsgForward">) {
     const { message } = this.getMsg({ id: mid })
     return this.sendMsg({ scene, id, data: message })
   }
 
-  async getFile({ id }: { id: Message.IDFile["id"] }) {
+  async getFile({ id }: API.Req<"getFile">) {
     const ret: Message.BinaryFile = {
       type: "file",
       name: id,
@@ -177,17 +137,7 @@ export default class PhiliaToTTY implements API.API {
     return ret
   }
 
-  getChatHistory({
-    type,
-    id,
-    count,
-    newer,
-  }: {
-    type: "message" | Event.Message["scene"]
-    id: (Event.Message | Contact.User | Contact.Group)["id"]
-    count?: number
-    newer?: boolean
-  }) {
+  getChatHistory({ type, id, count, newer }: API.Req<"getChatHistory">) {
     const ret: Event.Message[] = []
     if (type === "message") {
       const message = this.getMsg({ id })
@@ -222,30 +172,27 @@ export default class PhiliaToTTY implements API.API {
   getGroupArray() {
     return [this.impl.group]
   }
-  getGroupMemberList({ id }: { id: Contact.Group["id"] }) {
+  getGroupMemberList({ id }: API.Req<"getGroupMemberList">) {
     return this.getGroupMemberArray({ id }).map(i => i.id)
   }
-  getGroupMemberArray({ id }: { id: Contact.Group["id"] }) {
+  getGroupMemberArray({ id }: API.Req<"getGroupMemberArray">) {
     return this.getGroupInfo({ id }) && (this.getUserArray() as Contact.GroupMember[])
   }
 
-  getRequestArray({
-    scene,
-    count,
-  }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
+  getRequestArray({ scene, count }: API.Req<"getRequestArray"> = {}) {
     let ret: Event.Request[] = Array.from(this.impl.event_request_map.values())
     if (scene) ret = ret.filter(i => i.scene === scene)
     if (count) ret = ret.slice(0, count)
     return ret
   }
 
-  async setRequest({ id, result }: { id: string; result: boolean }) {
+  async setRequest({ id, result }: API.Req<"setRequest">) {
     const event = this.impl.event_request_map.get(id)
     if (!event) throw Error("未找到请求")
     event.state = result ? "accepted" : "rejected"
   }
 
-  async uploadCacheFile({ file }: { file: string | Buffer }) {
+  async uploadCacheFile({ file }: API.Req<"uploadCacheFile">) {
     const id = ulid()
     await fs.writeFile(path.join(this.impl.path, "temp", id), await toBuffer(file))
     return id

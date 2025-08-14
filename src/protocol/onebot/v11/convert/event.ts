@@ -19,13 +19,14 @@ export class OBv11toPhilia {
   async message(data: OBv11.Event.Message) {
     const message = await new Message.OBv11toPhilia(this.client, data).convert()
     const event = {
-      ...data,
+      raw: data,
       id: String(data.message_id),
+      time: data.time,
       type: "message",
       scene: "user",
       message: message.after,
       summary: message.summary,
-    } as unknown as Philia.Event.Message
+    } as Philia.Event.Message
 
     if (data.message_type === "group") {
       event.scene = "group"
@@ -50,20 +51,18 @@ export class OBv11toPhilia {
 
   async request(data: OBv11.Event.Request) {
     const event = {
+      raw: data,
       id: data.flag,
       type: "request",
       scene: "user",
-      time: data.time || Date.now() / 1000,
+      time: data.time,
       user: await this.client.handle.getUserInfo({ id: String(data.user_id) }),
       state: "pending",
       reason: data.comment,
     } as Philia.Event.Request
     if (data.request_type === "group") {
       event.scene = `group_${data.sub_type}`
-      event.group = await this.client.handle.getGroupInfo({
-        id: String(data.group_id),
-      })
-      event.sub_type = data.sub_type
+      event.group = await this.client.handle.getGroupInfo({ id: String(data.group_id) })
     }
     this.event_map.set(event.id, event)
     return event

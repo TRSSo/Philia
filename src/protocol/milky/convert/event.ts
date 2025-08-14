@@ -23,6 +23,7 @@ export default class Event {
     ).convert()
     const event: Philia.Message.Forward = {
       message: message.after,
+      summary: message.summary,
       time: data.time,
       user: { name: data.name, avatar: data.avatar_url },
     }
@@ -32,6 +33,7 @@ export default class Event {
   async IncomingMessage(data: Milky.Struct.IncomingMessage) {
     const message = await new Message.MilkyToPhilia(this.impl, data).convert()
     const event = {
+      raw: data,
       id: Common.encodeMessageID(data.message_scene, data.peer_id, data.message_seq),
       type: "message",
       time: data.time,
@@ -69,6 +71,7 @@ export default class Event {
 
   async bot_offline(data: Milky.Event.BotOffline) {
     const event: Philia.Event.BotOffline = {
+      raw: data,
       id: ulid(),
       type: "notice",
       scene: "bot_offline",
@@ -82,6 +85,7 @@ export default class Event {
   async message_recall(data: Milky.Event.MessageRecall) {
     let event: Philia.Event.UserMessageRecall | Philia.Event.GroupMessageRecall
     const temp = {
+      raw: data,
       id: ulid(),
       type: "notice" as const,
       time: data.time,
@@ -128,6 +132,7 @@ export default class Event {
 
   async FriendRequest(data: Milky.Struct.FriendRequest) {
     const event: Philia.Event.UserRequest = {
+      raw: data,
       id: Common.encodeRequestID(Common.RequestScene.Friend, data.request_id),
       type: "request",
       time: data.time,
@@ -146,6 +151,7 @@ export default class Event {
 
   async GroupRequest(data: Milky.Struct.GroupRequest) {
     const event: Philia.Event.GroupRequest = {
+      raw: data,
       id: Common.encodeRequestID(Common.RequestScene.Group, data.request_id),
       type: "request",
       time: data.time,
@@ -180,6 +186,7 @@ export default class Event {
 
   async GroupInvitation(data: Milky.Struct.GroupInvitation) {
     const event: Philia.Event.GroupRequest = {
+      raw: data,
       id: Common.encodeRequestID(Common.RequestScene.GroupInvitation, data.request_id),
       type: "request",
       time: data.time,
@@ -200,6 +207,7 @@ export default class Event {
 
   async friend_nudge(data: Milky.Event.FriendNudge) {
     const event: Philia.Event.UserPoke = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -215,6 +223,7 @@ export default class Event {
 
   async friend_file_upload(data: Milky.Event.FriendFileUpload) {
     const event: Philia.Event.UserFileUpload = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -236,6 +245,7 @@ export default class Event {
 
   async group_admin_change(data: Milky.Event.GroupAdminChange) {
     const event: Philia.Event.GroupMemberInfo = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -262,6 +272,7 @@ export default class Event {
       id: Common.encodeMessageID("group", data.data.group_id, data.data.message_seq),
     })
     const event: Philia.Event.GroupEssenceMessage = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -277,6 +288,7 @@ export default class Event {
 
   async group_member_increase(data: Milky.Event.GroupMemberIncrease) {
     const event: Philia.Event.GroupMember = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -304,6 +316,7 @@ export default class Event {
 
   async group_member_decrease(data: Milky.Event.GroupMemberDecrease) {
     const event: Philia.Event.GroupMember = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -326,6 +339,7 @@ export default class Event {
 
   async group_name_change(data: Milky.Event.GroupNameChange) {
     const event: Philia.Event.GroupInfo = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -344,6 +358,7 @@ export default class Event {
 
   async group_message_reaction(data: Milky.Event.GroupMessageReaction) {
     const event: Philia.Event.GroupMessageReaction = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -363,6 +378,7 @@ export default class Event {
 
   async group_mute(data: Milky.Event.GroupMute) {
     const event: Philia.Event.GroupMemberInfo = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -385,6 +401,7 @@ export default class Event {
 
   async group_whole_mute(data: Milky.Event.GroupWholeMute) {
     const event: Philia.Event.GroupInfo = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -403,6 +420,7 @@ export default class Event {
 
   async group_nudge(data: Milky.Event.GroupNudge) {
     const event: Philia.Event.GroupPoke = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,
@@ -425,6 +443,7 @@ export default class Event {
 
   async group_file_upload(data: Milky.Event.GroupFileUpload) {
     const event: Philia.Event.GroupFileUpload = {
+      raw: data,
       id: ulid(),
       type: "notice",
       time: data.time,

@@ -140,8 +140,8 @@ export abstract class Contactable {
       message_id: ret.id,
       file_id: ret.file_id,
       time: ret.time,
-      rand: ret.rand as number,
-      seq: ret.seq as number,
+      rand: ret.raw?.rand as number,
+      seq: ret.raw?.seq as number,
     }
   }
 
@@ -174,8 +174,8 @@ export abstract class Contactable {
         message_id: res.id,
         file_id: res.file_id,
         time: res.time,
-        rand: res.rand as number,
-        seq: res.seq as number,
+        rand: res.raw?.rand as number,
+        seq: res.raw?.seq as number,
       }
     }
     if (!ret) throw Error("空合并转发消息")

@@ -122,33 +122,25 @@ export class Client extends events {
     return this.client.close()
   }
 
-  /** 发送一个业务包不等待返回 */
-  writeUni(cmd: string, body: Uint8Array, seq = 0) {
-    return this.api.writeUni({ cmd, body, seq })
+  /** OICQ 内部方法 */
+  writeUni(...args: unknown[]) {
+    return this.api.writeUni(args)
   }
-
-  /** dont use it if not clear the usage */
-  sendOidb(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.api.sendOidb({ cmd, body, timeout })
+  sendOidb(...args: unknown[]) {
+    return this.api.sendOidb(args)
   }
-
-  sendPacket(type: string, cmd: string, body: any) {
-    return this.api.sendPacket({ type, cmd, body })
+  sendPacket(...args: unknown[]) {
+    return this.api.sendPacket(args)
   }
-
-  /** 发送一个业务包并等待返回 */
-  sendUni(cmd: string, body: Uint8Array, timeout = 5) {
-    return this.api.sendUni({ cmd, body, timeout })
+  sendUni(...args: unknown[]) {
+    return this.api.sendUni(args)
   }
-
-  sendOidbSvcTrpcTcp(cmd: string, body: Uint8Array | object) {
-    return this.api.sendOidbSvcTrpcTcp({ cmd, body })
+  sendOidbSvcTrpcTcp(...args: unknown[]) {
+    return this.api.sendOidbSvcTrpcTcp(args)
   }
 
   /** csrf token */
   bkn?: number
-
-  /** @todo 未知属性 */
   cookies?: { [domain in Domain]: string }
 
   /** 数据统计 */

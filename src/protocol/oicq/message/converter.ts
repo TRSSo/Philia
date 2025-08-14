@@ -75,11 +75,12 @@ export class OICQtoPhilia {
   }
 
   _text(text: any, markdown?: string) {
-    text = String(text)
-    if (!text.length) return
-    this.after.push({ type: "text", data: text, markdown })
-    this.length += text.length
-    this.brief += text
+    const ms: Philia.Message.Text = { type: "text", data: String(text) }
+    if (!ms.data.length) return
+    if (markdown) ms.markdown = markdown
+    this.after.push(ms)
+    this.length += ms.data.length
+    this.brief += ms.data
   }
 
   text(ms: TextElem) {

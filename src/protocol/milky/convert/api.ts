@@ -18,19 +18,19 @@ export default class PhiliaToMilky implements API.API {
   constructor(public impl: Impl) {}
 
   receiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"receiveEvent">,
     client?: Parameters<typeof this.impl.event_handle.receive>[1],
   ) {
     return this.impl.event_handle.receive(event, client!)
   }
   unreceiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"unreceiveEvent">,
     client?: Parameters<typeof this.impl.event_handle.unreceive>[1],
   ) {
     return this.impl.event_handle.unreceive(event, client!)
   }
 
-  async getSelfInfo({ refresh }: void | { refresh?: boolean } = {}) {
+  async getSelfInfo({ refresh }: API.Req<"getSelfInfo"> = {}) {
     if (!refresh) {
       const cache = this.cache.get("self_info") as Contact.Self
       if (cache) return cache
@@ -61,7 +61,7 @@ export default class PhiliaToMilky implements API.API {
     return ret
   }
 
-  async getUserInfo({ id, refresh }: { id: Contact.User["id"]; refresh?: boolean }) {
+  async getUserInfo({ id, refresh }: API.Req<"getUserInfo">) {
     if (!refresh) {
       const cache = this.user_cache.get(id)
       if (cache) return cache
@@ -86,7 +86,7 @@ export default class PhiliaToMilky implements API.API {
     return ret
   }
 
-  async getGroupInfo({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupInfo({ id, refresh }: API.Req<"getGroupInfo">) {
     if (!refresh) {
       const cache = this.group_cache.get(id)
       if (cache) return cache
@@ -117,15 +117,7 @@ export default class PhiliaToMilky implements API.API {
     return ret
   }
 
-  async getGroupMemberInfo({
-    id,
-    uid,
-    refresh,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.User["id"]
-    refresh?: boolean
-  }) {
+  async getGroupMemberInfo({ id, uid, refresh }: API.Req<"getGroupMemberInfo">) {
     if (!refresh) {
       const cache = this.group_member_cache.get(id)?.get(uid)
       if (cache) return cache
@@ -138,15 +130,7 @@ export default class PhiliaToMilky implements API.API {
     return this._convertGroupMemberInfo(res.member)
   }
 
-  async setInfo({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Partial<Contact.User | Contact.Group>
-  }) {
+  async setInfo({ scene, id, data }: API.Req<"setInfo">) {
     switch (scene) {
       case "user":
         break
@@ -170,15 +154,7 @@ export default class PhiliaToMilky implements API.API {
     }
   }
 
-  async setGroupMemberInfo({
-    id,
-    uid,
-    data,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.User["id"]
-    data: Partial<Contact.GroupMember>
-  }) {
+  async setGroupMemberInfo({ id, uid, data }: API.Req<"setGroupMemberInfo">) {
     if (data.card !== undefined)
       await this.impl.api.set_group_member_card({
         group_id: +id,
@@ -207,7 +183,7 @@ export default class PhiliaToMilky implements API.API {
 
   delUser() {}
 
-  async delGroup({ id, dismiss }: { id: Contact.Group["id"]; dismiss?: boolean }) {
+  async delGroup({ id, dismiss }: API.Req<"delGroup">) {
     if (!dismiss) {
       if (
         (
@@ -222,15 +198,7 @@ export default class PhiliaToMilky implements API.API {
     return this.impl.api.quit_group({ group_id: +id })
   }
 
-  delGroupMember({
-    id,
-    uid,
-    block,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.GroupMember["id"]
-    block?: boolean
-  }) {
+  delGroupMember({ id, uid, block }: API.Req<"delGroupMember">) {
     return this.impl.api.kick_group_member({
       group_id: +id,
       user_id: +uid,
@@ -238,18 +206,8 @@ export default class PhiliaToMilky implements API.API {
     })
   }
 
-  async sendMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Message
-  }) {
-    const message = await new MessageConverter.PhiliaToMilky(this.impl, {
-      message: data,
-    } as Event.Message).convert()
+  async sendMsg({ scene, id, data }: API.Req<"sendMsg">) {
+    const message = await new MessageConverter.PhiliaToMilky(this.impl, scene, id, data).convert()
     if (!message.after.length) {
       if (!message.summary) throw new Error("空消息")
       return {
@@ -268,28 +226,23 @@ export default class PhiliaToMilky implements API.API {
           message: message.after,
         }))
     const ret: Message.RSendMsg = {
-      ...res,
       time: res.time ?? Math.floor(Date.now() / 1000),
       id: Common.encodeMessageID(scene === "user" ? "friend" : scene, peer_id, res.message_seq),
+      raw: { ...res, seq: res.message_seq },
     }
     if (message.file_id) ret.file_id = message.file_id
     return ret
   }
 
-  async sendMultiMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Forward[]
-  }) {
+  async sendMultiMsg({ scene, id, data }: API.Req<"sendMultiMsg">) {
     const messages: Milky.Struct.OutgoingForwardedMessage[] = []
     for (const i of data) {
-      const message = await new MessageConverter.PhiliaToMilky(this.impl, {
-        message: i.message,
-      } as Event.Message).convert()
+      const message = await new MessageConverter.PhiliaToMilky(
+        this.impl,
+        scene,
+        id,
+        i.message,
+      ).convert()
       if (!message.after.length) continue
       messages.push({
         user_id: Number(i.user?.id) || 80000000,
@@ -297,13 +250,7 @@ export default class PhiliaToMilky implements API.API {
         segments: message.after,
       })
     }
-    if (!messages.length)
-      return [
-        {
-          id: "",
-          time: Math.floor(Date.now() / 1000),
-        },
-      ]
+    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1000) }]
     const ret = await this.sendMsg({
       scene,
       id,
@@ -311,26 +258,13 @@ export default class PhiliaToMilky implements API.API {
         type: "platform",
         mode: "include",
         list: "Milky",
-        data: {
-          type: "forward",
-          data: {
-            messages,
-          },
-        },
+        data: { type: "forward", data: { messages } },
       },
     })
     return [ret]
   }
 
-  async _sendFile({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.AFile
-  }) {
+  async _sendFile({ scene, id, data }: API.Req<"_sendFile">) {
     let file_uri = ""
     switch (data.data) {
       case "id":
@@ -368,12 +302,12 @@ export default class PhiliaToMilky implements API.API {
     return Common.encodeFileID(type, file_id, peer_id)
   }
 
-  async getMsg({ id }: { id: Event.Message["id"] }) {
+  async getMsg({ id }: API.Req<"getMsg">) {
     const res = await this.impl.api.get_message(Common.decodeMessageID(id))
     return this.impl.event.IncomingMessage(res.message)
   }
 
-  delMsg({ id }: { id: Event.Message["id"] }) {
+  delMsg({ id }: API.Req<"delMsg">) {
     const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
     return message_scene === "group"
       ? this.impl.api.recall_group_message({ group_id: peer_id, message_seq })
@@ -383,29 +317,16 @@ export default class PhiliaToMilky implements API.API {
         })
   }
 
-  async sendMsgForward({
-    scene,
-    id,
-    mid,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    mid: Event.Message["id"]
-  }) {
+  async sendMsgForward({ scene, id, mid }: API.Req<"sendMsgForward">) {
     const { message } = await this.impl.api.get_message(Common.decodeMessageID(mid))
     return this.sendMsg({
       scene,
       id,
-      data: {
-        type: "platform",
-        mode: "include",
-        list: "Milky",
-        data: message.segments,
-      },
+      data: { type: "platform", mode: "include", list: "Milky", data: message.segments },
     })
   }
 
-  async getFile({ id }: { id: Message.IDFile["id"] }) {
+  async getFile({ id }: API.Req<"getFile">) {
     const { scene, id: file_id, peer_id } = Common.decodeFileID(id)
     const ret = { data: "url" } as Message.URLFile
     switch (scene) {
@@ -432,7 +353,7 @@ export default class PhiliaToMilky implements API.API {
     return ret
   }
 
-  async getForwardMsg({ id }: { id: string }) {
+  async getForwardMsg({ id }: API.Req<"getForwardMsg">) {
     const res = await this.impl.api.get_forwarded_messages({
       forward_id: id,
     })
@@ -441,17 +362,7 @@ export default class PhiliaToMilky implements API.API {
     )
   }
 
-  async getChatHistory({
-    type,
-    id,
-    count,
-    newer,
-  }: {
-    type: "message" | Event.Message["scene"]
-    id: (Event.Message | Contact.User | Contact.Group)["id"]
-    count?: number
-    newer?: boolean
-  }) {
+  async getChatHistory({ type, id, count, newer }: API.Req<"getChatHistory">) {
     let res: { messages: Milky.Struct.IncomingMessage[] }
     if (type === "message") {
       const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
@@ -473,29 +384,29 @@ export default class PhiliaToMilky implements API.API {
     return Promise.all(res.messages.map(this.impl.event.IncomingMessage.bind(this.impl.event)))
   }
 
-  async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
+  async getUserList({ refresh }: API.Req<"getUserList"> = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.keys())
     const res = await this.impl.api.get_friend_list({ no_cache: refresh })
     return res.friends.map(i => String(i.user_id))
   }
-  async getUserArray({ refresh }: void | { refresh?: boolean } = {}) {
+  async getUserArray({ refresh }: API.Req<"getUserArray"> = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.values())
     const res = await this.impl.api.get_friend_list({ no_cache: refresh })
     return res.friends.map(this._convertUserInfo.bind(this))
   }
 
-  async getGroupList({ refresh }: void | { refresh?: boolean } = {}) {
+  async getGroupList({ refresh }: API.Req<"getGroupList"> = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.keys())
     const res = await this.impl.api.get_group_list({ no_cache: refresh })
     return res.groups.map(i => String(i.group_id))
   }
-  async getGroupArray({ refresh }: void | { refresh?: boolean } = {}) {
+  async getGroupArray({ refresh }: API.Req<"getGroupArray"> = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.values())
     const res = await this.impl.api.get_group_list({ no_cache: refresh })
     return res.groups.map(this._convertGroupInfo.bind(this))
   }
 
-  async getGroupMemberList({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupMemberList({ id, refresh }: API.Req<"getGroupMemberList">) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
@@ -506,7 +417,7 @@ export default class PhiliaToMilky implements API.API {
     })
     return res.members.map(i => String(i.user_id))
   }
-  async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupMemberArray({ id, refresh }: API.Req<"getGroupMemberArray">) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(group.values())
@@ -518,10 +429,7 @@ export default class PhiliaToMilky implements API.API {
     return res.members.map(i => this._convertGroupMemberInfo(i))
   }
 
-  async getRequestArray({
-    scene,
-    count,
-  }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
+  async getRequestArray({ scene, count }: API.Req<"getRequestArray"> = {}) {
     let ret: (Promise<Event.Request> | Event.Request)[]
     switch (scene) {
       case "user": {
@@ -555,7 +463,7 @@ export default class PhiliaToMilky implements API.API {
     return Promise.all(ret)
   }
 
-  setRequest({ id, result, reason }: { id: string; result: boolean; reason?: string }) {
+  setRequest({ id, result, reason }: API.Req<"setRequest">) {
     const req = Common.decodeRequestID(id)
     switch (req.scene) {
       case Common.RequestScene.Friend:

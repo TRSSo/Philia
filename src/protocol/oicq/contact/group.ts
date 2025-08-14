@@ -331,7 +331,7 @@ export class Group extends Contactable {
 
       for (const i of msg)
         try {
-          if ((i.seq as number) <= seq) {
+          if ((i.raw?.seq as number) <= seq) {
             ret.push(await new GroupMessage(this.c, i).parse())
             if (ret.length >= count) return ret
           }

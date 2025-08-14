@@ -3,7 +3,7 @@ import type * as Contact from "./contact.js"
 import type * as Event from "./event.js"
 import type * as Message from "./message.js"
 
-export interface BaseAPI {
+export interface Base {
   /** 接收事件 */
   receiveEvent: {
     request: { event: Event.Handle | Event.Handle[] }
@@ -304,7 +304,18 @@ export interface BaseAPI {
   }
 }
 
-export interface OICQExtendAPI {
+export interface Hide {
+  _sendFile: {
+    request: {
+      scene: Event.Message["scene"]
+      id: (Contact.User | Contact.Group)["id"]
+      data: Message.AFile
+    }
+    response: unknown
+  }
+}
+
+export interface OICQ {
   /**
    * 获取合并转发消息
    * @param id 转发ID
@@ -330,23 +341,23 @@ export interface OICQExtendAPI {
   }
 
   writeUni: {
-    request: { cmd: string; body: Uint8Array; seq?: number }
+    request: unknown[]
     response: void
   }
   sendOidb: {
-    request: { cmd: string; body: Uint8Array; timeout?: number }
+    request: unknown[]
     response: Buffer
   }
   sendPacket: {
-    request: { type: string; cmd: string; body: any }
+    request: unknown[]
     response: Buffer
   }
   sendUni: {
-    request: { cmd: string; body: Uint8Array; timeout?: number }
+    request: unknown[]
     response: Buffer
   }
   sendOidbSvcTrpcTcp: {
-    request: { cmd: string; body: Uint8Array | object }
+    request: unknown[]
     response: unknown
   }
 
@@ -379,7 +390,7 @@ export interface OICQExtendAPI {
     response: unknown
   }
   getSelfCookie: {
-    request: void | { domain: string }
+    request: void | { domain?: string }
     response: string | Record<string, string>
   }
   getSelfCSRFToken: {
@@ -526,7 +537,9 @@ export interface OICQExtendAPI {
   }
 }
 
-export type ExtendAPI = Partial<IAPI<OICQExtendAPI>>
+export type Extend = Hide & OICQ
+
+export type Req<T extends keyof (Base & Extend)> = (Base & Extend)[T]["request"]
 
 export type IAPI<T extends Record<keyof T, { request: unknown; response: unknown }>> = {
   [K in keyof T]: (
@@ -536,4 +549,4 @@ export type IAPI<T extends Record<keyof T, { request: unknown; response: unknown
 }
 
 /** API 可返回同步或异步 Promise */
-export type API = IAPI<BaseAPI> & ExtendAPI
+export type API = IAPI<Base> & Partial<IAPI<Extend>>

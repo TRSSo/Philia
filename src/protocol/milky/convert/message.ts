@@ -45,10 +45,11 @@ export class MilkyToPhilia {
   }
 
   _text(text: any, markdown?: string) {
-    text = String(text)
-    if (!text.length) return
-    this.after.push({ type: "text", data: text, markdown })
-    this.summary += text
+    const ms: Philia.Message.Text = { type: "text", data: String(text) }
+    if (!ms.data.length) return
+    if (markdown) ms.markdown = markdown
+    this.after.push(ms)
+    this.summary += ms.data
   }
 
   text(ms: Milky.Message.Text) {
@@ -88,7 +89,7 @@ export class MilkyToPhilia {
       url: ms.data.temp_url,
       id: Common.encodeFileID(Common.FileScene.Resource, ms.data.resource_id),
       summary: ms.data.summary,
-      sub_type: ms.data.sub_type,
+      raw: ms.data,
     })
   }
 
@@ -99,7 +100,7 @@ export class MilkyToPhilia {
       data: ms.data.temp_url ? "url" : "id",
       url: ms.data.temp_url,
       id: Common.encodeFileID(Common.FileScene.Resource, ms.data.resource_id),
-      duration: ms.data.duration,
+      raw: ms.data,
     })
   }
 
@@ -122,9 +123,11 @@ export class PhiliaToMilky {
 
   constructor(
     public impl: Impl,
-    public event: Philia.Event.Message,
+    public scene: Philia.Event.Message["scene"],
+    public id: (Philia.Contact.User | Philia.Contact.Group)["id"],
+    message: Philia.Message.Message,
   ) {
-    this.before = Array.isArray(event.message) ? event.message : [event.message]
+    this.before = Array.isArray(message) ? message : [message]
   }
 
   async convert() {
@@ -218,11 +221,7 @@ export class PhiliaToMilky {
   }
 
   async file(ms: Philia.Message.File | Philia.Message.Audio) {
-    const ret = await this.impl.handle._sendFile({
-      scene: this.event.scene,
-      id: this.event.scene === "user" ? this.event.user.id : this.event.group.id,
-      data: ms,
-    })
+    const ret = await this.impl.handle._sendFile({ scene: this.scene, id: this.id, data: ms })
     this.file_id ??= []
     this.file_id.push(ret)
     this.summary += ms.summary ?? `[文件: ${ms.name}]`
@@ -231,7 +230,7 @@ export class PhiliaToMilky {
   async image(ms: Philia.Message.Image) {
     const ret = await this._file<Milky.Message.OutgoingImage>("image", ms)
     if (ms.summary) ret.data.summary = ms.summary
-    ret.data.sub_type = ms.sub_type === "sticker" ? "sticker" : "normal"
+    ret.data.sub_type = "normal"
     this.summary += ms.summary ?? `[图片: ${ms.name}]`
   }
 
@@ -245,8 +244,7 @@ export class PhiliaToMilky {
   }
 
   async video(ms: Philia.Message.File) {
-    const ret = await this._file<Milky.Message.OutgoingVideo>("video", ms)
-    if (ms.thumb_uri) ret.data.thumb_uri = ms.thumb_uri as string
+    await this._file<Milky.Message.OutgoingVideo>("video", ms)
     this.summary += ms.summary ?? `[视频: ${ms.name}]`
   }
 

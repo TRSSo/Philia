@@ -137,7 +137,7 @@ export class User extends Contactable {
    */
   async setFriendReq(seq: number, result = true, remark = "", block = false) {
     const requests = await this.c.api.getRequestArray()
-    const request = requests.find(i => i.user?.id === this.uid && i.seq === seq)
+    const request = requests.find(i => i.user?.id === this.uid && i.raw?.seq === seq)
     if (!request) throw Error("请求不存在")
     const ret = await this.c.api.setRequest({ id: request.id, result, block })
     if (remark) this.setRemark(remark)
@@ -155,7 +155,7 @@ export class User extends Contactable {
   async setGroupReq(gid: string, seq: number, result = true, reason = "", block = false) {
     const requests = await this.c.api.getRequestArray()
     const request = requests.find(
-      i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
+      i => i.user?.id === this.uid && i.group?.id === gid && i.raw?.seq === seq,
     )
     if (!request) throw Error("请求不存在")
     return this.c.api.setRequest({ id: request.id, result, reason, block })
@@ -171,7 +171,7 @@ export class User extends Contactable {
   async setGroupInvite(gid: string, seq: number, result = true, block = false) {
     const requests = await this.c.api.getRequestArray()
     const request = requests.find(
-      i => i.user?.id === this.uid && i.group?.id === gid && i.seq === seq,
+      i => i.user?.id === this.uid && i.group?.id === gid && i.raw?.seq === seq,
     )
     if (!request) throw Error("请求不存在")
     return this.c.api.setRequest({ id: request.id, result, block })

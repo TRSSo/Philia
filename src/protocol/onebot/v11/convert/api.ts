@@ -17,19 +17,19 @@ export class PhiliaToOBv11 implements API.API {
   constructor(public client: Client) {}
 
   receiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"receiveEvent">,
     client?: Parameters<typeof this.client.event_handle.receive>[1],
   ) {
     return this.client.event_handle.receive(event, client!)
   }
   unreceiveEvent(
-    { event }: { event: Event.Handle | Event.Handle[] },
+    { event }: API.Req<"unreceiveEvent">,
     client?: Parameters<typeof this.client.event_handle.unreceive>[1],
   ) {
     return this.client.event_handle.unreceive(event, client!)
   }
 
-  async getSelfInfo({ refresh }: void | { refresh?: boolean } = {}) {
+  async getSelfInfo({ refresh }: API.Req<"getSelfInfo"> = {}) {
     if (!refresh) {
       const cache = this.cache.get("self_info") as Contact.Self
       if (cache) return cache
@@ -45,7 +45,7 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  async setSelfInfo({ data }: { data: Partial<Contact.Self> }) {
+  async setSelfInfo({ data }: API.Req<"setSelfInfo">) {
     if (data.name)
       await this.client.api.set_qq_profile({
         nickname: data.name,
@@ -67,7 +67,7 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  async getUserInfo({ id, refresh }: { id: Contact.User["id"]; refresh?: boolean }) {
+  async getUserInfo({ id, refresh }: API.Req<"getUserInfo">) {
     if (!refresh) {
       const cache = this.user_cache.get(id)
       if (cache) return cache
@@ -93,7 +93,7 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  async getGroupInfo({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupInfo({ id, refresh }: API.Req<"getGroupInfo">) {
     if (!refresh) {
       const cache = this.group_cache.get(id)
       if (cache) return cache
@@ -126,15 +126,7 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  async getGroupMemberInfo({
-    id,
-    uid,
-    refresh,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.User["id"]
-    refresh?: boolean
-  }) {
+  async getGroupMemberInfo({ id, uid, refresh }: API.Req<"getGroupMemberInfo">) {
     if (!refresh) {
       const cache = this.group_member_cache.get(id)?.get(uid)
       if (cache) return cache
@@ -147,15 +139,7 @@ export class PhiliaToOBv11 implements API.API {
     return this._convertGroupMemberInfo(id, res)
   }
 
-  async setInfo({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Partial<Contact.User | Contact.Group>
-  }) {
+  async setInfo({ scene, id, data }: API.Req<"setInfo">) {
     switch (scene) {
       case "user":
         if (data.remark !== undefined)
@@ -189,15 +173,7 @@ export class PhiliaToOBv11 implements API.API {
     }
   }
 
-  async setGroupMemberInfo({
-    id,
-    uid,
-    data,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.User["id"]
-    data: Partial<Contact.GroupMember>
-  }) {
+  async setGroupMemberInfo({ id, uid, data }: API.Req<"setGroupMemberInfo">) {
     if (data.card !== undefined)
       await this.client.api.set_group_card({
         group_id: +id,
@@ -224,26 +200,18 @@ export class PhiliaToOBv11 implements API.API {
       })
   }
 
-  delUser({ id }: { id: Contact.User["id"] }) {
+  delUser({ id }: API.Req<"delUser">) {
     return this.client.api.delete_friend({ user_id: +id })
   }
 
-  delGroup({ id, dismiss }: { id: Contact.Group["id"]; dismiss?: boolean }) {
+  delGroup({ id, dismiss }: API.Req<"delGroup">) {
     return this.client.api.set_group_leave({
       group_id: +id,
       is_dismiss: dismiss,
     })
   }
 
-  delGroupMember({
-    id,
-    uid,
-    block,
-  }: {
-    id: Contact.Group["id"]
-    uid: Contact.GroupMember["id"]
-    block?: boolean
-  }) {
+  delGroupMember({ id, uid, block }: API.Req<"delGroupMember">) {
     return this.client.api.set_group_kick({
       group_id: +id,
       user_id: +uid,
@@ -251,18 +219,8 @@ export class PhiliaToOBv11 implements API.API {
     })
   }
 
-  async sendMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Message
-  }) {
-    const message = await new MessageConverter.PhiliaToOBv11(this.client, {
-      message: data,
-    } as Event.Message).convert()
+  async sendMsg({ scene, id, data }: API.Req<"sendMsg">) {
+    const message = await new MessageConverter.PhiliaToOBv11(this.client, scene, id, data).convert()
     if (!message.after.length) {
       if (!message.summary) throw new Error("空消息")
       return {
@@ -282,20 +240,15 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  async sendMultiMsg({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.Forward[]
-  }) {
+  async sendMultiMsg({ scene, id, data }: API.Req<"sendMultiMsg">) {
     const messages: OBv11.Message.ForwardNode[] = []
     for (const i of data) {
-      const message = await new MessageConverter.PhiliaToOBv11(this.client, {
-        message: i.message,
-      } as Event.Message).convert()
+      const message = await new MessageConverter.PhiliaToOBv11(
+        this.client,
+        scene,
+        id,
+        i.message,
+      ).convert()
       if (!message.after.length) continue
       const user_id = String(Number(i.user?.id) || 80000000)
       const nickname = i.user?.name || "匿名消息"
@@ -311,22 +264,10 @@ export class PhiliaToOBv11 implements API.API {
         },
       })
     }
-    if (!messages.length)
-      return [
-        {
-          id: "",
-          time: Math.floor(Date.now() / 1000),
-        },
-      ]
+    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1000) }]
     const res = await (scene === "user"
-      ? this.client.api.send_private_forward_msg({
-          user_id: +id,
-          messages,
-        })
-      : this.client.api.send_group_forward_msg({
-          group_id: +id,
-          messages,
-        }))
+      ? this.client.api.send_private_forward_msg({ user_id: +id, messages })
+      : this.client.api.send_group_forward_msg({ group_id: +id, messages }))
     const ret: Message.RSendMsg = {
       time: Math.floor(Date.now() / 1000),
       ...res,
@@ -335,15 +276,7 @@ export class PhiliaToOBv11 implements API.API {
     return [ret]
   }
 
-  async _sendFile({
-    scene,
-    id,
-    data,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    data: Message.AFile
-  }) {
+  async _sendFile({ scene, id, data }: API.Req<"_sendFile">) {
     let file = ""
     switch (data.data) {
       case "id":
@@ -370,24 +303,16 @@ export class PhiliaToOBv11 implements API.API {
         })
   }
 
-  async getMsg({ id }: { id: Event.Message["id"] }) {
+  async getMsg({ id }: API.Req<"getMsg">) {
     const res = await this.client.api.get_msg({ message_id: +id })
     return this.client.protocol.convert.message(res)
   }
 
-  delMsg({ id }: { id: Event.Message["id"] }) {
+  delMsg({ id }: API.Req<"delMsg">) {
     return this.client.api.delete_msg({ message_id: +id })
   }
 
-  async sendMsgForward({
-    scene,
-    id,
-    mid,
-  }: {
-    scene: Event.Message["scene"]
-    id: (Contact.User | Contact.Group)["id"]
-    mid: Event.Message["id"]
-  }) {
+  async sendMsgForward({ scene, id, mid }: API.Req<"sendMsgForward">) {
     const message = await this.client.api.get_msg({ message_id: +mid })
     const res = await this.client.api.send_msg({
       [scene === "user" ? "user_id" : "group_id"]: +id,
@@ -401,29 +326,19 @@ export class PhiliaToOBv11 implements API.API {
     return ret
   }
 
-  getFile({ id }: { id: Message.IDFile["id"] }) {
+  getFile({ id }: API.Req<"getFile">) {
     /** TODO: 获取文件 */
     return { id } as Message.URLFile
   }
 
-  async getForwardMsg({ id }: { id: string }) {
+  async getForwardMsg({ id }: API.Req<"getForwardMsg">) {
     const res = await this.client.api.get_forward_msg({ message_id: +id })
     return Promise.all(
       res.message.map(this.client.protocol.convert.message.bind(this.client.protocol.convert)),
     )
   }
 
-  async getChatHistory({
-    type,
-    id,
-    count,
-    newer,
-  }: {
-    type: "message" | Event.Message["scene"]
-    id: (Event.Message | Contact.User | Contact.Group)["id"]
-    count?: number
-    newer?: boolean
-  }) {
+  async getChatHistory({ type, id, count, newer }: API.Req<"getChatHistory">) {
     if (newer) throw new Error("暂不支持获取新消息")
     let res: { messages: OBv11.Event.Message[] }
     if (type === "message") {
@@ -449,29 +364,29 @@ export class PhiliaToOBv11 implements API.API {
     )
   }
 
-  async getUserList({ refresh }: void | { refresh?: boolean } = {}) {
+  async getUserList({ refresh }: API.Req<"getUserList"> = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.keys())
     const res = await this.client.api.get_friend_list()
     return res.map(i => String(i.user_id))
   }
-  async getUserArray({ refresh }: void | { refresh?: boolean } = {}) {
+  async getUserArray({ refresh }: API.Req<"getUserArray"> = {}) {
     if (!refresh && this.user_cache.size !== 0) return Array.from(this.user_cache.values())
     const res = await this.client.api.get_friend_list()
     return res.map(this._convertUserInfo.bind(this))
   }
 
-  async getGroupList({ refresh }: void | { refresh?: boolean } = {}) {
+  async getGroupList({ refresh }: API.Req<"getGroupList"> = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.keys())
     const res = await this.client.api.get_group_list()
     return res.map(i => String(i.group_id))
   }
-  async getGroupArray({ refresh }: void | { refresh?: boolean } = {}) {
+  async getGroupArray({ refresh }: API.Req<"getGroupArray"> = {}) {
     if (!refresh && this.group_cache.size !== 0) return Array.from(this.group_cache.values())
     const res = await this.client.api.get_group_list()
     return res.map(this._convertGroupInfo.bind(this))
   }
 
-  async getGroupMemberList({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupMemberList({ id, refresh }: API.Req<"getGroupMemberList">) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(this.group_cache.keys())
@@ -479,7 +394,7 @@ export class PhiliaToOBv11 implements API.API {
     const res = await this.client.api.get_group_member_list({ group_id: +id })
     return res.map(i => String(i.user_id))
   }
-  async getGroupMemberArray({ id, refresh }: { id: Contact.Group["id"]; refresh?: boolean }) {
+  async getGroupMemberArray({ id, refresh }: API.Req<"getGroupMemberArray">) {
     if (!refresh) {
       const group = this.group_member_cache.get(id)
       if (group && group.size !== 0) return Array.from(group.values())
@@ -488,17 +403,14 @@ export class PhiliaToOBv11 implements API.API {
     return res.map(i => this._convertGroupMemberInfo(id, i))
   }
 
-  getRequestArray({
-    scene,
-    count,
-  }: void | { scene?: Event.Request["scene"]; count?: number } = {}) {
+  getRequestArray({ scene, count }: API.Req<"getRequestArray"> = {}) {
     let ret: Event.Request[] = Array.from(this.client.protocol.convert.event_map.values())
     if (scene) ret = ret.filter(i => i.scene === scene)
     if (count) ret = ret.slice(0, count)
     return ret
   }
 
-  async setRequest({ id, result, reason }: { id: string; result: boolean; reason?: string }) {
+  async setRequest({ id, result, reason }: API.Req<"setRequest">) {
     const event = this.client.protocol.convert.event_map.get(id)
     if (!event) throw Error("未找到请求")
     if (event.scene === "user") {
@@ -516,7 +428,7 @@ export class PhiliaToOBv11 implements API.API {
     event.state = result ? "accepted" : "rejected"
   }
 
-  async uploadCacheFile({ file }: { file: string | Buffer }) {
+  async uploadCacheFile({ file }: API.Req<"uploadCacheFile">) {
     const data: { file?: string; base64?: string } = {}
     if (Buffer.isBuffer(file)) data.base64 = file.toString("base64")
     else if (file.startsWith("base64://")) data.base64 = file.replace("base64://", "")

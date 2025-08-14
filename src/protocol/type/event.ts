@@ -14,8 +14,8 @@ export interface AEvent {
   time: number
   /** 发起事件群 */
   group?: Contact.Group
-  /** 平台额外字段 */
-  [key: string]: unknown
+  /** 平台原始字段 */
+  raw?: any
 }
 
 export interface AUserEvent extends AEvent {

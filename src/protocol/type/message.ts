@@ -8,8 +8,8 @@ export interface AMessage {
   type: string
   /** 消息数据 */
   data: unknown
-  /** 平台额外字段 */
-  [key: string]: unknown
+  /** 平台原始字段 */
+  raw?: any
 }
 
 /** 文本消息 */
@@ -146,6 +146,8 @@ export interface Button extends AMessage {
 /** 合并转发消息 */
 export interface Forward {
   message: Message
+  /** 消息摘要（仅接收） */
+  summary?: string
   time?: number
   user?: Partial<Contact.User>
   group?: Partial<Contact.Group>
@@ -189,6 +191,6 @@ export interface RSendMsg {
   time: Event.Message["time"]
   /** 文件ID（如果有发送文件） */
   file_id?: IDFile["id"][]
-  /** 平台额外字段 */
-  [key: string]: unknown
+  /** 平台原始字段 */
+  raw?: any
 }
