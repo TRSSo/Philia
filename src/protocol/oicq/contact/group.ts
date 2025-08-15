@@ -422,12 +422,12 @@ export class Group extends Contactable {
    * @returns
    */
   async getMuteMemberList() {
-    const time = Date.now() / 1000
+    const time = Date.now() / 1e3
     return (await this.c.api.getGroupMemberArray({ id: this.gid }))
       .filter(i => i.mute_time && i.mute_time > time)
       .map(i => ({
         uin: i.id,
-        unMuteTime: getDateTime(new Date(i.mute_time! * 1000)),
+        unMuteTime: getDateTime(new Date(i.mute_time! * 1e3)),
       }))
   }
 

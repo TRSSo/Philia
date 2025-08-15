@@ -64,14 +64,19 @@ export default class Client {
   }
 
   reconnect_delay = 5e3
+  reconnect_timeout?: NodeJS.Timeout
   reconnect() {
     if (!this.reconnect_delay) return this.event_promise?.reject()
     this.logger.info(`WebSocket ${this.reconnect_delay / 1e3} 秒后重连`)
-    setTimeout(this.start.bind(this), this.reconnect_delay)
+    this.reconnect_timeout = setTimeout(this.start.bind(this), this.reconnect_delay)
     this.reconnect_delay += 5e3
   }
 
   close() {
+    if (!this.open) {
+      clearTimeout(this.reconnect_timeout)
+      return Promise.resolve()
+    }
     this.reconnect_delay = 0
     this.ws.close()
     return this.promiseEvent().catch(() => {})

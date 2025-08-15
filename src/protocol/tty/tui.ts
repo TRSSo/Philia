@@ -59,7 +59,7 @@ export class Tui {
     const event: Type.Event.Message = {
       id: ulid(),
       type: "message",
-      time: Date.now() / 1000,
+      time: Date.now() / 1e3,
       scene: "user",
       user: this.impl.self,
       message: [{ type: "text", data: answer }],

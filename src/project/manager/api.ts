@@ -5,6 +5,10 @@ export default function API(manager: Manager) {
   return {
     stop() {
       process.nextTick(() => manager.stop().finally(() => process.exit()))
+      setTimeout(() => {
+        manager.logger.warn(`${manager.project.config.name} 关闭超时，已强制停止`)
+        process.exit()
+      }, 1e4)
     },
     closeConsole() {
       process.stdin.destroy()

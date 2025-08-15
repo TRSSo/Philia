@@ -98,7 +98,7 @@ export default class PhiliaToTTY implements API.API {
   async sendMsg({ scene, id, data }: API.Req<"sendMsg">) {
     const message = await new MessageConvert(this.impl, data).convert()
     this.impl.logger.info(`发送${scene === "user" ? "用户" : "群"}消息 ${id} ${message}`)
-    const ret: Message.RSendMsg = { id: ulid(), time: Date.now() / 1000 }
+    const ret: Message.RSendMsg = { id: ulid(), time: Date.now() / 1e3 }
     const event = {
       ...ret,
       type: "message",

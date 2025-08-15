@@ -154,7 +154,7 @@ export default class Handle {
     const cache = this.getCache(req)
     cache.finally()
     cache.finally = () => delete this.client.cache[req.id]
-    const time = req.time ? req.time * 1000 : this.client.timeout.wait
+    const time = req.time ? req.time * 1e3 : this.client.timeout.wait
     this.client.setTimeout(cache, time)
     this.client.cache[req.id] = cache
   }

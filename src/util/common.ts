@@ -153,11 +153,11 @@ export function Loging(data: any, opts: InspectOptions = {}): string {
       getters: true,
       breakLength: 100,
       maxArrayLength: 100,
-      maxStringLength: 1000,
+      maxStringLength: 1e3,
       ...opts,
     })
 
-  const length = opts.length || 10000
+  const length = opts.length || 1e4
   if (data.length > length)
     data = `${data.slice(0, length)}${chalk.gray(`... ${data.length - length} more characters`)}`
   return data
@@ -293,8 +293,8 @@ export function getDateTime(date = new Date()) {
  */
 export function getTimeDiff(time1: number, time2 = Date.now()) {
   let time = time2 - time1
-  const ms = time % 1000
-  time = Math.floor(time / 1000)
+  const ms = time % 1e3
+  time = Math.floor(time / 1e3)
   const sec = time % 60
   time = Math.floor(time / 60)
   const min = time % 60

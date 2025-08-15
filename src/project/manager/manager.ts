@@ -10,7 +10,7 @@ import type * as type from "./type.js"
 export default class Manager {
   config: type.ManagerConfig = {
     logger: {
-      max_lines: 10000,
+      max_lines: 1e4,
     },
     philia: {
       name: "Philia",
@@ -41,10 +41,18 @@ export default class Manager {
   }
 
   start() {
-    return Promise.all([this.philia.start(), this.project.start()])
+    this.logger.info(`${this.project.config.name} 启动中……`)
+    return Promise.all([this.philia.start(), this.project.start()]).then(i => {
+      this.logger.info(`${this.project.config.name} 启动完成`)
+      return i
+    })
   }
 
   stop() {
-    return Promise.all([this.project.stop(), this.philia.stop()])
+    this.logger.info(`${this.project.config.name} 关闭中……`)
+    return Promise.all([this.project.stop(), this.philia.stop()]).then(i => {
+      this.logger.info(`${this.project.config.name} 关闭完成`)
+      return i
+    })
   }
 }

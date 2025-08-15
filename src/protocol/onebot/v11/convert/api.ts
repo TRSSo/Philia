@@ -237,7 +237,7 @@ export class PhiliaToOBv11 implements API.API {
       if (!message.summary) throw new Error("空消息")
       return {
         id: "",
-        time: Math.floor(Date.now() / 1000),
+        time: Math.floor(Date.now() / 1e3),
       }
     }
     const res = await this.client.api.send_msg({
@@ -245,7 +245,7 @@ export class PhiliaToOBv11 implements API.API {
       message: message.after,
     })
     const ret: Message.RSendMsg = {
-      time: Math.floor(Date.now() / 1000),
+      time: Math.floor(Date.now() / 1e3),
       ...res,
       id: String(res.message_id),
     }
@@ -262,7 +262,7 @@ export class PhiliaToOBv11 implements API.API {
         i.message,
       ).convert()
       if (!message.after.length) continue
-      const user_id = String(Number(i.user?.id) || 80000000)
+      const user_id = String(Number(i.user?.id) || 8e7)
       const nickname = i.user?.name || "匿名消息"
       messages.push({
         type: "node",
@@ -276,12 +276,12 @@ export class PhiliaToOBv11 implements API.API {
         },
       })
     }
-    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1000) }]
+    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1e3) }]
     const res = await (scene === "user"
       ? this.client.api.send_private_forward_msg({ user_id: +id, messages })
       : this.client.api.send_group_forward_msg({ group_id: +id, messages }))
     const ret: Message.RSendMsg = {
-      time: Math.floor(Date.now() / 1000),
+      time: Math.floor(Date.now() / 1e3),
       ...res,
       id: String(res.message_id),
     }
@@ -331,7 +331,7 @@ export class PhiliaToOBv11 implements API.API {
       message: message.message,
     })
     const ret: Message.RSendMsg = {
-      time: Math.floor(Date.now() / 1000),
+      time: Math.floor(Date.now() / 1e3),
       ...res,
       id: String(res.message_id),
     }

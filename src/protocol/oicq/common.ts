@@ -1,5 +1,5 @@
 /** unix timestamp (second) */
-export const timestamp = () => Math.floor(Date.now() / 1000)
+export const timestamp = () => Math.floor(Date.now() / 1e3)
 
 /** no operation */
 export const NOOP = () => {}

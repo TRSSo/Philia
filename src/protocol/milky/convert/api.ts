@@ -224,7 +224,7 @@ export default class PhiliaToMilky implements API.API {
       if (!message.summary) throw new Error("空消息")
       return {
         id: "",
-        time: Math.floor(Date.now() / 1000),
+        time: Math.floor(Date.now() / 1e3),
       }
     }
     const peer_id = +id
@@ -238,7 +238,7 @@ export default class PhiliaToMilky implements API.API {
           message: message.after,
         }))
     const ret: Message.RSendMsg = {
-      time: res.time ?? Math.floor(Date.now() / 1000),
+      time: res.time ?? Math.floor(Date.now() / 1e3),
       id: Common.encodeMessageID(scene === "user" ? "friend" : scene, peer_id, res.message_seq),
       raw: { ...res, seq: res.message_seq },
     }
@@ -257,12 +257,12 @@ export default class PhiliaToMilky implements API.API {
       ).convert()
       if (!message.after.length) continue
       messages.push({
-        user_id: Number(i.user?.id) || 80000000,
+        user_id: Number(i.user?.id) || 8e7,
         name: i.user?.name || "匿名消息",
         segments: message.after,
       })
     }
-    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1000) }]
+    if (!messages.length) return [{ id: "", time: Math.floor(Date.now() / 1e3) }]
     const ret = await this.sendMsg({
       scene,
       id,

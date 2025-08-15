@@ -289,6 +289,13 @@ export default class ProjectManagerTui {
   }
 
   foreground() {
+    try {
+      return process.execve!(
+        process.execPath,
+        [process.execPath, Path.join(getCodeDir(), "bin", "run"), this.path],
+        process.env,
+      )
+    } catch {}
     return child_process.spawnSync(
       process.execPath,
       [Path.join(getCodeDir(), "bin", "run"), this.path],
