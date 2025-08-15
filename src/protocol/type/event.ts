@@ -217,7 +217,7 @@ export interface ARequest extends AUserEvent {
 }
 /** 加好友请求 */
 export interface UserRequest extends ARequest {
-  scene: "user"
+  scene: "user_add"
 }
 /** 入群申请、邀请加群 */
 export interface GroupRequest extends ARequest {

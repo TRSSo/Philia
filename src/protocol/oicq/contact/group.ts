@@ -1,5 +1,6 @@
 // biome-ignore-all lint/complexity/noThisInStatic::
 import type * as Philia from "#protocol/type"
+import { getDateTime } from "#util"
 import { hide, lock, NOOP, timestamp } from "../common.js"
 import type {
   GroupAdminEvent,
@@ -16,7 +17,7 @@ import type {
 } from "../event/types.js"
 import { GroupMessage, segment } from "../message/index.js"
 import { Contactable } from "./contactable.js"
-import { Gfs } from "./gfs.js"
+import { Gfs, type GfsFileStat } from "./gfs.js"
 import type { GroupInfo, MemberInfo } from "./types.js"
 
 type Client = import("../app.js").Client
@@ -225,11 +226,18 @@ export class Group extends Contactable {
    * @param file `string`表示从该本地文件路径上传，`Buffer`表示直接上传这段内容
    * @param pid 上传的目标目录id，默认根目录
    * @param name 上传的文件名，`file`为`Buffer`时，若留空则自动以md5命名
-   * @returns 文件ID
    */
-  async sendFile(file: string | Buffer, pid = "/", name?: string) {
+  async sendFile(file: string | Buffer, pid?: string, name?: string) {
+    try {
+      return (await this.c.api.uploadGroupFSFile({
+        id: this.gid,
+        file,
+        pid,
+        name,
+      })) as GfsFileStat
+    } catch {}
     const ret = await this.sendMsg(segment.file(file, name, pid))
-    return ret.file_id?.[0] || ret.message_id
+    return { fid: ret.file_id?.[0] || ret.message_id }
   }
 
   /**
@@ -251,7 +259,7 @@ export class Group extends Contactable {
   }
   /** 发送简易群公告 */
   announce(content: string) {
-    return this.c.api.sendGroupNotice({ id: this.gid, content })
+    return this.c.api.sendGroupAnnounce({ id: this.gid, content })
   }
 
   /**
@@ -414,12 +422,13 @@ export class Group extends Contactable {
    * @returns
    */
   async getMuteMemberList() {
-    return this.c.api.getGroupMemberMuteList({ id: this.gid }) as Promise<
-      ({
-        uin: number | null
-        unMuteTime: string | null
-      } | null)[]
-    >
+    const time = Date.now() / 1000
+    return (await this.c.api.getGroupMemberArray({ id: this.gid }))
+      .filter(i => i.mute_time && i.mute_time > time)
+      .map(i => ({
+        uin: i.id,
+        unMuteTime: getDateTime(new Date(i.mute_time! * 1000)),
+      }))
   }
 
   /**

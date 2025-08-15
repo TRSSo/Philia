@@ -54,7 +54,7 @@ export class OBv11toPhilia {
       raw: data,
       id: data.flag,
       type: "request",
-      scene: "user",
+      scene: "user_add",
       time: data.time,
       user: await this.client.handle.getUserInfo({ id: String(data.user_id) }),
       state: "pending",

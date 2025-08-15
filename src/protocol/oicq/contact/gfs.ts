@@ -149,12 +149,8 @@ export class Gfs {
    * @param name 上传的文件名，`file`为`Buffer`时，若留空则自动以md5命名
    * @returns 上传的文件属性
    */
-  async upload(file: string | Buffer, pid = "/", name?: string) {
-    return this.c.api.uploadGroupFSFile({
-      file,
-      pid,
-      name,
-    }) as Promise<GfsFileStat>
+  async upload(file: string | Buffer, pid?: string, name?: string) {
+    return this.c.pickGroup(this.gid).sendFile(file, pid, name)
   }
 
   /**
@@ -166,6 +162,7 @@ export class Gfs {
    */
   async forward(stat: GfsFileStat, pid = "/", name?: string) {
     return this.c.api.forwardGroupFSFile({
+      id: this.gid,
       fid: stat.fid,
       pid,
       name,
@@ -179,7 +176,7 @@ export class Gfs {
    * @returns 转发的文件在当前群的属性
    */
   async forwardOfflineFile(fid: string, name?: string) {
-    return this.c.api.forwardGroupFSFile({ fid, name }) as Promise<GfsFileStat>
+    return this.c.api.forwardGroupFSFile({ id: this.gid, fid, name }) as Promise<GfsFileStat>
   }
 
   /**
@@ -187,6 +184,8 @@ export class Gfs {
    * @param fid 文件id
    */
   download(fid: string) {
-    return this.c.api.getGroupFSFile({ fid }) as Promise<Omit<FileElem, "type"> & { url: string }>
+    return this.c.api.getGroupFSFile({ id: this.gid, fid }) as Promise<
+      Omit<FileElem, "type"> & { url: string }
+    >
   }
 }

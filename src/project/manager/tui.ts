@@ -98,7 +98,7 @@ export default class ProjectManagerTui {
     let data: string | undefined
     switch (choose) {
       case "back":
-        return
+        return false
       case "handle":
         data = await inquirer.input({ message: "请输入数据:", required: true })
     }
@@ -108,8 +108,11 @@ export default class ProjectManagerTui {
 
   async notice(notice?: Awaited<ReturnType<typeof this.api.listNotice>>) {
     notice ??= await this.api.listNotice()
-    while (notice.length) {
-      if (notice.length === 1) return this.handleNotice(notice[0])
+    for (; notice.length; notice = await this.api.listNotice()) {
+      if (notice.length === 1) {
+        if ((await this.handleNotice(notice[0])) === false) break
+        continue
+      }
       const back = Symbol("back") as unknown as number
       const choose = await inquirer.select({
         message: "通知列表",
@@ -123,7 +126,6 @@ export default class ProjectManagerTui {
       })
       if (choose === back) break
       await this.handleNotice(notice[choose])
-      notice = await this.api.listNotice()
     }
   }
 

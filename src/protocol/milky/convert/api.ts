@@ -264,12 +264,11 @@ export default class PhiliaToMilky implements API.API {
     return [ret]
   }
 
-  async _sendFile({ scene, id, data }: API.Req<"_sendFile">) {
+  async _getFileUri(data: API.Req<"_sendFile">["data"]): Promise<string> {
     let file_uri = ""
     switch (data.data) {
       case "id":
-        /** 获取文件下载链接 */
-        break
+        return this._getFileUri(await this.getFile({ id: data.id }))
       case "path":
         file_uri = `file://${data.path}`
         break
@@ -278,6 +277,11 @@ export default class PhiliaToMilky implements API.API {
         file_uri = toJSON(data.binary || data.url)
         break
     }
+    return file_uri
+  }
+
+  async _sendFile({ scene, id, data }: API.Req<"_sendFile">) {
+    const file_uri = await this._getFileUri(data)
     const peer_id = +id
     let file_id: string, type: Common.FileScene
     if (scene === "user") {
@@ -311,10 +315,7 @@ export default class PhiliaToMilky implements API.API {
     const { message_scene, peer_id, message_seq } = Common.decodeMessageID(id)
     return message_scene === "group"
       ? this.impl.api.recall_group_message({ group_id: peer_id, message_seq })
-      : this.impl.api.recall_private_message({
-          user_id: peer_id,
-          message_seq,
-        })
+      : this.impl.api.recall_private_message({ user_id: peer_id, message_seq })
   }
 
   async sendMsgForward({ scene, id, mid }: API.Req<"sendMsgForward">) {
@@ -432,7 +433,7 @@ export default class PhiliaToMilky implements API.API {
   async getRequestArray({ scene, count }: API.Req<"getRequestArray"> = {}) {
     let ret: (Promise<Event.Request> | Event.Request)[]
     switch (scene) {
-      case "user": {
+      case "user_add": {
         const res = await this.impl.api.get_friend_requests({ limit: count })
         ret = res.requests.map(this.impl.event.FriendRequest.bind(this.impl.event))
         break
@@ -452,7 +453,7 @@ export default class PhiliaToMilky implements API.API {
       default:
         ret = (
           await Promise.all([
-            this.getRequestArray({ scene: "user", count }),
+            this.getRequestArray({ scene: "user_add", count }),
             this.getRequestArray({ scene: "group_add", count }),
             this.getRequestArray({ scene: "group_invite", count }),
           ])
@@ -485,4 +486,40 @@ export default class PhiliaToMilky implements API.API {
     throw Error("暂不支持")
   }
   clearCache() {}
+
+  async sendPoke({ scene, id, tid }: API.Req<"sendPoke">) {
+    return scene === "user"
+      ? this.impl.api.send_friend_nudge({
+          user_id: +id,
+          is_self: tid === (await this.getSelfInfo()).id,
+        })
+      : this.impl.api.send_group_nudge({ group_id: +id, user_id: +tid })
+  }
+
+  async getGroupAnnounceList({ id }: API.Req<"getGroupAnnounceList">) {
+    const res = await this.impl.api.get_group_announcement_list({ group_id: +id })
+    return res.announcements.map(i => ({
+      id: i.announcement_id,
+      time: i.time,
+      gid: String(i.group_id),
+      uid: String(i.user_id),
+      content: i.content,
+      image: { data: "url", url: i.image_url } as Message.URLFile,
+    }))
+  }
+
+  async sendGroupAnnounce({ id, content, image }: API.Req<"sendGroupAnnounce">) {
+    return this.impl.api.send_group_announcement({
+      group_id: +id,
+      content,
+      image_uri: image ? await this._getFileUri(image) : undefined,
+    })
+  }
+
+  delGroupAnnounce({ id, gid }: API.Req<"delGroupAnnounce">) {
+    return this.impl.api.delete_group_announcement({
+      group_id: +gid,
+      announcement_id: id,
+    })
+  }
 }

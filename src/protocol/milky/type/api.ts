@@ -416,7 +416,7 @@ export interface GroupAPI {
       /** 公告内容 */
       content: string
       /** 图像文件 URI，支持 file:// http(s):// base64:// 三种格式 */
-      image_uri: string
+      image_uri?: string
     }
     response: void
   }

@@ -148,6 +148,9 @@ export class Client extends events {
     return this.statistics
   }
 
+  connected_fn = this.online.bind(this)
+  closed_fn = () => this.em("system.offline.network", { message: "连接断开" })
+
   /**
    * 继承原版`oicq`的构造方式，建议使用另一个构造函数
    * @param uin 账号
@@ -165,6 +168,8 @@ export class Client extends events {
       this.client = uin
       this.client.handle.setMap(this.handle)
       this.api = createAPI<Philia.API.API>(this.client)
+      this.client.connected_fn = this.connected_fn
+      this.client.closed_fn = this.closed_fn
     } else {
       if (typeof uin === "object") conf = uin
       else this.uin = String(uin)
@@ -207,11 +212,13 @@ export class Client extends events {
     this.client = /^(http|ws)s?:\/\//.test(path)
       ? new Connect.WebSocket.Client(this.logger, this.handle, {
           path,
-          connected_fn: this.online.bind(this),
+          connected_fn: this.connected_fn,
+          closed_fn: this.closed_fn,
         })
       : (this.client = new Connect.Socket.Client(this.logger, this.handle, {
           path,
-          connected_fn: this.online.bind(this),
+          connected_fn: this.connected_fn,
+          closed_fn: this.closed_fn,
         }))
     this.client.logger = this.logger
     this.api = createAPI<Philia.API.API>(this.client)

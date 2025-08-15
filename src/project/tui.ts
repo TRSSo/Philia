@@ -77,7 +77,6 @@ export default class Tui {
     const project = (await (Project[type] as typeof Project.impl & typeof Project.app)[name]())
       .Project
     const config = await project.createConfig(name)
-    new project(config)
 
     let path = await inquirer.input({
       message: "请输入项目名:",
@@ -93,7 +92,11 @@ export default class Tui {
     path = Path.join(this[`${type}_path`], path)
 
     await fs.mkdir(path, { recursive: true })
-    await fs.writeFile(Path.join(path, "config.yml"), YAML.stringify(config))
+    const cwd = process.cwd()
+    process.chdir(path)
+    new project(config)
+    await fs.writeFile("config.yml", YAML.stringify(config))
+    process.chdir(cwd)
     await new ProjectManagerTui(this.logger, path).main()
   }
 

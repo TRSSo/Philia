@@ -114,9 +114,7 @@ export class User extends Contactable {
    * @param time 默认当前时间，为时间戳的分钟数（`Date.now() / 1000`）
    */
   async markRead(time = timestamp()) {
-    return this.c.api.setReaded({
-      id: (await this.getChatHistory(time, 1))[0].message_id,
-    })
+    return this.c.api.setReaded({ id: this.uid, time })
   }
 
   /**

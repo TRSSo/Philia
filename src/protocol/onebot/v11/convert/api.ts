@@ -413,7 +413,7 @@ export class PhiliaToOBv11 implements API.API {
   async setRequest({ id, result, reason }: API.Req<"setRequest">) {
     const event = this.client.protocol.convert.event_map.get(id)
     if (!event) throw Error("未找到请求")
-    if (event.scene === "user") {
+    if (event.scene === "user_add") {
       await this.client.api.set_friend_add_request({
         flag: id,
         approve: result,

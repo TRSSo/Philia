@@ -116,9 +116,9 @@ export class OICQtoPhilia {
     fid?: string
   }) {
     const data = {
-      ...ms,
+      raw: ms,
       data: "binary",
-    } as unknown as T
+    } as T
 
     if (ms.fid) {
       data.data = "id"

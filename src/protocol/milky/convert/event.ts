@@ -102,9 +102,7 @@ export default class Event {
         event = {
           ...temp,
           scene: "user_message_recall",
-          user: await this.impl.handle.getUserInfo({
-            id: String(data.data.peer_id),
-          }),
+          user: await this.impl.handle.getUserInfo({ id: String(data.data.peer_id) }),
         }
         if (data.data.peer_id === data.data.sender_id) event.is_self = true
         break
@@ -116,9 +114,7 @@ export default class Event {
             id: String(data.data.peer_id),
             uid: String(data.data.operator_id),
           }),
-          group: await this.impl.handle.getGroupInfo({
-            id: String(data.data.peer_id),
-          }),
+          group: await this.impl.handle.getGroupInfo({ id: String(data.data.peer_id) }),
         }
         if (data.data.operator_id !== data.data.sender_id)
           event.target = await this.impl.handle.getGroupMemberInfo({
@@ -136,10 +132,8 @@ export default class Event {
       id: Common.encodeRequestID(Common.RequestScene.Friend, data.request_id),
       type: "request",
       time: data.time,
-      scene: "user",
-      user: await this.impl.handle.getUserInfo({
-        id: String(data.initiator_id),
-      }),
+      scene: "user_add",
+      user: await this.impl.handle.getUserInfo({ id: String(data.initiator_id) }),
       state: data.state,
       reason: data.comment,
     }
@@ -156,12 +150,8 @@ export default class Event {
       type: "request",
       time: data.time,
       scene: "group_add",
-      user: await this.impl.handle.getUserInfo({
-        id: String(data.initiator_id),
-      }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.group_id),
-      }),
+      user: await this.impl.handle.getUserInfo({ id: String(data.initiator_id) }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.group_id) }),
       state: data.state,
     }
     switch (data.request_type) {
@@ -170,9 +160,7 @@ export default class Event {
           id: String(data.group_id),
           uid: String(data.initiator_id),
         })
-        event.target = await this.impl.handle.getUserInfo({
-          id: String(data.invitee_id),
-        })
+        event.target = await this.impl.handle.getUserInfo({ id: String(data.invitee_id) })
         break
       case "join":
         event.reason = data.comment
@@ -191,12 +179,8 @@ export default class Event {
       type: "request",
       time: data.time,
       scene: "group_invite",
-      user: await this.impl.handle.getUserInfo({
-        id: String(data.initiator_id),
-      }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.group_id),
-      }),
+      user: await this.impl.handle.getUserInfo({ id: String(data.initiator_id) }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.group_id) }),
       state: data.state,
     }
     return event
@@ -212,9 +196,7 @@ export default class Event {
       type: "notice",
       time: data.time,
       scene: "user_poke",
-      user: await this.impl.handle.getUserInfo({
-        id: String(data.data.user_id),
-      }),
+      user: await this.impl.handle.getUserInfo({ id: String(data.data.user_id) }),
     }
     if (data.data.is_self_send) event.is_self = true
     if (data.data.is_self_receive) event.is_self_target = true
@@ -228,9 +210,7 @@ export default class Event {
       type: "notice",
       time: data.time,
       scene: "user_file_upload",
-      user: await this.impl.handle.getUserInfo({
-        id: String(data.data.user_id),
-      }),
+      user: await this.impl.handle.getUserInfo({ id: String(data.data.user_id) }),
       file: {
         type: "file",
         name: data.data.file_name,
@@ -250,18 +230,14 @@ export default class Event {
       type: "notice",
       time: data.time,
       scene: "group_member_info",
-      user: (
-        await this.impl.handle.getGroupMemberArray({
-          id: String(data.data.group_id),
-        })
-      ).find(i => i.role === "owner")!,
+      user: (await this.impl.handle.getGroupMemberArray({ id: String(data.data.group_id) })).find(
+        i => i.role === "owner",
+      )!,
       target: await this.impl.handle.getGroupMemberInfo({
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       change: { role: data.data.is_set ? "admin" : "member" },
     }
     return event
@@ -278,9 +254,7 @@ export default class Event {
       time: data.time,
       scene: `group_essence_message_${data.data.is_set ? "add" : "del"}`,
       user: message.user as Philia.Contact.GroupMember,
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       message_id: message.id,
     }
     return event
@@ -297,9 +271,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
     }
     if (data.data.operator_id)
       event.operator = await this.impl.handle.getGroupMemberInfo({
@@ -325,9 +297,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
     }
     if (data.data.operator_id)
       event.operator = await this.impl.handle.getGroupMemberInfo({
@@ -348,9 +318,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.operator_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       change: { name: data.data.name },
     }
     return event
@@ -367,9 +335,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       message_id: Common.encodeMessageID("group", data.data.group_id, data.data.message_seq),
       data: { type: "face", id: data.data.face_id },
     }
@@ -391,9 +357,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       change: { mute_time: data.data.duration },
     }
     return event
@@ -410,9 +374,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.operator_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       change: { whole_mute: data.data.is_mute },
     }
     return event
@@ -429,9 +391,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.sender_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
     }
     if (data.data.sender_id !== data.data.receiver_id)
       event.target = await this.impl.handle.getGroupMemberInfo({
@@ -452,9 +412,7 @@ export default class Event {
         id: String(data.data.group_id),
         uid: String(data.data.user_id),
       }),
-      group: await this.impl.handle.getGroupInfo({
-        id: String(data.data.group_id),
-      }),
+      group: await this.impl.handle.getGroupInfo({ id: String(data.data.group_id) }),
       file: {
         type: "file",
         name: data.data.file_name,

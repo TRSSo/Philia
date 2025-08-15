@@ -309,7 +309,7 @@ export interface Hide {
     request: {
       scene: Event.Message["scene"]
       id: (Contact.User | Contact.Group)["id"]
-      data: Message.AFile
+      data: Message.IFile
     }
     response: unknown
   }
@@ -337,6 +337,43 @@ export interface OICQ {
       id: (Contact.User | Contact.Group)["id"]
       tid: Contact.User["id"]
     }
+    response: void
+  }
+
+  /**
+   * 获取群公告列表
+   * @param id 群ID
+   */
+  getGroupAnnounceList: {
+    request: { id: Contact.Group["id"] }
+    response: {
+      id: string
+      time: number
+      gid: Contact.Group["id"]
+      uid: Contact.User["id"]
+      content: string
+      image?: Message.IFile
+    }[]
+  }
+
+  /**
+   * 发送群公告
+   * @param id 群ID
+   * @param content 公告内容
+   * @param image 图片文件
+   */
+  sendGroupAnnounce: {
+    request: { id: Contact.Group["id"]; content: string; image?: Message.IFile }
+    response: void
+  }
+
+  /**
+   * 发送群公告
+   * @param id 公告ID
+   * @param gid 群ID
+   */
+  delGroupAnnounce: {
+    request: { id: string; gid: Contact.Group["id"] }
     response: void
   }
 
@@ -444,15 +481,15 @@ export interface OICQ {
     response: void
   }
   uploadGroupFSFile: {
-    request: { file: string | Buffer; pid?: string; name?: string }
+    request: { id: Contact.Group["id"]; file: string | Buffer; pid?: string; name?: string }
     response: unknown
   }
   forwardGroupFSFile: {
-    request: { fid: unknown | string; pid?: string; name?: string }
+    request: { id: Contact.Group["id"]; fid: unknown | string; pid?: string; name?: string }
     response: unknown
   }
   getGroupFSFile: {
-    request: { fid: string }
+    request: { id: Contact.Group["id"]; fid: string }
     response: { url: string }
   }
 
@@ -474,20 +511,11 @@ export interface OICQ {
     response: void
   }
   setReaded: {
-    request: { id: Event.Message["id"] | Contact.Group["id"]; seq?: number }
+    request: { id: Event.Message["id"] | Contact.Group["id"]; seq?: number; time?: number }
     response: void
   }
   setMessageRate: {
     request: { id: Contact.Group["id"]; times: number }
-    response: void
-  }
-  /**
-   * 发送群公告
-   * @param id 群ID
-   * @param content 公告内容
-   */
-  sendGroupNotice: {
-    request: { id: Contact.Group["id"]; content: string; image?: string }
     response: void
   }
   setGroupJoinType: {
@@ -510,10 +538,6 @@ export interface OICQ {
   sendGroupSign: {
     request: { id: Contact.Group["id"] }
     response: void
-  }
-  getGroupMemberMuteList: {
-    request: { id: Contact.Group["id"] }
-    response: unknown
   }
   setReaction: {
     request: {
