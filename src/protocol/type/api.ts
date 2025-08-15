@@ -4,6 +4,17 @@ import type * as Event from "./event.js"
 import type * as Message from "./message.js"
 
 export interface Base {
+  /** 获取版本信息 */
+  getVersion: {
+    request: void
+    response: {
+      /** 实现端信息 */
+      impl: { id: string; name: string; version: string }
+      /** 协议端信息 */
+      proto: { id: string; name: string; version: string }
+    }
+  }
+
   /** 接收事件 */
   receiveEvent: {
     request: { event: Event.Handle | Event.Handle[] }

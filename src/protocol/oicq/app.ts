@@ -79,6 +79,8 @@ export class Client extends events {
   /** 勿手动修改这些属性 */
   /** 自己信息 */
   self_info: Philia.Contact.Self = { id: "", name: "" }
+  /** 版本信息 */
+  version_info = {} as Philia.API.Base["getVersion"]["response"]
   /** 在线状态 */
   status: OnlineStatus = OnlineStatus.Offline
   /** 昵称 */
@@ -92,6 +94,9 @@ export class Client extends events {
   /** 年龄 */
   get age() {
     return this.self_info.age as number
+  }
+  get apk() {
+    return this.version_info.proto
   }
 
   protected readonly statistics = {
@@ -228,8 +233,10 @@ export class Client extends events {
   async online() {
     try {
       this.self_info = await this.api.getSelfInfo()
+      this.version_info = await this.api.getVersion()
       this.uin = this.self_info.id
       this.logger.mark(`欢迎 ${this.nickname}(${this.uin})！正在加载资源……`)
+      this.logger.mark(`使用协议 ${this.apk.name}(${this.apk.id}) ${this.apk.version}`)
 
       await this.reloadFriendList()
       if (this.config.cache_group_member) await this.reloadGroupMemberList()

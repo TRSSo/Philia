@@ -115,18 +115,17 @@ export class OICQtoPhilia {
     file: string | Buffer
     fid?: string
   }) {
-    const data = {
-      raw: ms,
-      data: "binary",
-    } as T
+    const data = { raw: { ...ms }, type: ms.type, data: "binary" } as T
 
     if (ms.fid) {
       data.data = "id"
       data.id = ms.fid
     } else if (Buffer.isBuffer(ms.file)) {
       data.binary = ms.file
+      delete data.raw.file
     } else if (ms.file.startsWith("base64://")) {
       data.binary = Buffer.from(ms.file.replace("base64://", ""), "base64")
+      delete data.raw.file
     } else if (ms.file.match(/^https?:\/\//)) {
       data.data = "url"
       data.url = ms.file

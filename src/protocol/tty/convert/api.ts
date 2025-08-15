@@ -1,4 +1,5 @@
 import fs from "node:fs/promises"
+import os from "node:os"
 import path from "node:path"
 import { ulid } from "ulid"
 import type { API, Contact, Event, Message } from "#protocol/type"
@@ -8,6 +9,17 @@ import MessageConvert from "./message.js"
 
 export default class PhiliaToTTY implements API.API {
   constructor(public impl: Impl) {}
+
+  getVersion() {
+    return {
+      impl: { id: "TTY", name: "终端", version: "1" },
+      proto: {
+        id: process.platform,
+        name: `${os.type()} ${os.machine()} ${os.release()}`,
+        version: `${process.release.name} ${process.version} ${process.arch}`,
+      },
+    }
+  }
 
   receiveEvent(
     { event }: API.Req<"receiveEvent">,

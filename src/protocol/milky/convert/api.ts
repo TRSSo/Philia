@@ -17,6 +17,18 @@ export default class PhiliaToMilky implements API.API {
 
   constructor(public impl: Impl) {}
 
+  async getVersion() {
+    const res = await this.impl.api.get_impl_info()
+    return {
+      impl: { id: "QQ", name: "Milky", version: res.milky_version },
+      proto: {
+        id: res.impl_name,
+        name: `${res.qq_protocol_type}-${res.qq_protocol_version}`,
+        version: res.impl_version,
+      },
+    }
+  }
+
   receiveEvent(
     { event }: API.Req<"receiveEvent">,
     client?: Parameters<typeof this.impl.event_handle.receive>[1],

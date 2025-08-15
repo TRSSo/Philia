@@ -3,6 +3,16 @@ import type * as Event from "./event.js"
 import type * as Message from "./message.js"
 
 export interface IAPI {
+  get_version_info: {
+    request: void
+    response: {
+      app_name: string
+      app_version: string
+      app_full_name: string
+      protocol_version: string
+    }
+  }
+
   get_login_info: {
     request: void
     response: {

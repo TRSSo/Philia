@@ -16,6 +16,18 @@ export class PhiliaToOBv11 implements API.API {
 
   constructor(public client: Client) {}
 
+  async getVersion() {
+    const res = await this.client.api.get_version_info()
+    return {
+      impl: { id: "QQ", name: "OneBotv11", version: res.protocol_version },
+      proto: {
+        id: res.app_name,
+        name: res.app_full_name || `${res.app_name}-${res.app_version}`,
+        version: res.app_version,
+      },
+    }
+  }
+
   receiveEvent(
     { event }: API.Req<"receiveEvent">,
     client?: Parameters<typeof this.client.event_handle.receive>[1],
