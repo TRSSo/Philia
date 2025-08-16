@@ -93,10 +93,16 @@ export default class Tui {
 
     await fs.mkdir(path, { recursive: true })
     const cwd = process.cwd()
-    process.chdir(path)
-    new project(config)
-    await fs.writeFile("config.yml", YAML.stringify(config))
-    process.chdir(cwd)
+    try {
+      process.chdir(path)
+      new project(config)
+      await fs.writeFile("config.yml", YAML.stringify(config))
+    } catch (err) {
+      await fs.rm(path, { recursive: true })
+      throw err
+    } finally {
+      process.chdir(cwd)
+    }
     await new ProjectManagerTui(this.logger, path).main()
   }
 
