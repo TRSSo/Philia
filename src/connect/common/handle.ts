@@ -1,5 +1,5 @@
 import { isPromise } from "node:util/types"
-import { getAllProps, Loging, makeError } from "#util"
+import { getAllProps, Loging, makeError, toJSON } from "#util"
 import type Client from "./client.js"
 import * as type from "./type.js"
 
@@ -132,7 +132,7 @@ export default class Handle {
       } else if (err instanceof type.CError) {
         error = err.data
       } else {
-        error.error = err
+        error.error = toJSON(err)
       }
       return reply(type.EStatus.Error, error)
     }

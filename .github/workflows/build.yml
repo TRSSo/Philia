@@ -14,13 +14,13 @@ jobs:
     steps:
     # 1. 检出代码
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # 获取所有历史记录（用于分支操作）
 
     # 2. 安装 pnpm
     - name: Setup pnpm
-      uses: pnpm/action-setup@v3
+      uses: pnpm/action-setup@v4
       with:
         version: latest
         run_install: true
@@ -34,7 +34,7 @@ jobs:
       run: |
         mkdir -p temp/mod
         mv lib temp
-        cp package.json README.md LICENSE temp
+        cp LICENSE package.json pnpm-workspace.yaml README.md temp
         cp mod/*.patch temp/mod
         sed "/\/lib/d" .gitignore > temp/.gitignore
 

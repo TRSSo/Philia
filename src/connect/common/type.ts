@@ -62,7 +62,7 @@ export interface Error extends Base<EStatus.Error> {
   data: {
     name: string
     message: string
-    error?: unknown
+    error?: string
   }
 }
 export type Status = Request | Response | Async | Error
