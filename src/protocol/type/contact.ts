@@ -4,7 +4,7 @@ export interface Self {
   id: string
   /** 用户名 */
   name: string
-  /** 用户头像 */
+  /** 用户头像，仅设置头像时可使用 Buffer */
   avatar?: string | Buffer
   /** 平台扩展字段 */
   [key: string]: unknown
