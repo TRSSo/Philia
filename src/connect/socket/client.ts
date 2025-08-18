@@ -1,7 +1,8 @@
 import { Socket } from "node:net"
 import Path from "node:path"
 import type { Logger } from "#logger"
-import { Encoder, makeError, promiseEvent, StringOrBuffer } from "#util"
+import { makeError, promiseEvent, StringOrBuffer } from "#util"
+import { Encoder } from "../common/encoder.js"
 import { Client as AClient, type type } from "../common/index.js"
 
 export interface ClientOptions extends type.Options {

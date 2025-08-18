@@ -21,10 +21,11 @@ export default class Server {
       .on("listening", () => {
         this.logger.info(`WebSocket 服务器已监听端口 ${path}`)
       })
+      .on("connection", this.connected.bind(this))
+      .on("error", err => this.logger.error(err))
       .on("close", () => {
         this.logger.info(`WebSocket 服务器已关闭`)
       })
-      .on("connection", this.connected.bind(this))
   }
 
   connected(ws: WebSocket, req: IncomingMessage) {

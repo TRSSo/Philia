@@ -194,7 +194,7 @@ export default class ProjectManagerTui {
       if (!(await inquirer.confirm({ message: `往下查看${data.lines}条日志` }))) return
       time = event.time + 1
     }
-    if (await inquirer.confirm({ message: "没有日志了，监听实时日志？" }))
+    if (await inquirer.confirm({ message: "没有日志了，监听实时日志?" }))
       return this.followLog(data.level, time)
   }
 
@@ -313,7 +313,7 @@ export default class ProjectManagerTui {
   config() {}
 
   async delete() {
-    if (!(await inquirer.confirm({ message: "是否删除项目？" }))) return
+    if (!(await inquirer.confirm({ message: "是否删除项目?" }))) return
     await fs.rm(this.path, { recursive: true })
     return false
   }

@@ -1,6 +1,7 @@
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
-import { compress, Encoder, encoder, makeError, promiseEvent, verify } from "#util"
+import { makeError, promiseEvent } from "#util"
+import { compress, Encoder, encoder, verify } from "./encoder.js"
 import Handle from "./handle.js"
 import * as type from "./type.js"
 
@@ -17,8 +18,8 @@ export default abstract class Client {
       id: ulid(),
       name: "Client",
       version: 1,
-      encode: Object.keys(encoder),
-      verify: Object.keys(verify),
+      encode: Array.from(encoder.keys()),
+      verify: Array.from(verify.keys()),
     },
   }
   encoder!: Encoder
@@ -38,10 +39,10 @@ export default abstract class Client {
     this.handle = new Handle(handle, this)
     if (opts.meta) Object.assign(this.meta.local, opts.meta)
     if (opts.timeout) Object.assign(this.timeout, opts.timeout)
-    if (opts.compress) this.meta.local.verify.unshift(...Object.keys(compress))
+    if (opts.compress) this.meta.local.verify.unshift(...Array.from(compress.keys()))
+    else this.meta.local.verify.push(...Array.from(compress.keys()))
     if (opts.connected_fn) this.connected_fn = opts.connected_fn
     if (opts.closed_fn) this.closed_fn = opts.closed_fn
-    else this.meta.local.verify.push(...Object.keys(compress))
   }
 
   /** 连接事件监听器 */

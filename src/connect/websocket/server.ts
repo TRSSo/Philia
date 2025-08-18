@@ -45,6 +45,7 @@ export class Server {
         }
         new Client(this.logger, this.handle, this, ws, this.opts)
       })
+      .on("error", err => this.logger.error(err))
       .on("close", () => {
         this.logger.info(`WebSocket 服务器已关闭`)
       })

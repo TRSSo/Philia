@@ -3,6 +3,8 @@ import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import YAML from "yaml"
 import type { Client, type } from "#connect/common"
+import type HTTPClient from "#connect/common/http.js"
+import type { Config as HTTPConfig } from "#connect/common/http.js"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
 import { type Logger, makeLogger } from "#logger"
@@ -17,12 +19,14 @@ export interface IConfig {
   path?: string | string[] | number
   opts?: type.Options
   logger?: ManagerType.LoggerConfig
+  http?: HTTPConfig
 }
 
 export class Project {
   logger: Logger
   server?: Socket.Server | WebSocket.Server
   clients = new Set<Client>()
+  http?: HTTPClient
 
   constructor(
     public config: IConfig,
@@ -152,7 +156,19 @@ export class Project {
     }
   }
 
+  async httpStart() {
+    if (this.config.http) {
+      this.http = new (await import("#connect/common/http.js")).default(
+        this.config.http,
+        this.logger,
+        this.handles,
+      )
+      return this.http.start()
+    }
+  }
+
   start() {
+    this.httpStart()
     switch (this.config.type) {
       case "Socket":
         if (this.config.role === "Client") {
@@ -190,6 +206,7 @@ export class Project {
   }
 
   stop() {
+    if (this.http) this.http.stop()
     if (this.config.role === "Server") return this.server?.close()!
     return Promise.allSettled([...this.clients].map(i => i.close()))
   }

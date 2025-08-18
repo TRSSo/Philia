@@ -20,4 +20,3 @@ export {
   toBuffer,
   toJSON,
 } from "./common.js"
-export { compress, Encoder, encoder, verify } from "./encoder.js"

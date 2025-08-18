@@ -1,23 +1,27 @@
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
-import type { Logger } from "#logger"
-import * as Philia from "#project/project/philia.js"
+import { getLogger, type Logger } from "#logger"
+import type * as Philia from "#project/project/philia.js"
 import type * as Type from "#protocol/type"
+import { sendEnter } from "#util/tui.js"
 import Impl from "./impl.js"
 
 export class Tui {
   impl!: Impl
-  constructor(public logger: Logger) {}
+  logger: Logger
+  constructor(public config: Philia.IConfig) {
+    this.logger = getLogger("TTY")
+  }
 
   async main() {
-    this.impl = new Impl(this.logger, await Philia.Project.createConfig("App"))
+    this.impl = new Impl(this.logger, this.config)
     await this.impl.start()
     for (;;)
       try {
         if (this.impl.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.impl.philia.config.path)
         else await this.send()
-        await inquirer.confirm({ message: "按回车键继续" })
+        await sendEnter("按回车键继续")
       } catch (err) {
         this.logger.error("错误", err)
       }

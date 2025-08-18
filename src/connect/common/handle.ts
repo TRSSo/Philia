@@ -98,29 +98,29 @@ export default class Handle {
   ) {
     try {
       const handle = this.map.get(req.name)
-      let ret: type.Response["data"]
+      let res: type.Response["data"]
       if (handle) {
         if (typeof handle === "function") {
           this.client.logger.debug(
             `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,
           )
-          ret = handle(req.data, this.client)
+          res = handle(req.data, this.client)
         } else {
           this.client.logger.debug(`得到值 ${req.name} => ${Loging(handle)}`)
-          ret = handle
+          res = handle
         }
       } else {
         this.client.logger.debug(
           `执行默认处理器 (${Loging(req.name)}${req.data === undefined ? "" : `, ${Loging(req.data)}`})`,
         )
-        ret = (this.map.get("default") as type.HandleDefault)(req.name, req.data, this.client)
+        res = (this.map.get("default") as type.HandleDefault)(req.name, req.data, this.client)
       }
 
-      if (isPromise(ret)) {
+      if (isPromise(res)) {
         reply(type.EStatus.Async)
-        ret = await ret
+        res = await res
       }
-      return reply(type.EStatus.Response, ret)
+      return reply(type.EStatus.Response, res)
     } catch (err) {
       let error: type.Error["data"] = {
         name: "HandleError",
