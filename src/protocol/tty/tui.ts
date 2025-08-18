@@ -1,29 +1,23 @@
-import fs from "node:fs/promises"
-import path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
 import * as Philia from "#project/project/philia.js"
 import type * as Type from "#protocol/type"
-import { sendInfo } from "#util/tui.js"
 import Impl from "./impl.js"
 
 export class Tui {
-  path = path.join("project", "tty")
   impl!: Impl
   constructor(public logger: Logger) {}
 
   async main() {
-    await fs.mkdir(this.path, { recursive: true })
-    process.chdir(this.path)
-    this.impl = new Impl(this.logger, await Philia.Project.createConfig())
+    this.impl = new Impl(this.logger, await Philia.Project.createConfig("App"))
     await this.impl.start()
     for (;;)
       try {
         if (this.impl.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.impl.philia.config.path)
         else await this.send()
-        await sendInfo()
+        await inquirer.confirm({ message: "按回车键继续" })
       } catch (err) {
         this.logger.error("错误", err)
       }

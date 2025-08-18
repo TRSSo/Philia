@@ -1,10 +1,12 @@
 import fs from "node:fs/promises"
 import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
+import YAML from "yaml"
 import type { Client, type } from "#connect/common"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
 import { type Logger, makeLogger } from "#logger"
+import { getRootDir } from "#util"
 import { selectArray } from "#util/tui.js"
 import type { type as ManagerType } from "../manager/index.js"
 
@@ -30,7 +32,54 @@ export class Project {
     this.logger = makeLogger(config.name, config.logger?.level, config.logger?.inspect)
   }
 
-  static async createConfig(role?: IConfig["role"]): Promise<IConfig> {
+  static async getClientProject(connect_type: "Impl" | "App") {
+    const path_type = Path.join(getRootDir(), "Project", connect_type)
+    const config_list = (await fs.readdir(path_type).catch(() => [])).map(
+      async i =>
+        [
+          i,
+          YAML.parse(await fs.readFile(Path.join(path_type, i, "config.yml"), "utf8"))
+            .philia as IConfig,
+        ] as const,
+    )
+    const list: [string, string][] = []
+    for (const i of await Promise.allSettled(config_list))
+      if (
+        i.status === "fulfilled" &&
+        i.value[1].name === "Philia" &&
+        i.value[1].type === "Socket" &&
+        i.value[1].role === "Server"
+      )
+        list.push([Path.join(connect_type, i.value[0]), i.value[0]])
+
+    const custom = Symbol("custom") as unknown as string
+    list.push([custom, "自定义"])
+    const path = await inquirer.checkbox({
+      message: "请选择项目",
+      choices: selectArray(list),
+    })
+    const index = path.indexOf(custom)
+    if (index !== -1) {
+      path.splice(index, 1)
+      path.push(
+        ...(
+          await inquirer.input({
+            message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔:",
+          })
+        )
+          .split(",")
+          .map(i => `file://${i.trim()}`)
+          .filter(i => i !== "file://"),
+      )
+    }
+    if (!path.length) throw TypeError("连接地址不能为空")
+    return path
+  }
+
+  static async createConfig(
+    connect_type: "Impl" | "App",
+    role?: IConfig["role"],
+  ): Promise<IConfig> {
     const type = await inquirer.select({
       message: "请选择 Philia 协议类型",
       choices: [
@@ -49,28 +98,7 @@ export class Project {
     let path: IConfig["path"]
     switch (type) {
       case "Socket":
-        if (role === "Client") {
-          const list: string[] = await fs.readdir(Path.join("project", "Client")).catch(() => [])
-          const custom = Symbol("custom") as unknown as string
-          path = await inquirer.checkbox<string>({
-            message: "请选择项目",
-            choices: [...selectArray(list), { name: "自定义", value: custom }],
-          })
-          const index = path.indexOf(custom)
-          if (index !== -1) {
-            path.splice(index, 1)
-            path.push(
-              ...(
-                await inquirer.input({
-                  message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔:",
-                })
-              )
-                .split(",")
-                .filter(i => i),
-            )
-          }
-          if (!path.length) throw TypeError("连接地址不能为空")
-        }
+        if (role === "Client") path = await Project.getClientProject(connect_type)
         break
       case "WebSocket":
         if (role === "Server")
@@ -130,6 +158,9 @@ export class Project {
         if (this.config.role === "Client") {
           return Promise.allSettled(
             (this.config.path as string[]).map(i => {
+              i = i.startsWith("file://")
+                ? i.replace("file://", "")
+                : Path.resolve(Path.join(getRootDir(), "Project", i, this.config.name))
               const client = new Socket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)

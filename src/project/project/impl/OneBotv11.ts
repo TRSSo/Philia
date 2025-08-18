@@ -39,7 +39,10 @@ export class Project extends Common.Project {
     return {
       name,
       server: { type, path },
-      philia: await Philia.Project.createConfig(type === "ws-reverse" ? "Client" : undefined),
+      philia: await Philia.Project.createConfig(
+        "App",
+        type === "ws-reverse" ? "Client" : undefined,
+      ),
     }
   }
 

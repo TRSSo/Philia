@@ -34,7 +34,7 @@ export class Project extends Common.Project {
     return {
       name,
       server,
-      philia: await Philia.Project.createConfig(),
+      philia: await Philia.Project.createConfig("App"),
     }
   }
 

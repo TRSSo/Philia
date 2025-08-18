@@ -28,7 +28,7 @@ export default class Impl {
   }
 
   async start() {
-    await Promise.all(["data", "temp"].map(i => fs.mkdir(i, { recursive: true })))
+    await Promise.all(["Data", "Temp"].map(i => fs.mkdir(i, { recursive: true })))
     return this.philia.start()
   }
 }
