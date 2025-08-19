@@ -42,7 +42,7 @@ export default class HTTP {
     public logger: Logger,
     handle: type.HandleMap,
   ) {
-    this.handle = new Handle(handle, undefined as unknown as Client)
+    this.handle = new Handle(handle, { logger } as Client)
     this.server = config.https
       ? https.createServer(config.https)
       : http.createServer(config.opts ?? {})
@@ -91,16 +91,17 @@ export default class HTTP {
       } catch (err) {
         reject(err)
       }
-      req.removeAllListeners()
     })
-    return promise
+    return promise.finally(() => req.removeAllListeners())
   }
 
   async request(req: http.IncomingMessage, res: http.ServerResponse) {
+    const rid = `${req.socket.remoteAddress}:${req.socket.remotePort}`
+    const sid = `http://${req.headers["x-forwarded-host"] || req.headers.host || `${req.socket.localAddress}:${req.socket.localPort}`}${req.url}`
+
     const reply = (code: number, data?: unknown) => {
       try {
         if (res.closed) return
-        this.logger.debug("HTTP", req.method, "回复", req.url, code, data ?? "")
 
         let buffer: Buffer | undefined
         if (data !== undefined) {
@@ -127,11 +128,11 @@ export default class HTTP {
 
         res.writeHead(code, this.headers)
         if (buffer) res.write(buffer)
-        res.end()
+        this.logger.trace("HTTP", req.method, "回复", rid, code, res.getHeaders(), data ?? "")
       } catch (err) {
-        this.logger.error("HTTP", req.method, "请求", req.url, err)
-        res.end()
+        this.logger.error("HTTP", req.method, "回复", rid, code, res.getHeaders(), data ?? "", err)
       }
+      res.end()
     }
 
     const url = URL.parse(req.url as string, "http://localhost")
@@ -149,13 +150,13 @@ export default class HTTP {
     if (req.method === "POST")
       try {
         data.data = await this.readPostData(req)
-        this.logger.debug("HTTP", req.method, "请求", req.url, data.data)
+        this.logger.trace("HTTP", req.method, "请求", rid, sid, req.headers, data.data)
       } catch (err) {
-        this.logger.error("HTTP", req.method, "请求", req.url, err)
+        this.logger.error("HTTP", req.method, "请求", rid, sid, req.headers, err)
         return reply(400)
       }
     else {
-      this.logger.debug("HTTP", req.method, "请求", req.url)
+      this.logger.trace("HTTP", req.method, "请求", rid, sid, req.headers)
       if (req.method === "GET") {
         if (data.id) {
           const cache = this.handle.reply_cache[data.id]
