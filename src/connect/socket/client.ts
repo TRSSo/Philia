@@ -1,4 +1,5 @@
 import { Socket } from "node:net"
+import os from "node:os"
 import Path from "node:path"
 import type { Logger } from "#logger"
 import { makeError, promiseEvent, StringOrBuffer } from "#util"
@@ -24,9 +25,17 @@ export default class Client extends AClient {
   }
 
   connectOpen(path: string) {
-    if (process.platform === "win32") this.event.path = Path.join("\\\\?\\pipe", path)
-    else this.event.path = `\0${path}`
-    this.event.connect(this.event.path as string)
+    switch (os.type()) {
+      case "Linux":
+        this.event.path = `\0${path}`
+        break
+      case "Windows_NT":
+        this.event.path = Path.join("\\\\?\\pipe", path)
+        break
+      default:
+        this.event.path = path
+    }
+    this.event.connect(this.event.path)
   }
 
   onclose() {

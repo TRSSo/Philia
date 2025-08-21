@@ -1,4 +1,5 @@
 import { type Socket, Server as SocketServer } from "node:net"
+import os from "node:os"
 import Path from "node:path"
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
@@ -50,8 +51,16 @@ export class Server {
   }
 
   listen(path = this.path, ...args: any[]) {
-    if (process.platform === "win32") this.socket.path = Path.join("\\\\?\\pipe", path)
-    else this.socket.path = `\0${path}`
+    switch (os.type()) {
+      case "Linux":
+        this.socket.path = `\0${path}`
+        break
+      case "Windows_NT":
+        this.socket.path = Path.join("\\\\?\\pipe", path)
+        break
+      default:
+        this.socket.path = path
+    }
     this.socket.listen(this.socket.path, ...args)
     return promiseEvent<this>(this.socket, "listening", "error")
   }
