@@ -15,7 +15,7 @@ export interface Config {
   port?: number
   /** 服务器选项 */
   opts?: http.ServerOptions
-  /** GTTPS 服务器选项 */
+  /** HTTPS 选项 */
   https?: https.ServerOptions
 }
 

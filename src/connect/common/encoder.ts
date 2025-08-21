@@ -1,7 +1,7 @@
 import crypto from "node:crypto"
 import v8 from "node:v8"
 import zlib from "node:zlib"
-import { findArrays, makeError, toJSON } from "#util/common.js"
+import { findArrays, makeError, toJSON } from "#util"
 
 export interface IEncoder<T> {
   encode(data: T): Buffer

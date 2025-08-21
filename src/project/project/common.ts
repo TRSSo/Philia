@@ -31,7 +31,7 @@ export abstract class Project {
 
   /** 创建配置文件，静态方法 */
   static async createConfig(name: IConfig["name"]): Promise<IConfig> {
-    throw Error(`未实现 ${name}`)
+    return { name, philia: await Philia.Project.createConfig("Impl") }
   }
   /** 验证配置 */
   abstract verifyConfig(): void

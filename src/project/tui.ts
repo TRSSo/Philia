@@ -98,7 +98,7 @@ export default class Tui {
       new project(config)
       await fs.writeFile("config.yml", YAML.stringify(config))
     } catch (err) {
-      await fs.rm(path, { recursive: true })
+      await fs.rm(process.cwd(), { recursive: true })
       throw err
     } finally {
       process.chdir(cwd)

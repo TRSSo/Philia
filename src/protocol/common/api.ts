@@ -3,7 +3,8 @@ export default function createAPI<T>(client: {
   request: (name: keyof T, data: any) => Promise<unknown>
 }) {
   return new Proxy(Object.create(null), {
-    get: (_, name) => client.request.bind(client, name as keyof T),
+    get: (target, name) =>
+      target[name] ?? (target[name] = client.request.bind(client, name as keyof T)),
   }) as {
     [K in keyof Required<T>]: // 可选参数
     Required<T>[K] extends { (): any; (arg: infer P, ...args: any[]): unknown }

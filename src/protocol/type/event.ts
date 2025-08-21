@@ -32,11 +32,11 @@ export interface AGroupEvent extends AEvent {
 
 export interface Handle {
   /** 事件类型 */
-  type: AEvent["type"]
+  type: Event["type"]
   /** 事件处理函数 */
   handle: string
   /** 事件场景 */
-  scene?: AEvent["scene"]
+  scene?: Event["scene"]
   /** 发起事件用户ID匹配 */
   uid?: IModeMatch
   /** 发起事件群ID匹配 */

@@ -1,8 +1,0 @@
-{
-  "plugins": ["unicorn", "typescript", "oxc", "import", "jsdoc", "promise", "node"],
-  "rules": {
-    "jsdoc/check-tag-names": "allow",
-    "promise/valid-params": "allow",
-    "typescript/no-non-null-asserted-optional-chain": "allow"
-  }
-}

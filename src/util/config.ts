@@ -18,7 +18,7 @@ export default async function makeConfig<T extends object>(
 ): Promise<{ config: T; configSave(): Promise<void> }> {
   if (map.has(name)) return map.get(name)
 
-  const configFile = `${name}.yaml`
+  const configFile = `${name}.yml`
   const configSave =
     typeof opts.replacer === "function"
       ? async () =>

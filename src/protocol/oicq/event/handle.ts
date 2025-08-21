@@ -6,10 +6,12 @@ import type * as types from "./types.js"
 
 export default class Handle implements SocketType.HandleMap {
   [key: string]: SocketType.HandleMap[string]
-  static event = [
-    { type: "message", scene: "user" },
-    { type: "message", scene: "group" },
-  ].map(i => ({ ...i, handle: `${i.type}.${i.scene || ""}` }))
+  static event = (
+    [
+      { type: "message", scene: "user" },
+      { type: "message", scene: "group" },
+    ] as const
+  ).map(i => ({ ...i, handle: `${i.type}.${i.scene || ""}` }))
   constructor(public client: Client) {}
 
   async "message.user"(raw: Event.UserMessage) {
