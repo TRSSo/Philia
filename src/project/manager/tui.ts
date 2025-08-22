@@ -198,22 +198,43 @@ export default class ProjectManagerTui {
       return this.followLog(data.level, time)
   }
 
-  async fileLog() {
-    let path = Path.join(this.path, "Log")
-    const files = await fs.readdir(path).catch(err => {
-      if (err.code === "ENOENT") return []
-      else throw err
-    })
-    if (!files.length) return sendInfo("没有日志文件")
-    const choose = await inquirer.select({
-      message: "选择日志文件",
-      choices: selectArray(files.filter(i => i.endsWith(".log"))),
-    })
-    path = Path.join(path, choose)
-    const res = child_process.spawnSync("less", ["-RM+F", path], { stdio: "inherit" })
-    if ((res.error as NodeJS.ErrnoException)?.code === "ENOENT") {
-      process.stdout.write(await fs.readFile(path))
-      await sendInfo()
+  async fileLog(follow = false) {
+    const dir = Path.join(this.path, "Log")
+    const back = Symbol("back") as unknown as string
+    for (;;) {
+      const dirs = await fs.readdir(dir).catch(err => {
+        if (err.code === "ENOENT") return []
+        else throw err
+      })
+      const choose = await inquirer.select({
+        message: "选择日志分类",
+        choices: [...selectArray(dirs), { name: "🔙 返回", value: back }],
+      })
+      if (choose === back) break
+
+      const path = Path.join(dir, choose)
+      for (;;) {
+        const files = await fs.readdir(path).catch(err => {
+          if (err.code === "ENOENT") return []
+          else throw err
+        })
+        const choose = await inquirer.select({
+          message: "选择日志文件",
+          choices: [
+            ...selectArray(files.filter(i => i.endsWith(".log"))),
+            { name: "🔙 返回", value: back },
+          ],
+        })
+        if (choose === back) break
+        const file = Path.join(path, choose)
+        const res = child_process.spawnSync("less", [`-RM${follow ? "+F" : ""}`, file], {
+          stdio: "inherit",
+        })
+        if ((res.error as NodeJS.ErrnoException)?.code === "ENOENT") {
+          process.stdout.write(await fs.readFile(file))
+          await sendInfo()
+        }
+      }
     }
   }
 
@@ -227,7 +248,7 @@ export default class ProjectManagerTui {
         { name: "📄 文件日志", value: "file" },
       ],
     } as const)
-    if (choose === "file") return this.fileLog()
+    if (choose === "file") return this.fileLog(true)
 
     const level =
       type.LoggerLevel[

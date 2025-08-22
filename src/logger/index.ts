@@ -22,7 +22,7 @@ export const log4js_config: log4js.Configuration = {
     },
     dateFile_default: {
       type: "dateFile",
-      filename: `Log/default.INFO`,
+      filename: "Log/default/INFO",
       pattern: "yyyy-MM-dd.log",
       numBackups: 180,
       alwaysIncludePattern: true,
@@ -79,7 +79,7 @@ export function makeLogger(
   const appender = `dateFile_${name}`
   log4js_config.appenders[appender] = {
     ...log4js_config.appenders.dateFile_default,
-    filename: `Log/${name}-${level}`,
+    filename: `Log/${name}/${level}`,
   }
 
   const length = (category_length - name.length) / 2

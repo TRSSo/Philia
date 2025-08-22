@@ -40,6 +40,7 @@ export class EventHandle {
       )
 
       const logger = this.project.plugin.makeLogger(ctx.logger, middleware[i].plugin.name)
+      logger.debug("中间件开始执行")
       try {
         return await middleware[i].method({ ...ctx, logger }, next.bind(undefined, i))
       } catch (err) {
@@ -61,6 +62,7 @@ export class EventHandle {
       if (i.type !== ctx.event.type || (i.scene && i.scene !== ctx.event.scene)) continue
 
       const logger = this.project.plugin.makeLogger(ctx.logger, i.plugin.name)
+      logger.debug("事件开始执行")
       try {
         await i.method({ ...ctx, logger })
       } catch (err) {
@@ -103,10 +105,11 @@ export class EventHandle {
       }
 
       const logger = this.project.plugin.makeLogger(ctx.logger, i.plugin.name)
+      logger.debug("命令开始执行", ...args)
       try {
         await i.method({ ...ctx, logger }, ...args)
       } catch (err) {
-        logger.error("命令处理错误", err)
+        logger.error("命令执行错误", err)
       }
       return true
     }

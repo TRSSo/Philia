@@ -14,13 +14,13 @@ import type * as type from "./type.js"
  *     await ctx.reply(args)
  *   })
  *   .middleware((ctx, next) => {
- *     ctx.logger.info(["收到一条消息", ctx.event.summary])
+ *     ctx.logger.info("收到一条消息", ctx.event.summary)
  *     return next()
  *   })
  *   .event<Philia.Event.Request>({ type: "request" }, ctx => {
- *     ctx.logger.info(["这条请求被我处理了！", ctx.event])
+ *     ctx.logger.info("这条请求被我处理了！", ctx.event)
  *   })
- *   .schedule("0 0 0 0 0", ctx => {
+ *   .schedule("0 0 0 0 0 0", ctx => {
  *     ctx.logger.info("0点到了！")
  *   })
  *   .start(ctx => {
@@ -162,19 +162,21 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
    *     command: { cmd: "复读", method: "cmd" },
    *     middleware: { method: "middleware" },
    *     event: { method: "event" },
-   *     schedule: { spec: "0 0 0 0 0", method: "schedule" },
+   *     schedule: { spec: "0 0 0 0 0 0", method: "schedule" },
    *     start: "start",
    *     stop: "stop",
+   *     connect: "connect",
+   *     close: "close",
    *   })
    *   async cmd(args: string) {
    *     await this.reply(args)
    *   }
    *   middleware(next: () => Promise<boolean>) {
-   *     this.logger.info(["收到一条消息", this.e.summary])
+   *     this.logger.info("收到一条消息", this.e.summary)
    *     return next()
    *   }
    *   event() {
-   *     this.logger.info(["这条消息被我处理了！", this.e.summary])
+   *     this.logger.info("这条消息被我处理了！", this.e.summary)
    *   }
    *   schedule() {
    *     this.logger.info("0点到了！")

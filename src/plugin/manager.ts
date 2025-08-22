@@ -27,7 +27,7 @@ export default class PluginManager {
     public project: Project,
     path: string | string[],
   ) {
-    this.ctx = { logger: makeLogger("Global"), ctx_map: project.ctx_map }
+    this.ctx = { logger: makeLogger("Plugin"), ctx_map: project.ctx_map }
     this.path = Array.isArray(path) ? path : [path]
   }
 
@@ -101,9 +101,9 @@ export default class PluginManager {
 
   async execSchedule(plugin: Plugin, schedule: type.Schedule) {
     try {
-      plugin.logger.info("定时任务开始执行")
+      plugin.logger.debug("定时任务开始执行")
       await schedule.method({ ...this.ctx, logger: plugin.logger })
-      plugin.logger.info("定时任务执行完成")
+      plugin.logger.debug("定时任务执行完成")
     } catch (err) {
       plugin.logger.error("定时任务执行错误", err)
     }

@@ -15,16 +15,18 @@ export default class Tui {
   async main() {
     for (;;)
       try {
+        const list = await this.list()
         const create = Symbol("create")
         const exit = Symbol("exit")
         const choose = await inquirer.select<symbol | string>({
           message: "欢迎使用 Philia 项目管理器",
           choices: [
-            ...(await this.list()),
+            ...list,
             { name: "🆕 创建项目", value: create },
             { name: "🔚 退出", value: exit },
           ],
-        } as const)
+          pageSize: list.length + 2,
+        })
         switch (choose) {
           case create:
             await this.create()

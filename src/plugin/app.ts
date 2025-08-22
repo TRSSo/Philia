@@ -81,6 +81,7 @@ export class Project extends Common.Project {
       ctx.self = await ctx.api.getSelfInfo()
       ctx.logger = makeLogger(ctx.self.id)
 
+      ctx.logger.info(ctx.self.name, "连接成功")
       await this.plugin.execConnect(ctx)
       await ctx.api.receiveEvent({
         event: (["message", "notice", "request"] as const).map(i => ({
@@ -98,6 +99,7 @@ export class Project extends Common.Project {
     const ctx = this.ctx_map.get(client)
     if (!ctx) return this.logger.warn("客户端上下文不存在", client)
     this.ctx_map.delete(client)
+    ctx.logger.info(ctx.self.name, "连接已断开")
     return this.plugin.execClose(ctx)
   }
 }
