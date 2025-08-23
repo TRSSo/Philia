@@ -49,7 +49,8 @@
       "msgpackr-extract"
     ],
     "patchedDependencies": {
-      "log4js@6.9.1": "mod/log4js.patch"
+      "log4js": "mod/log4js.patch",
+      "streamroller": "mod/streamroller.patch"
     }
   }
 }

@@ -7,7 +7,7 @@ import { Client as SocketClient } from "#connect/socket"
 import type { Logger } from "#logger"
 import { createAPI } from "#protocol/common"
 import { chalk, getCodeDir, getDateTime, getTime } from "#util"
-import { selectArray, sendInfo } from "#util/tui.js"
+import { less, lessZstd, selectArray, sendInfo } from "#util/tui.js"
 import type API from "./api.js"
 import * as type from "./type.js"
 
@@ -35,7 +35,7 @@ export default class ProjectManagerTui {
             choices: [
               { name: "▶️ 启动", value: "start" },
               { name: "📝 日志", value: "log" },
-              { name: "⚙️ 设置", value: "config" },
+              { name: "⚙️ 设置", value: "setting" },
               { name: "📌 前台", value: "foreground" },
               { name: "🗑️ 删除", value: "delete" },
               { name: "🔙 返回", value: "back" },
@@ -220,20 +220,11 @@ export default class ProjectManagerTui {
         })
         const choose = await inquirer.select({
           message: "选择日志文件",
-          choices: [
-            ...selectArray(files.filter(i => i.endsWith(".log"))),
-            { name: "🔙 返回", value: back },
-          ],
+          choices: [...selectArray(files), { name: "🔙 返回", value: back }],
         })
         if (choose === back) break
         const file = Path.join(path, choose)
-        const res = child_process.spawnSync("less", [`-RM${follow ? "+F" : ""}`, file], {
-          stdio: "inherit",
-        })
-        if ((res.error as NodeJS.ErrnoException)?.code === "ENOENT") {
-          process.stdout.write(await fs.readFile(file))
-          await sendInfo()
-        }
+        await (choose.endsWith(".zst") ? lessZstd(file) : less(file, follow))
       }
     }
   }
@@ -331,7 +322,7 @@ export default class ProjectManagerTui {
     return promise.promise
   }
 
-  config() {}
+  setting() {}
 
   async delete() {
     if (!(await inquirer.confirm({ message: "是否删除项目?" }))) return

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/complexity/noThisInStatic::
 import type { Logger } from "#logger"
 import type * as Philia from "#protocol/type"
 import type * as type from "./type.js"
@@ -150,12 +151,12 @@ export class createPlugin<T extends Philia.Event.Event = Philia.Event.Message> {
 export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
   /**
    * 创建一个类插件数据
-   * @param c 类
+   * @this 类
    * @param d 插件数据
    * @example
    * ```ts
    * export class Example extends Plugin {
-   *   static plugin = Plugin.createClass(this, {
+   *   static plugin = this.createPlugin({
    *     name: "example",
    *     desc: "示例插件",
    *     type: "message",
@@ -196,8 +197,10 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
    * }
    * ```
    */
-  static createClass<T, E extends Philia.Event.Event>(
-    c: new (...args: ConstructorParameters<typeof Plugin<E>>) => T,
+  static createPlugin<T, E extends Philia.Event.Event>(
+    this: new (
+      ...args: ConstructorParameters<typeof Plugin<E>>
+    ) => T,
     d: type.ClassPlugin<T, E>,
   ) {
     const plugin: type.Plugin = { name: d.name, desc: d.desc, priority: d.priority ?? 0 }
@@ -208,7 +211,7 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
         ...(d.scene && { scene: d.scene }),
         method: (
           ...args: Parameters<type.Command<E extends Philia.Event.Message ? E : never>["method"]>
-        ) => (new c(args.shift() as (typeof args)[0]) as any)[i.method](...args),
+        ) => (new this(args.shift() as (typeof args)[0]) as any)[i.method](...args),
       }))
 
     if (d.middleware)
@@ -217,7 +220,7 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
         type: d.type,
         ...(d.scene && { scene: d.scene }),
         method: (...args: Parameters<type.Middleware<E>["method"]>) =>
-          (new c(args.shift() as (typeof args)[0]) as any)[i.method](...args),
+          (new this(args.shift() as (typeof args)[0]) as any)[i.method](...args),
       }))
 
     if (d.event)
@@ -226,19 +229,19 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
         type: d.type,
         ...(d.scene && { scene: d.scene }),
         method: (...args: Parameters<type.Event<E>["method"]>) =>
-          (new c(args.shift() as (typeof args)[0]) as any)[i.method](...args),
+          (new this(args.shift() as (typeof args)[0]) as any)[i.method](...args),
       }))
 
     if (d.schedule)
       plugin.schedule = (Array.isArray(d.schedule) ? d.schedule : [d.schedule]).map(i => ({
         ...i,
-        method: ctx => (new c(ctx as unknown as type.ctx<E>) as any)[i.method](),
+        method: ctx => (new this(ctx as unknown as type.ctx<E>) as any)[i.method](),
       }))
 
-    if (d.start) plugin.start = ctx => (new c(ctx as unknown as type.ctx<E>) as any)[d.start]()
-    if (d.stop) plugin.stop = ctx => (new c(ctx as unknown as type.ctx<E>) as any)[d.stop]()
-    if (d.connect) plugin.connect = ctx => (new c(ctx) as any)[d.connect]()
-    if (d.close) plugin.close = ctx => (new c(ctx) as any)[d.close]()
+    if (d.start) plugin.start = ctx => (new this(ctx as unknown as type.ctx<E>) as any)[d.start]()
+    if (d.stop) plugin.stop = ctx => (new this(ctx as unknown as type.ctx<E>) as any)[d.stop]()
+    if (d.connect) plugin.connect = ctx => (new this(ctx) as any)[d.connect]()
+    if (d.close) plugin.close = ctx => (new this(ctx) as any)[d.close]()
     return plugin
   }
 

@@ -189,9 +189,8 @@ export function promiseEvent<T>(
   reject?: string | symbol,
   timeout?: number,
 ) {
-  const listener: ReturnType<typeof Promise.withResolvers<T>> & {
-    timeout?: NodeJS.Timeout
-  } = Promise.withResolvers<T>()
+  const listener: ReturnType<typeof Promise.withResolvers<T>> & { timeout?: NodeJS.Timeout } =
+    Promise.withResolvers<T>()
   event.once(resolve, listener.resolve)
   if (reject) event.once(reject, listener.reject)
   if (timeout)

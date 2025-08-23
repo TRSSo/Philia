@@ -1,9 +1,11 @@
+import fs from "node:fs/promises"
 import * as inquirer from "@inquirer/prompts"
 import { ulid } from "ulid"
+import YAML from "yaml"
 import { getLogger, type Logger } from "#logger"
 import type * as Philia from "#project/project/philia.js"
 import type * as Type from "#protocol/type"
-import { sendEnter } from "#util/tui.js"
+import { clearLine, readLine } from "#util/tui.js"
 import Impl from "./impl.js"
 
 export class Tui {
@@ -21,35 +23,22 @@ export class Tui {
         if (this.impl.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.impl.philia.config.path)
         else await this.send()
-        await sendEnter("按回车键继续")
       } catch (err) {
         this.logger.error("错误", err)
       }
   }
 
   async send() {
-    switch (
-      await inquirer.select({
-        message: "Philia TTY",
-        choices: [
-          {
-            name: "发消息",
-            value: "sendMsg",
-            description: "发消息",
-          },
-          {
-            name: "退出",
-            value: "exit",
-            description: "退出",
-          },
-        ],
-      })
-    ) {
-      case "sendMsg":
-        return this.sendMsg()
-      case "exit":
-        process.exit()
-    }
+    const choose = await inquirer.select({
+      message: "Philia TTY",
+      choices: [
+        { name: "💬 发消息", value: "sendMsg" },
+        { name: "⚙️ 设置", value: "setting" },
+        { name: "🔚 退出", value: "exit" },
+      ],
+    } as const)
+    if (choose === "exit") process.exit()
+    return this[choose]()
   }
 
   async sendMsg() {
@@ -64,6 +53,35 @@ export class Tui {
       summary: answer,
     }
     this.impl.event_message_map.set(event.id, event)
-    return this.impl.event_handle.handle(event)
+    this.impl.event_handle.handle(event)
+    await readLine()
+    clearLine()
+  }
+
+  async setting() {
+    for (;;) {
+      switch (
+        await inquirer.select({
+          message: "请选择操作",
+          choices: [
+            { name: "💾 保存配置", value: "save" },
+            ...(await fs
+              .stat("config.yml")
+              .then(() => [{ name: "🗑️ 删除配置", value: "delete" }])
+              .catch(() => [])),
+            { name: "🔙 返回", value: "back" },
+          ],
+        } as const)
+      ) {
+        case "save":
+          await fs.writeFile("config.yml", YAML.stringify(this.config))
+          break
+        case "delete":
+          await fs.rm("config.yml", { force: true })
+          break
+        case "back":
+          return
+      }
+    }
   }
 }
