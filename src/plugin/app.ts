@@ -5,9 +5,9 @@ import * as Common from "#project/project/common.js"
 import * as Philia from "#project/project/philia.js"
 import { createAPI } from "#protocol/common"
 import type { API } from "#protocol/type"
+import type { BaseContext } from "./context.js"
 import { EventHandle } from "./event.js"
 import PluginManager from "./manager.js"
-import type * as type from "./type.js"
 
 export interface IConfig extends Common.IConfig {
   /** 命令插件配置 */
@@ -24,7 +24,7 @@ export class Project extends Common.Project {
   philia: Philia.Project
   plugin: PluginManager
   event: EventHandle
-  ctx_map = new Map<Client, type.ctx>()
+  ctx_map = new Map<Client, BaseContext>()
 
   /**
    * 创建应用端插件项目
@@ -76,14 +76,14 @@ export class Project extends Common.Project {
 
   async connect(client: Client) {
     try {
-      const ctx = { client, api: createAPI<API.API>(client) } as type.ctx
+      const api = createAPI<API.API>(client)
+      const self = await api.getSelfInfo()
+      const ctx: BaseContext = { client, api, self, logger: makeLogger(self.id) }
       this.ctx_map.set(client, ctx)
-      ctx.self = await ctx.api.getSelfInfo()
-      ctx.logger = makeLogger(ctx.self.id)
 
-      ctx.logger.info(ctx.self.name, "连接成功")
+      ctx.logger.info(self.name, "连接成功")
       await this.plugin.execConnect(ctx)
-      await ctx.api.receiveEvent({
+      await api.receiveEvent({
         event: (["message", "notice", "request"] as const).map(i => ({
           type: i,
           handle: "handle",

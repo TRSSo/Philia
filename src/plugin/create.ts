@@ -1,6 +1,7 @@
 // biome-ignore-all lint/complexity/noThisInStatic::
 import type { Logger } from "#logger"
 import type * as Philia from "#protocol/type"
+import type { Context } from "./context.js"
 import type * as type from "./type.js"
 
 /**
@@ -235,24 +236,24 @@ export class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
     if (d.schedule)
       plugin.schedule = (Array.isArray(d.schedule) ? d.schedule : [d.schedule]).map(i => ({
         ...i,
-        method: ctx => (new this(ctx as unknown as type.ctx<E>) as any)[i.method](),
+        method: ctx => (new this(ctx as unknown as Context<E>) as any)[i.method](),
       }))
 
-    if (d.start) plugin.start = ctx => (new this(ctx as unknown as type.ctx<E>) as any)[d.start]()
-    if (d.stop) plugin.stop = ctx => (new this(ctx as unknown as type.ctx<E>) as any)[d.stop]()
-    if (d.connect) plugin.connect = ctx => (new this(ctx) as any)[d.connect]()
-    if (d.close) plugin.close = ctx => (new this(ctx) as any)[d.close]()
+    if (d.start) plugin.start = ctx => (new this(ctx as unknown as Context<E>) as any)[d.start]()
+    if (d.stop) plugin.stop = ctx => (new this(ctx as unknown as Context<E>) as any)[d.stop]()
+    if (d.connect) plugin.connect = ctx => (new this(ctx as Context<E>) as any)[d.connect]()
+    if (d.close) plugin.close = ctx => (new this(ctx as Context<E>) as any)[d.close]()
     return plugin
   }
 
   e: E
   logger: Logger
-  constructor(public ctx: type.ctx<E>) {
+  constructor(public ctx: Context<E>) {
     this.e = ctx.event
     this.logger = ctx.logger
   }
 
-  reply(...args: Parameters<type.ctx<Philia.Event.Event>["reply"]>) {
+  reply(...args: Parameters<Context<Philia.Event.Event>["reply"]>) {
     if (this.ctx?.reply) return this.ctx.reply(...args)
   }
 }

@@ -1,83 +1,6 @@
 import type schedule from "node-schedule"
-import type { Client } from "#connect/common"
-import type { Logger } from "#logger"
-import type { createAPI } from "#protocol/common"
 import type * as Philia from "#protocol/type"
-
-/** 事件上下文 */
-export interface ctx<T = never> {
-  /** API 调用 */
-  api: ReturnType<typeof createAPI<Philia.API.API>>
-  /** 自己信息 */
-  self: Philia.Contact.Self
-  /** 客户端 */
-  client: Client
-  /** 日志 */
-  logger: Logger
-
-  /** 事件 */
-  event: T
-  /** 快速回复 */
-  reply: T extends Philia.Event.Event
-    ? (message: Philia.Message.Message) => Promise<Philia.Message.RSendMsg>
-    : never
-  /** 钩子 */
-  hook: T extends Philia.Event.Event ? ctxHook<T> : never
-
-  /** 快速处理 */
-  request: T extends Philia.Event.Request
-    ? (result: boolean, reason?: string, block?: boolean) => Promise<void>
-    : never
-}
-
-/** 钩子选项 */
-export interface ctxHookOpts<T extends Philia.Event.Event = Philia.Event.Event> {
-  /** 事件类型 */
-  type: T["type"]
-  /** 事件场景 */
-  scene?: T["scene"]
-  /** 发起事件用户ID */
-  uid?: T["user"]["id"]
-  /** 发起事件群ID */
-  gid?: T["group"] extends Philia.Contact.Group ? T["group"]["id"] : never
-}
-
-/** 钩子 */
-export interface ctxHook<D extends Philia.Event.Event> {
-  /** 添加钩子 */
-  set<T extends Philia.Event.Event = D>(
-    /**
-     * 钩子方法
-     * @param ctx 上下文
-     * @param cancel 取消钩子
-     * @returns false 继续执行插件
-     */
-    method: (ctx: ctx<T>, cancel: () => void) => (void | boolean) | Promise<void | boolean>,
-    opts?: ctxHookOpts<T>,
-  ): void
-
-  /** 添加一次性钩子 */
-  once<T extends Philia.Event.Event = D>(
-    /**
-     * 钩子方法
-     * @param ctx 上下文
-     * @returns false 继续执行插件
-     */
-    method: (ctx: ctx<T>) => (void | boolean) | Promise<void | boolean>,
-    opts?: ctxHookOpts<T>,
-  ): void
-
-  /** Promise 钩子 */
-  promise<T extends Philia.Event.Event = D>(opts?: ctxHookOpts<T>): Promise<ctx<T>>
-}
-
-/** 全局上下文 */
-export interface ctxGlobal {
-  /** 日志 */
-  logger: Logger
-  /** 所有上下文 */
-  ctx_map: Map<Client, ctx>
-}
+import type { BaseContext, Context, GlobalContext } from "./context.js"
 
 /** 插件 */
 export interface Plugin {
@@ -96,13 +19,13 @@ export interface Plugin {
   /** 定时任务组 */
   schedule?: Schedule[]
   /** 开启插件 */
-  start?(ctx: ctxGlobal): void | Promise<void>
+  start?(ctx: GlobalContext): void | Promise<void>
   /** 关闭插件 */
-  stop?(ctx: ctxGlobal): void | Promise<void>
+  stop?(ctx: GlobalContext): void | Promise<void>
   /** 机器人连接 */
-  connect?(ctx: ctx): void | Promise<void>
+  connect?(ctx: BaseContext): void | Promise<void>
   /** 机器人断开 */
-  close?(ctx: ctx): void | Promise<void>
+  close?(ctx: BaseContext): void | Promise<void>
 }
 
 export type ClassMethod<C, T extends Command | Middleware | Event | Schedule> = Omit<
@@ -181,7 +104,7 @@ export interface SingleCommand<T extends Philia.Event.Message = Philia.Event.Mes
    * 命令方法
    * @param args 命令参数，将命令去除后的消息
    */
-  method(ctx: ctx<T>, args: string): void | Promise<void>
+  method(ctx: Context<T>, args: string): void | Promise<void>
 }
 /** 多命令插件 */
 export interface MultiCommand<T extends Philia.Event.Message = Philia.Event.Message>
@@ -192,7 +115,7 @@ export interface MultiCommand<T extends Philia.Event.Message = Philia.Event.Mess
    * @param cmd 匹配到的命令
    * @param args 命令参数，将命令去除后的消息
    */
-  method(ctx: ctx<T>, cmd: string, args: string): void | Promise<void>
+  method(ctx: Context<T>, cmd: string, args: string): void | Promise<void>
 }
 /** 正则命令插件 */
 export interface RegExpCommand<T extends Philia.Event.Message = Philia.Event.Message>
@@ -202,7 +125,7 @@ export interface RegExpCommand<T extends Philia.Event.Message = Philia.Event.Mes
    * 命令方法
    * @param match 匹配到的正则结果
    */
-  method(ctx: ctx<T>, match: RegExpMatchArray): void | Promise<void>
+  method(ctx: Context<T>, match: RegExpMatchArray): void | Promise<void>
 }
 /** 命令插件 */
 export type Command<T extends Philia.Event.Message = Philia.Event.Message> =
@@ -221,7 +144,7 @@ export interface Middleware<T extends Philia.Event.Event = Philia.Event.Event> {
    * @param next 继续执行，返回 true 表示处理完成，false 最终没有插件处理
    * @returns true 表示处理完成，false 没有处理
    */
-  method(ctx: ctx<T>, next: () => Promise<boolean>): boolean | Promise<boolean>
+  method(ctx: Context<T>, next: () => Promise<boolean>): boolean | Promise<boolean>
 }
 
 /** 事件插件 */
@@ -230,11 +153,11 @@ export interface Event<T extends Philia.Event.Event = Philia.Event.Event> {
   type: T["type"]
   /** 事件场景 */
   scene?: T["scene"]
-  method(ctx: ctx<T>): void | Promise<void>
+  method(ctx: Context<T>): void | Promise<void>
 }
 
 /** 定时任务插件 */
 export interface Schedule {
   spec: schedule.Spec
-  method(ctx: ctxGlobal): void | Promise<void>
+  method(ctx: GlobalContext): void | Promise<void>
 }

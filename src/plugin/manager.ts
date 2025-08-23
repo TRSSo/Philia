@@ -4,6 +4,7 @@ import schedule from "node-schedule"
 import { type Logger, makeLogger } from "#logger"
 import { chalk } from "#util"
 import type { Project } from "./app.js"
+import type { GlobalContext } from "./context.js"
 import type * as type from "./type.js"
 
 export type Plugin = type.Plugin & { logger: Logger }
@@ -12,7 +13,7 @@ export type Plugin = type.Plugin & { logger: Logger }
 export default class PluginManager {
   loaded = false
   path: string[]
-  ctx: type.ctxGlobal
+  ctx: GlobalContext
 
   command: (type.Command & { plugin: Plugin })[] = []
   middleware: (type.Middleware & { plugin: Plugin })[] = []
