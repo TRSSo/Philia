@@ -21,11 +21,54 @@ export interface ctx<T = never> {
   reply: T extends Philia.Event.Event
     ? (message: Philia.Message.Message) => Promise<Philia.Message.RSendMsg>
     : never
+  /** 钩子 */
+  hook: T extends Philia.Event.Event ? ctxHook<T> : never
 
   /** 快速处理 */
   request: T extends Philia.Event.Request
     ? (result: boolean, reason?: string, block?: boolean) => Promise<void>
     : never
+}
+
+/** 钩子选项 */
+export interface ctxHookOpts<T extends Philia.Event.Event = Philia.Event.Event> {
+  /** 事件类型 */
+  type: T["type"]
+  /** 事件场景 */
+  scene?: T["scene"]
+  /** 发起事件用户ID */
+  uid?: T["user"]["id"]
+  /** 发起事件群ID */
+  gid?: T["group"] extends Philia.Contact.Group ? T["group"]["id"] : never
+}
+
+/** 钩子 */
+export interface ctxHook<D extends Philia.Event.Event> {
+  /** 添加钩子 */
+  set<T extends Philia.Event.Event = D>(
+    /**
+     * 钩子方法
+     * @param ctx 上下文
+     * @param cancel 取消钩子
+     * @returns false 继续执行插件
+     */
+    method: (ctx: ctx<T>, cancel: () => void) => (void | boolean) | Promise<void | boolean>,
+    opts?: ctxHookOpts<T>,
+  ): void
+
+  /** 添加一次性钩子 */
+  once<T extends Philia.Event.Event = D>(
+    /**
+     * 钩子方法
+     * @param ctx 上下文
+     * @returns false 继续执行插件
+     */
+    method: (ctx: ctx<T>) => (void | boolean) | Promise<void | boolean>,
+    opts?: ctxHookOpts<T>,
+  ): void
+
+  /** Promise 钩子 */
+  promise<T extends Philia.Event.Event = D>(opts?: ctxHookOpts<T>): Promise<ctx<T>>
 }
 
 /** 全局上下文 */

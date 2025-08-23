@@ -7,7 +7,7 @@ type HandleMap = Omit<Event.Handle, "type" | "scene"> & { client: Client }
 
 export default class EventHandle {
   philia: Philia.Project
-  handles: Map<string, HandleMap[]> = new Map()
+  handles = new Map<string, HandleMap[]>()
   constructor(philia: Philia.Project) {
     this.philia = philia
   }
