@@ -56,7 +56,7 @@ export default class PluginManager {
               job: schedule.scheduleJob(i.spec, this.execSchedule.bind(this, plugin, i)),
             })
       } catch (err) {
-        this.project.logger.error("插件加载错误", plugin, err)
+        this.ctx.logger.error("插件加载错误", plugin, err)
       }
   }
 
@@ -68,7 +68,7 @@ export default class PluginManager {
           p.push(this.import(Path.join(i.parentPath, i.name)))
       return (await Promise.all(p)).flat()
     } catch (err) {
-      this.project.logger.error(`文件夹读取错误 ${chalk.red(path)}`, err)
+      this.ctx.logger.error(`文件夹读取错误 ${chalk.red(path)}`, err)
     }
     return []
   }
@@ -76,10 +76,10 @@ export default class PluginManager {
   async import(file: string) {
     const plugins: Plugin[] = []
     try {
-      const p = await import(Path.resolve(file))
+      const p = await import(`file://${file}`)
       for (const i in p) if (typeof p[i]?.plugin === "object") plugins.push(p[i].plugin)
     } catch (err) {
-      this.project.logger.error(`插件加载错误 ${chalk.red(file)}`, err)
+      this.ctx.logger.error(`插件加载错误 ${chalk.red(file)}`, err)
     }
     return plugins
   }

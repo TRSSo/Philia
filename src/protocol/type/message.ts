@@ -17,30 +17,28 @@ export interface Text extends AMessage {
   type: "text"
   /** 文本数据 */
   data: string
-  /** Markdown 数据，仅支持 Markdown 时有效 */
+  /** Markdown 数据，平台支持则转为 Markdown 消息 */
   markdown?: string
-  /** URL 数据，发送链接消息时使用 */
+  /** URL 数据，平台支持则转为链接消息 */
   url?: string
 }
 
 /** 提及消息基类 */
 export interface AMention extends AMessage {
   type: "mention"
-  /** 提及目标 */
-  data: "user" | "all"
+  /** 提及目标类型 */
+  data: string
 }
 /** 提及用户消息 */
 export interface UserMention extends AMention {
-  /** 提及目标 */
   data: "user"
-  /** 提及目标ID */
+  /** 用户ID */
   id: Contact.User["id"]
   /** 用户名 */
   name?: Contact.User["name"]
 }
 /** 提及全体成员消息 */
 export interface AllMention extends AMention {
-  /** 提及目标 */
   data: "all"
 }
 /** 提及消息 */
@@ -118,7 +116,7 @@ export interface AButton {
   clicked_text?: string
   /** 谁能点按钮 */
   permission?: Contact.User["id"] | Contact.User["id"][]
-  /** 平台额外字段，[平台名: 内容]，非目标平台忽略该字段 */
+  /** 平台额外字段，[平台名: 内容]，非目标平台忽略 */
   [key: string]: unknown
 }
 /** 链接按钮 */
@@ -143,20 +141,10 @@ export interface Button extends AMessage {
   data: ButtonType[][]
 }
 
-/** 合并转发消息 */
-export interface Forward {
-  message: Message
-  /** 消息摘要（仅接收） */
-  summary?: string
-  time?: number
-  user?: Partial<Contact.User>
-  group?: Partial<Contact.Group>
-}
-
 /** 扩展消息 */
 export interface Extend extends AMessage {
   type: "extend"
-  /** 扩展消息类型，若目标平台不支持，则忽略该消息段 */
+  /** 扩展消息类型，目标平台不支持则忽略 */
   extend: string
   data: unknown
 }
@@ -172,14 +160,14 @@ export type MessageSegment =
   | Text
   | Mention
   | Reply
-  | Button
-  | Extend
-  | Platform
   | File
   | Image
   | Audio
   | Voice
   | Video
+  | Button
+  | Extend
+  | Platform
 /** 消息 */
 export type Message = string | MessageSegment | (string | MessageSegment)[]
 
@@ -193,4 +181,14 @@ export interface RSendMsg {
   file_id?: IDFile["id"][]
   /** 平台原始字段 */
   raw?: any
+}
+
+/** 合并转发消息 */
+export interface Forward {
+  message: Message
+  /** 消息摘要（仅接收） */
+  summary?: string
+  time?: number
+  user?: Partial<Contact.User>
+  group?: Partial<Contact.Group>
 }
