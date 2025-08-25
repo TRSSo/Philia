@@ -1,0 +1,58 @@
+export * from "./app.js";
+export * from "./contact/index.js";
+export * from "./event/index.js";
+export * from "./message/index.js";
+import * as client from "./app.js";
+import * as contact from "./contact/index.js";
+import * as message from "./message/index.js";
+declare const _default: {
+  OICQtoPhilia: typeof message.OICQtoPhilia;
+  PhiliaToOICQ: typeof message.PhiliaToOICQ;
+  ExtendArray: message.ExtendMessageElem["type"][];
+  segment: {
+    long_msg(resid: string): message.LongMsgElem;
+    text(text: any, markdown?: string): message.TextElem;
+    face(id: number, big?: boolean): message.FaceElem;
+    sface(id: number, text?: string): message.FaceElem;
+    bface(file: string, text: string): message.BfaceElem;
+    rps(id?: number): message.MfaceElem;
+    dice(id?: number): message.MfaceElem;
+    at(qq: string | "all", text?: string, dummy?: boolean): message.AtElem;
+    image(file: message.ImageElem["file"], cache?: boolean, timeout?: number, headers?: import("http").OutgoingHttpHeaders): message.ImageElem;
+    flash(file: message.ImageElem["file"], cache?: boolean, timeout?: number, headers?: import("http").OutgoingHttpHeaders): message.FlashElem;
+    record(file: string | Buffer, data?: any): message.PttElem;
+    video(file: string | Buffer, data?: any): message.VideoElem;
+    json(data: any): message.JsonElem;
+    xml(data: string, id?: number): message.XmlElem;
+    markdown(content: string, config?: message.MarkdownElem["config"]): message.MarkdownElem;
+    button(content: message.ButtonElem["content"] | message.ButtonElem["data"]): message.ButtonElem;
+    mirai(data: string): message.MiraiElem;
+    music(id: string, platform?: string): message.MusicElem;
+    fake(user_id: string, message: message.Sendable, nickname?: string, time?: number): message.ForwardNode;
+    share(url: string, title: string, image?: string, content?: string): message.ShareElem;
+    location(lat: number, lng: number, address: string, id?: string): message.LocationElem;
+    poke(id: number): message.PokeElem;
+    fromCqcode(str: string): message.MessageElem[];
+    file(file: string | Buffer, name?: string, pid?: string): message.FileElem;
+    reply(id: string, text?: string): message.ReplyElem;
+  };
+  facemap: {
+    [key: number]: Omit<message.FaceElem, "id" | "type">;
+  };
+  pokemap: {
+    [k: number]: string;
+  };
+  Message: typeof message.Message;
+  PrivateMessage: typeof message.PrivateMessage;
+  GroupMessage: typeof message.GroupMessage;
+  Contactable: typeof contact.Contactable;
+  User: typeof contact.User;
+  Friend: typeof contact.User;
+  Gfs: typeof contact.Gfs;
+  Group: typeof contact.Group;
+  Member: typeof contact.Member;
+  OnlineStatus: typeof contact.OnlineStatus;
+  createClient(conf?: client.Config | undefined): client.Client;
+  Client: typeof client.Client;
+};
+export default _default;

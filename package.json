@@ -1,0 +1,48 @@
+{
+  "name": "philia",
+  "version": "0.0.1",
+  "description": "菲莉娅通用聊天应用接口标准及 TypeScript 实现",
+  "license": "LGPL-3.0",
+  "author": "TimeRainStarSky",
+  "type": "module",
+  "main": "lib/main.js",
+  "scripts": {
+    "lint": "biome check --write src",
+    "compile": "node -e \"fs.rmSync('lib',{recursive:true,force:true})\" && tsc",
+    "minify": "node mod/minify lib",
+    "build": "pnpm lint && pnpm compile && pnpm minify",
+    "main": "node lib/main"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.8.4",
+    "cbor-x": "^1.6.0",
+    "chalk": "^5.6.0",
+    "log4js": "^6.9.1",
+    "msgpackr": "^1.11.5",
+    "node-schedule": "^2.1.1",
+    "ulid": "^3.0.1",
+    "ws": "^8.18.3",
+    "yaml": "^2.8.1"
+  },
+  "imports": {
+    "#*": "./lib/*/index.js",
+    "#*.js": "./lib/*.js",
+    "#root/*": "./*"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./*": "./lib/*/index.js",
+    "./*.js": "./lib/*.js",
+    "./package.json": "./package.json"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "cbor-extract",
+      "msgpackr-extract"
+    ],
+    "patchedDependencies": {
+      "log4js": "mod/log4js.patch",
+      "streamroller": "mod/streamroller.patch"
+    }
+  }
+}
