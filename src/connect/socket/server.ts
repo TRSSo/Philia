@@ -3,7 +3,7 @@ import os from "node:os"
 import Path from "node:path"
 import { ulid } from "ulid"
 import type { Logger } from "#logger"
-import { promiseEvent } from "#util"
+import { getSocketAddress, getSocketRemoteAddress, promiseEvent } from "#util"
 import type { type } from "../common/index.js"
 import OClient from "./client.js"
 
@@ -12,7 +12,7 @@ export interface ServerOptions extends type.ServerOptions {
 }
 
 export class Server {
-  socket: SocketServer & { path?: string }
+  socket: SocketServer
   sockets = new Set<Socket>()
   clients = new Set<Client>()
   meta = {
@@ -35,7 +35,7 @@ export class Server {
 
     this.socket
       .on("listening", () => {
-        this.logger.info(`Socket 服务器已监听路径 ${this.socket.path}`)
+        this.logger.info("Socket 服务器已监听在", getSocketAddress(this.socket))
       })
       .on("connection", socket => {
         if (this.limit && this.sockets.size >= this.limit) {
@@ -51,17 +51,22 @@ export class Server {
   }
 
   listen(path = this.path, ...args: any[]) {
+    if (path.startsWith("tcp://")) {
+      const [host, port] = path.slice(6).split(":")
+      this.socket.listen(Number(port), host)
+      return
+    }
+
+    path = Path.resolve(path)
     switch (os.type()) {
       case "Linux":
-        this.socket.path = `\0${path}`
+        path = `\0${path}`
         break
       case "Windows_NT":
-        this.socket.path = Path.join("\\\\?\\pipe", path)
+        path = Path.join("\\\\?\\pipe", path)
         break
-      default:
-        this.socket.path = path
     }
-    this.socket.listen(this.socket.path, ...args)
+    this.socket.listen(path, ...args)
     return promiseEvent<this>(this.socket, "listening", "error")
   }
 
@@ -78,15 +83,11 @@ export class Server {
   listener: { [key: string]: (...args: any[]) => void } = {
     connected(this: Client) {
       this.server.add(this)
-      this.logger.info(`${this.meta.remote?.id} 已连接，共${this.server.sockets.size}个连接`)
-      this.logger.debug(this.meta.remote)
-      this.onconnected()
-      this.server.socket.emit("connected", this)
+      this.onconnected(`共${this.server.sockets.size}个连接`)
     },
     close(this: Client) {
-      this.onclose()
       this.server.del(this)
-      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.sockets.size}个连接`)
+      this.onclose(`剩余${this.server.sockets.size}个连接`)
     },
   }
 
@@ -107,12 +108,16 @@ class Client extends OClient {
     socket: Socket,
     opts: ServerOptions,
   ) {
+    const address = getSocketRemoteAddress(socket)
     super(logger, handle, { ...opts, socket })
     this.server = server
     this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
-    this.onconnect()
+    this.onconnect().catch(err => {
+      this.logger.error(...address, "连接错误", err)
+      this.forceClose()
+    })
   }
 }

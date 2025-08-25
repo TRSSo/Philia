@@ -94,16 +94,22 @@ export default abstract class Client {
       for (const i in this.listener) this.event.on(i, this.listener[i])
       this.event.emit("connected", this)
     } catch (err) {
-      this.forceClose()
-      throw err
+      if (this.path) this.event.emit("error", err)
+      else throw err
     }
   }
 
   /** 处理连接成功 */
-  onconnected() {
+  onconnected(info = "") {
     this.open = true
     this.sender()
     this.connected_fn?.(this)
+    info &&= `，${info}`
+    if (this.path) this.logger.debug(`${this.meta.remote?.id} 已连接`, this.meta.remote)
+    else {
+      this.logger.info(`${this.meta.remote?.id} 已连接${info}`)
+      this.logger.debug(this.meta.remote)
+    }
   }
 
   /** 处理连接时错误 */
@@ -120,7 +126,7 @@ export default abstract class Client {
   /** 处理重连 */
   reconnect(delay = this.timeout.send) {
     if (!this.allow_reconnect) return
-    this.logger.info(`${delay / 1e3} 秒后重连`)
+    this.logger.info(delay / 1e3, "秒后重连")
     setTimeout(this.connect.bind(this, undefined, delay + this.timeout.send), delay)
   }
 
@@ -130,11 +136,15 @@ export default abstract class Client {
   }
 
   /** 处理连接关闭 */
-  onclose() {
+  onclose(info = "") {
     this.open = false
     for (const i in this.listener) this.event.off(i, this.listener[i])
     this.closed_fn?.(this)
-    if (this.path) this.reconnect()
+    info &&= `，${info}`
+    if (this.path && this.allow_reconnect) {
+      this.logger.warn(`${this.meta.remote?.id} 已断开连接${info}`)
+      this.reconnect()
+    } else this.logger.debug(`${this.meta.remote?.id} 已断开连接${info}`)
   }
 
   /** 处理连接错误 */

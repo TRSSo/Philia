@@ -8,6 +8,11 @@ import type * as Type from "#protocol/type"
 import { clearLine, readLine } from "#util/tui.js"
 import Impl from "./impl.js"
 
+process.on("SIGINT", async () => {
+  await fs.rm("config.yml", { force: true }).catch(() => {})
+  process.exit()
+})
+
 export class Tui {
   impl!: Impl
   logger: Logger
@@ -22,7 +27,11 @@ export class Tui {
       try {
         if (this.impl.philia.clients.size === 0)
           this.logger.info("等待客户端连接中", this.impl.philia.config.path)
+        else if (this.impl.philia.clients.values().next().value!.open === false)
+          this.logger.info("等待连接到服务端", this.impl.philia.config.path)
         else await this.send()
+        await readLine()
+        clearLine()
       } catch (err) {
         this.logger.error("错误", err)
       }
@@ -54,8 +63,6 @@ export class Tui {
     }
     this.impl.event_message_map.set(event.id, event)
     this.impl.event_handle.handle(event)
-    await readLine()
-    clearLine()
   }
 
   async setting() {

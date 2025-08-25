@@ -1,8 +1,7 @@
 import http from "node:http"
 import https from "node:https"
-import type { AddressInfo } from "node:net"
 import type { Logger } from "#logger"
-import { promiseEvent } from "#util"
+import { getRequestInfo, getSocketAddress, promiseEvent } from "#util"
 import type Client from "./client.js"
 import { compress, encoder } from "./encoder.js"
 import Handle from "./handle.js"
@@ -47,12 +46,11 @@ export default class HTTP {
       ? https.createServer(config.https)
       : http.createServer(config.opts ?? {})
     this.server
-      .on("listening", () => {
-        const { address, family, port } = this.server.address() as AddressInfo
+      .on("listening", () =>
         this.logger.info(
-          `HTTP 服务器已监听在 http${config.https ? "s" : ""}://${family.endsWith("6") ? `[${address}]` : address}:${port}`,
-        )
-      })
+          `HTTP 服务器已监听在 http${config.https ? "s" : ""}://${getSocketAddress(this.server)}`,
+        ),
+      )
       .on("request", this.request.bind(this))
       .on("error", err => this.logger.error(err))
       .on("close", () => {
@@ -96,9 +94,7 @@ export default class HTTP {
   }
 
   async request(req: http.IncomingMessage, res: http.ServerResponse) {
-    const rid = `${req.socket.remoteAddress}:${req.socket.remotePort}`
-    const sid = `http://${req.headers["x-forwarded-host"] || req.headers.host || `${req.socket.localAddress}:${req.socket.localPort}`}${req.url}`
-
+    const [sid, rid] = getRequestInfo(req)
     const reply = (code: number, data?: unknown) => {
       try {
         if (res.closed) return
@@ -122,6 +118,7 @@ export default class HTTP {
             if (!encode) continue
             buffer = encode(buffer)
             res.setHeader("Content-Encoding", i)
+            break
           }
           res.setHeader("Content-Length", buffer.length)
         }
@@ -157,16 +154,15 @@ export default class HTTP {
       }
     else {
       this.logger.trace("HTTP", req.method, "请求", rid, sid, req.headers)
-      if (req.method === "GET") {
-        if (data.id) {
-          const cache = this.handle.reply_cache[data.id]
-          if (cache) {
-            if (cache.code === type.EStatus.Async) reply(202)
-            else reply(200, cache.data)
-            return
-          }
-        }
-      } else return reply(405)
+      if (req.method !== "GET") return reply(405)
+    }
+
+    if (data.id) {
+      const cache = this.handle.reply_cache[data.id]
+      if (cache) {
+        data.id = null
+        return this.reply(data, cache.code, (cache as type.Response).data)
+      }
     }
 
     return this.handle.request(data as type.Request, this.reply.bind(this, data))

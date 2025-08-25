@@ -11,7 +11,7 @@ export interface ClientOptions extends type.Options {
 }
 
 export default class Client extends AClient {
-  event: Socket & { path?: string }
+  event: Socket
   buffer!: Buffer
   buffer_split?: Buffer
 
@@ -25,28 +25,32 @@ export default class Client extends AClient {
   }
 
   connectOpen(path: string) {
+    if (path.startsWith("tcp://")) {
+      const [host, port] = path.slice(6).split(":")
+      this.event.connect(Number(port), host)
+      return
+    }
+
+    path = Path.resolve(path)
     switch (os.type()) {
       case "Linux":
-        this.event.path = `\0${path}`
+        path = `\0${path}`
         break
       case "Windows_NT":
-        this.event.path = Path.join("\\\\?\\pipe", path)
+        path = Path.join("\\\\?\\pipe", path)
         break
-      default:
-        this.event.path = path
     }
-    this.event.connect(this.event.path)
+    this.event.connect(path)
   }
 
-  onclose() {
+  onclose(info?: string) {
     this.buffer = Buffer.alloc(0)
-    super.onclose()
+    super.onclose(info)
   }
 
   listener: { [key: string]: (...args: any[]) => void } = {
     data: this.receive,
     connected(this: Client) {
-      this.logger.debug("已连接", this.meta.remote)
       this.onconnected()
     },
     end(this: Client) {
@@ -54,7 +58,6 @@ export default class Client extends AClient {
     },
     close(this: Client) {
       this.onclose()
-      this.logger.debug(`${this.meta.remote?.id} 已断开连接`)
     },
     timeout(this: Client) {
       this.request("heartbeat").catch(this.forceClose)

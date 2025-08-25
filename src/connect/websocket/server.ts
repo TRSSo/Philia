@@ -1,7 +1,8 @@
+import type { IncomingMessage } from "node:http"
 import { ulid } from "ulid"
 import { type WebSocket, WebSocketServer } from "ws"
 import type { Logger } from "#logger"
-import { promiseEvent } from "#util"
+import { getSocketAddress, getSocketRemoteAddress, promiseEvent } from "#util"
 import type { type } from "../common/index.js"
 import OClient from "./client.js"
 
@@ -36,14 +37,14 @@ export class Server {
     this.ws ??= new WebSocketServer(this.ws_opts, ...args)
     this.ws
       .on("listening", () => {
-        this.logger.info(`WebSocket 服务器已监听端口 ${port}`)
+        this.logger.info("WebSocket 服务器已监听在", getSocketAddress(this.ws))
       })
-      .on("connection", ws => {
+      .on("connection", (ws, req) => {
         if (this.limit && this.wss.size >= this.limit) {
           this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.wss.size}个连接`)
           return ws.terminate()
         }
-        new Client(this.logger, this.handle, this, ws, this.opts)
+        new Client(this, ws, req)
       })
       .on("error", err => this.logger.error(err))
       .on("close", () => {
@@ -65,16 +66,12 @@ export class Server {
   listener: { [key: string]: (...args: any[]) => void } = {
     connected(this: Client) {
       this.server.add(this)
-      this.logger.info(`${this.meta.remote?.id} 已连接，共${this.server.wss.size}个连接`)
-      this.logger.debug(this.meta.remote)
-      this.onconnected()
+      this.onconnected(`共${this.server.wss.size}个连接`)
       this.heartbeat()
-      this.server.ws.emit("connected", this)
     },
     close(this: Client) {
-      this.onclose()
       this.server.del(this)
-      this.logger.info(`${this.meta.remote?.id} 已断开连接，剩余${this.server.wss.size}个连接`)
+      this.onclose(`剩余${this.server.wss.size}个连接`)
     },
   }
 
@@ -88,19 +85,16 @@ export default Server
 
 class Client extends OClient {
   server: Server
-  constructor(
-    logger: Logger,
-    handle: type.HandleMap,
-    server: Server,
-    ws: WebSocket,
-    opts: ServerOptions,
-  ) {
-    super(logger, handle, { ...opts, ws })
+  constructor(server: Server, ws: WebSocket, req: IncomingMessage) {
+    const address = getSocketRemoteAddress(req.socket)
+    super(server.logger, server.handle, { ...server.opts, ws })
     this.server = server
-    this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)
-    this.onconnect()
+    this.onconnect().catch(err => {
+      this.logger.error(...address, "连接错误", err)
+      this.forceClose()
+    })
   }
 }

@@ -27,22 +27,26 @@ export default class ProjectManagerTui {
 
   async main() {
     await this.connect().catch(() => {})
-    for (;;) {
-      const choose = await (this.client.open
-        ? this.openMenu()
-        : inquirer.select({
-            message: `${this.name} 项目管理`,
-            choices: [
-              { name: "▶️ 启动", value: "start" },
-              { name: "📝 日志", value: "log" },
-              { name: "⚙️ 设置", value: "setting" },
-              { name: "📌 前台", value: "foreground" },
-              { name: "🗑️ 删除", value: "delete" },
-              { name: "🔙 返回", value: "back" },
-            ],
-          } as const))
-      if (choose && (await this[choose]()) === false) break
-    }
+    for (;;)
+      try {
+        const choose = await (this.client.open
+          ? this.openMenu()
+          : inquirer.select({
+              message: `${this.name} 项目管理`,
+              choices: [
+                { name: "▶️ 启动", value: "start" },
+                { name: "📝 日志", value: "log" },
+                { name: "⚙️ 设置", value: "setting" },
+                { name: "📌 前台", value: "foreground" },
+                { name: "🗑️ 删除", value: "delete" },
+                { name: "🔙 返回", value: "back" },
+              ],
+            } as const))
+        if (choose && (await this[choose]()) === false) break
+      } catch (err) {
+        if ((err as Error)?.name !== "ExitPromptError") this.logger.error(err)
+        await sendInfo()
+      }
     this.client.close().catch(() => {})
   }
 

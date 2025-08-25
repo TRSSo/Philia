@@ -1,5 +1,7 @@
 import type EventEmitter from "node:events"
 import fs from "node:fs/promises"
+import type { IncomingMessage } from "node:http"
+import type { AddressInfo, Server, Socket } from "node:net"
 import path from "node:path"
 import util from "node:util"
 import { Chalk } from "chalk"
@@ -318,4 +320,40 @@ export function getCodeDir() {
 /** 获取项目根目录 */
 export function getRootDir() {
   return path.relative(process.cwd(), path.dirname(path.dirname(import.meta.dirname)))
+}
+
+/**
+ * 获取 Socket 地址
+ * @param socket Socket 对象
+ * @returns 地址
+ */
+export function getSocketAddress(socket: { address: (Socket | Server)["address"] }) {
+  const address = socket.address() as AddressInfo
+  if (typeof address === "object" && address.family)
+    return `${address.family.endsWith("6") ? `[${address.address}]` : address.address}:${address.port}`
+  return address
+}
+
+/**
+ * 获取 Socket 远程地址
+ * @param socket Socket 对象
+ * @returns [地址]
+ */
+export function getSocketRemoteAddress(socket: Socket) {
+  if (!socket.remoteFamily) return [] as never
+  return [
+    `${socket.remoteFamily.endsWith("6") ? `[${socket.remoteAddress}]` : socket.remoteAddress}:${socket.remotePort}`,
+  ] as const
+}
+
+/**
+ * 获取 HTTP 请求信息文字
+ * @param req 请求对象
+ * @returns [对方信息，自身信息]
+ */
+export function getRequestInfo(req: IncomingMessage) {
+  return [
+    `http://${req.headers["x-forwarded-host"] || req.headers.host || `${getSocketAddress(req.socket)}`}${req.url}`,
+    ...getSocketRemoteAddress(req.socket),
+  ] as const
 }

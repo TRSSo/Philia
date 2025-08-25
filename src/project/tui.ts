@@ -37,8 +37,8 @@ export default class Tui {
           default:
             await new ProjectManagerTui(this.logger, choose as string).main()
         }
-      } catch (error) {
-        this.logger.error(error)
+      } catch (err) {
+        if ((err as Error)?.name !== "ExitPromptError") this.logger.error(err)
         await sendInfo()
       }
   }

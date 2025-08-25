@@ -32,6 +32,7 @@ jobs:
     # 4. 准备发布内容
     - name: Prepare lib branch
       run: |
+        pnpm pkg delete devDependencies
         mkdir -p temp/mod
         mv lib temp
         cp LICENSE package.json pnpm-workspace.yaml README.md temp

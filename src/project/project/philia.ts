@@ -174,9 +174,9 @@ export class Project {
         if (this.config.role === "Client") {
           return Promise.allSettled(
             (this.config.path as string[]).map(i => {
-              i = i.startsWith("file://")
-                ? i.replace("file://", "")
-                : Path.resolve(Path.join(getRootDir(), "Project", i, this.config.name))
+              if (i.startsWith("file://")) i = i.slice(7)
+              else if (!i.startsWith("tcp://"))
+                i = Path.join(getRootDir(), "Project", i, this.config.name)
               const client = new Socket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)
@@ -185,8 +185,11 @@ export class Project {
         } else {
           this.server = new Socket.Server(this.logger, this.handles, this.config.opts)
           this.clients = this.server.clients
-          this.config.path = Path.resolve((this.config.path as string) || this.config.name)
-          return this.server.listen(this.config.path)
+          if (this.config.path) {
+            if (!(this.config.path as string).startsWith("tcp://"))
+              this.config.path = this.config.path
+          } else this.config.path = this.config.name
+          return this.server.listen(this.config.path as string)
         }
       case "WebSocket":
         if (this.config.role === "Client") {
