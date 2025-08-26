@@ -34,9 +34,8 @@ jobs:
       run: |
         pnpm pkg delete devDependencies
         mkdir -p temp/mod
-        mv lib temp
-        cp LICENSE package.json pnpm-workspace.yaml README.md temp
-        cp mod/*.patch temp/mod
+        mv lib LICENSE package.json pnpm-workspace.yaml README.md temp
+        mv mod/*.patch temp/mod
         sed "/\/lib/d" .gitignore > temp/.gitignore
 
     # 5. 推送到 lib 分支
@@ -44,6 +43,7 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "actions@users.noreply.github.com"
+        git reset --hard
         git checkout lib || git checkout --orphan lib
         cd temp
         mv ../.git .
