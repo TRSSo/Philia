@@ -29,7 +29,6 @@ export declare class Server {
 }
 export default Server;
 declare class Client extends OClient {
-  logger: Logger;
   server: Server;
-  constructor(logger: Logger, handle: type.HandleMap, server: Server, socket: Socket, opts: ServerOptions);
+  constructor(server: Server, socket: Socket);
 }
