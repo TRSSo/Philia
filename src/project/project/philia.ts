@@ -8,7 +8,7 @@ import type { Config as HTTPConfig } from "#connect/common/http.js"
 import * as Socket from "#connect/socket"
 import * as WebSocket from "#connect/websocket"
 import { type Logger, makeLogger } from "#logger"
-import { getRootDir } from "#util"
+import { getProjectDir } from "#util"
 import { selectArray } from "#util/tui.js"
 import type { type as ManagerType } from "../manager/index.js"
 
@@ -37,7 +37,7 @@ export class Project {
   }
 
   static async getClientProject(connect_type: "Impl" | "App") {
-    const path_type = Path.join(getRootDir(), "Project", connect_type)
+    const path_type = getProjectDir(connect_type)
     const config_list = (await fs.readdir(path_type).catch(() => [])).map(
       async i =>
         [
@@ -175,8 +175,7 @@ export class Project {
           return Promise.allSettled(
             (this.config.path as string[]).map(i => {
               if (i.startsWith("file://")) i = i.slice(7)
-              else if (!i.startsWith("tcp://"))
-                i = Path.join(getRootDir(), "Project", i, this.config.name)
+              else if (!i.startsWith("tcp://")) i = getProjectDir(i, this.config.name)
               const client = new Socket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)

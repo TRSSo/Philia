@@ -3,13 +3,14 @@ import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
 import YAML from "yaml"
 import type { Logger } from "#logger"
+import { getProjectDir } from "#util"
 import { type inquirerSelect, selectArray, sendInfo } from "#util/tui.js"
 import ProjectManagerTui from "./manager/tui.js"
 import * as Project from "./project/index.js"
 
 export default class Tui {
-  impl_path = Path.join("Project", "Impl")
-  app_path = Path.join("Project", "App")
+  impl_path = getProjectDir("Impl")
+  app_path = getProjectDir("App")
   constructor(public logger: Logger) {}
 
   async main() {

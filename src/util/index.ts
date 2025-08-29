@@ -312,14 +312,22 @@ export function getTimeDiff(time1: number, time2 = Date.now()) {
   return ret || "0秒"
 }
 
-/** 获取代码根目录 */
+/** 获取代码目录 */
 export function getCodeDir() {
   return path.relative(process.cwd(), path.dirname(import.meta.dirname))
 }
 
-/** 获取项目根目录 */
+/** 获取根目录 */
 export function getRootDir() {
   return path.relative(process.cwd(), path.dirname(path.dirname(import.meta.dirname)))
+}
+
+/** 获取项目目录 */
+export function getProjectDir(...args: string[]) {
+  return path.relative(
+    process.cwd(),
+    path.join(path.dirname(path.dirname(import.meta.dirname)), "Project", ...args),
+  )
 }
 
 /**
