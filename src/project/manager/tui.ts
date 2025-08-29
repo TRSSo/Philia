@@ -269,11 +269,7 @@ export default class ProjectManagerTui {
         return true
       },
     })
-    await this.requestLog({
-      level,
-      lines,
-      time: time ? Date.parse(time) : undefined,
-    })
+    await this.requestLog({ level, lines, time: time ? Date.parse(time) : undefined })
   }
 
   async start() {

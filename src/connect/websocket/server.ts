@@ -84,11 +84,13 @@ export class Server {
 export default Server
 
 class Client extends OClient {
-  server: Server
-  constructor(server: Server, ws: WebSocket, req: IncomingMessage) {
+  constructor(
+    public server: Server,
+    ws: WebSocket,
+    req: IncomingMessage,
+  ) {
     const address = getSocketRemoteAddress(req.socket)
     super(server.logger, server.handle, { ...server.opts, ws })
-    this.server = server
     Object.assign(this.meta.local, server.meta)
 
     for (const i in server.listener) this.listener[i] = server.listener[i].bind(this)

@@ -99,7 +99,7 @@ export default class Handle {
     try {
       const handle = this.map.get(req.name)
       let res: type.Response["data"]
-      if (handle) {
+      if (handle !== undefined) {
         if (typeof handle === "function") {
           this.client.logger.debug(
             `执行处理器 ${req.name}(${req.data === undefined ? "" : Loging(req.data)})`,

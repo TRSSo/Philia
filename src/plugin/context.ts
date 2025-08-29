@@ -103,7 +103,7 @@ export class Context<T extends Event.Event> {
   /** 快速回复 */
   reply(data: Message.Message) {
     return this.event.group?.id && this.event.scene !== "group_invite"
-      ? this.api.sendMsg({ scene: "group", id: this.event.group!.id, data })
+      ? this.api.sendMsg({ scene: "group", id: this.event.group.id, data })
       : this.api.sendMsg({ scene: "user", id: this.event.user.id, data })
   }
 

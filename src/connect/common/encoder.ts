@@ -1,6 +1,7 @@
 import crypto from "node:crypto"
 import v8 from "node:v8"
 import zlib from "node:zlib"
+import * as msgpack from "msgpackr"
 import { findArrays, makeError, toJSON } from "#util"
 
 export interface IEncoder<T> {
@@ -10,15 +11,7 @@ export interface IEncoder<T> {
 
 export const encoder = new Map<string, IEncoder<any>>()
 
-encoder.set("MsgPack", {
-  encode: (await import("msgpackr")).pack,
-  decode: (await import("msgpackr")).unpack,
-})
-
-encoder.set("CBOR", {
-  encode: (await import("cbor-x")).encode,
-  decode: (await import("cbor-x")).decode,
-})
+encoder.set("MsgPack", { encode: msgpack.pack, decode: msgpack.unpack })
 
 encoder.set("V8Serializer", {
   encode(data) {
@@ -38,10 +31,7 @@ encoder.set("JSON", {
 
 export const verify = new Map<string, IEncoder<Buffer>>()
 
-verify.set("None", {
-  encode: data => data,
-  decode: data => data,
-})
+verify.set("None", {} as IEncoder<Buffer>)
 
 verify.set("CRC32", {
   encode(data) {
@@ -78,15 +68,8 @@ verify.set("SHA3-512", cryptoHash("sha3-512", 64))
 
 export const compress = new Map<string, IEncoder<Buffer>>()
 
-compress.set("ZSTD", {
-  encode: zlib.zstdCompressSync,
-  decode: zlib.zstdDecompressSync,
-})
-
-compress.set("GZIP", {
-  encode: zlib.gzipSync,
-  decode: zlib.gunzipSync,
-})
+compress.set("ZSTD", { encode: zlib.zstdCompressSync, decode: zlib.zstdDecompressSync })
+compress.set("GZIP", { encode: zlib.gzipSync, decode: zlib.gunzipSync })
 
 interface Encoders {
   encode: string[]
@@ -124,7 +107,7 @@ export class Encoder {
       decode: (verify.get(decode) ?? compress.get(decode))!.decode,
     }
 
-    if (encode === "None") this.encode = (data: any) => this.encoder.encode(data)
-    if (decode === "None") this.decode = (data: Buffer) => this.encoder.decode(data)
+    if (this.verify.encode === undefined) this.encode = (data: any) => this.encoder.encode(data)
+    if (this.verify.decode === undefined) this.decode = (data: Buffer) => this.encoder.decode(data)
   }
 }

@@ -4,9 +4,9 @@ import { minify } from "oxc-minify"
 const indent = /^(( {4})+)/gm
 async function handle(dir) {
   return (await fs.readdir(dir, { withFileTypes: true })).map(async file => {
-    if (file.isDirectory()) return handle(Path.join(dir, file.name))
-    const ext = Path.extname(file.name).toLowerCase(),
-      path = Path.join(dir, file.name)
+    const path = Path.join(dir, file.name)
+    if (file.isDirectory()) return handle(path)
+    const ext = Path.extname(file.name).toLowerCase()
     let content = await fs.readFile(path, "utf8")
     switch (ext) {
       case ".js":

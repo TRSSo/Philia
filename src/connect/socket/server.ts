@@ -42,7 +42,7 @@ export class Server {
           this.logger.warn(`连接数已达上限，已断开1个连接，剩余${this.sockets.size}个连接`)
           return socket.destroy()
         }
-        new Client(this.logger, this.handle, this, socket, opts)
+        new Client(this, socket)
       })
       .on("error", err => this.logger.error(err))
       .on("close", () => {
@@ -100,17 +100,12 @@ export class Server {
 export default Server
 
 class Client extends OClient {
-  server: Server
   constructor(
-    public logger: Logger,
-    handle: type.HandleMap,
-    server: Server,
+    public server: Server,
     socket: Socket,
-    opts: ServerOptions,
   ) {
     const address = getSocketRemoteAddress(socket)
-    super(logger, handle, { ...opts, socket })
-    this.server = server
+    super(server.logger, server.handle, { ...server.opts, socket })
     this.logger = this.server.logger
     Object.assign(this.meta.local, server.meta)
 
