@@ -126,12 +126,8 @@ export declare function getTimeDiff(time1: number, time2?: number): string;
 export declare function getCodeDir(): string;
 /** 获取根目录 */
 export declare function getRootDir(): string;
-/**
- * 获取项目目录
- * @param type 项目类型
- * @param name 项目名
- */
-export declare function getProjectDir(type?: "Impl" | "App", name?: string): string;
+/** 获取项目目录 */
+export declare function getProjectDir(...args: string[]): string;
 /**
  * 获取 Socket 地址
  * @param socket Socket 对象
