@@ -122,10 +122,16 @@ export declare function getDateTime(date?: Date): string;
  * @returns 时间差（D天h时m分s秒SSS）
  */
 export declare function getTimeDiff(time1: number, time2?: number): string;
-/** 获取代码根目录 */
+/** 获取代码目录 */
 export declare function getCodeDir(): string;
-/** 获取项目根目录 */
+/** 获取根目录 */
 export declare function getRootDir(): string;
+/**
+ * 获取项目目录
+ * @param type 项目类型
+ * @param name 项目名
+ */
+export declare function getProjectDir(type?: "Impl" | "App", name?: string): string;
 /**
  * 获取 Socket 地址
  * @param socket Socket 对象
