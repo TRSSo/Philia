@@ -65,8 +65,8 @@ export declare abstract class Message implements Quotable, Forwardable {
    * @param quote 引用这条消息(默认false)
    */
   abstract reply(content: Sendable, quote?: boolean): Promise<MessageRet>;
-  /** 反序列化一条消息 (私聊消息需要你的uin) */
-  deserialize(event: Event.Message): GroupMessage | PrivateMessage;
+  /** 反序列化一条消息 */
+  static deserialize(c: Client, event: Event.Message): Promise<GroupMessage> | Promise<PrivateMessage>;
   constructor(c: Client, event: Event.Message);
   parse(): Promise<this>;
   /** 将消息序列化保存 */
@@ -93,8 +93,8 @@ export declare class PrivateMessage extends Message {
   to_id: string;
   /** 好友对象 */
   friend: Friend;
-  /** 反序列化一条私聊消息，你需要传入你的`uin`，否则无法知道你是发送者还是接收者 */
-  deserialize(event: Event.UserMessage): PrivateMessage;
+  /** 反序列化一条私聊消息 */
+  static deserialize(c: Client, event: Event.UserMessage): Promise<PrivateMessage>;
   constructor(c: Client, event: Event.UserMessage);
   reply(content: Sendable, quote?: boolean): Promise<MessageRet>;
 }
@@ -116,7 +116,7 @@ export declare class GroupMessage extends Message {
   /** 发送者群员对象 */
   member: Member;
   /** 反序列化一条群消息 */
-  deserialize(event: Event.GroupMessage): GroupMessage;
+  static deserialize(c: Client, event: Event.GroupMessage): Promise<GroupMessage>;
   constructor(c: Client, event: Event.GroupMessage);
   /** 快速撤回 */
   recall(): Promise<boolean>;

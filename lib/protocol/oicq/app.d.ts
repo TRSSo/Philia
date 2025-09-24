@@ -250,7 +250,7 @@ export declare class Client extends events {
   /** @cqhttp use {@link User.remarkRead} or {@link Group.remarkRead} */
   reportReaded(id: string): Promise<void>;
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
-  getMsg(id: string): Promise<Philia.Event.Message>;
+  getMsg(id: string): Promise<import("./message/message.js").GroupMessage | import("./message/message.js").PrivateMessage>;
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
   getChatHistory(id: string, count?: number): Promise<Philia.Event.Message[]>;
   /** @cqhttp use {@link Group.muteAll} */

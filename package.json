@@ -14,8 +14,8 @@
     "main": "node lib/main"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.8.4",
-    "chalk": "^5.6.0",
+    "@inquirer/prompts": "^7.8.6",
+    "chalk": "^5.6.2",
     "log4js": "^6.9.1",
     "msgpackr": "^1.11.5",
     "node-schedule": "^2.1.1",
