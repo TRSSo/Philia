@@ -108,10 +108,10 @@ export abstract class Contactable {
       (await this.c.api.getForwardMsg({ id })).map(i => {
         i.user ||= {} as NonNullable<typeof i.user>
         i.group ||= {} as NonNullable<typeof i.group>
-        return new GroupMessage(
+        return GroupMessage.deserialize(
           this.client,
           i as ConstructorParameters<typeof GroupMessage>[1],
-        ).parse()
+        )
       }),
     )
   }

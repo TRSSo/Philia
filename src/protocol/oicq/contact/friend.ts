@@ -100,7 +100,7 @@ export class User extends Contactable {
       for (const i of msg)
         try {
           if (i.time <= time) {
-            ret.push(await new PrivateMessage(this.c, i).parse())
+            ret.push(await PrivateMessage.deserialize(this.c, i))
             if (ret.length >= count) return ret
           }
         } catch {}

@@ -21,6 +21,7 @@ import Handle from "./event/handle.js"
 import {
   type Forwardable,
   type ImageElem,
+  Message,
   OICQtoPhilia,
   type Quotable,
   type Sendable,
@@ -525,8 +526,8 @@ export class Client extends events {
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */
-  getMsg(id: string) {
-    return this.api.getMsg({ id })
+  async getMsg(id: string) {
+    return Message.deserialize(this, await this.api.getMsg({ id }))
   }
 
   /** @cqhttp use {@link User.getChatHistory} or {@link Group.getChatHistory} */

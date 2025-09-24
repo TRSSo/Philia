@@ -15,15 +15,13 @@ export default class Handle implements SocketType.HandleMap {
   constructor(public client: Client) {}
 
   async "message.user"(raw: Event.UserMessage) {
-    const event: types.PrivateMessageEvent = new PrivateMessage(this.client, raw)
-    await event.parse()
+    const event: types.PrivateMessageEvent = await PrivateMessage.deserialize(this.client, raw)
     this.client.logger.info(`用户消息 [${event.nickname}(${event.user_id})] ${event.raw_message}`)
     this.client.em("message.private.friend", event)
   }
 
   async "message.group"(raw: Event.GroupMessage) {
-    const event: types.GroupMessageEvent = new GroupMessage(this.client, raw)
-    await event.parse()
+    const event: types.GroupMessageEvent = await GroupMessage.deserialize(this.client, raw)
     this.client.logger.info(
       `群消息 [${event.group_name}(${event.group_id}), ${event.nickname}(${event.user_id})] ${event.raw_message}`,
     )

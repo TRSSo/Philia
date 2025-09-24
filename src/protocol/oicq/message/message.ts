@@ -75,14 +75,10 @@ export abstract class Message implements Quotable, Forwardable {
    */
   abstract reply(content: Sendable, quote?: boolean): Promise<MessageRet>
 
-  /** 反序列化一条消息 (私聊消息需要你的uin) */
-  deserialize(event: Event.Message) {
-    switch (event.scene) {
-      case "group":
-        return new GroupMessage(this.c, event)
-      default:
-        return new PrivateMessage(this.c, event)
-    }
+  /** 反序列化一条消息 */
+  static deserialize(c: Client, event: Event.Message) {
+    if (event.scene === "group") return GroupMessage.deserialize(c, event)
+    else return PrivateMessage.deserialize(c, event)
   }
 
   constructor(
@@ -97,9 +93,9 @@ export abstract class Message implements Quotable, Forwardable {
     } as unknown as typeof this.sender
     this.time = event.time
     this.message_id = event.id
-    this.seq = (event.raw?.seq as number) || this.message_id
-    this.rand = (event.raw?.rand as number) || 0
-    this.font = (event.raw?.font as string) || "unknown"
+    this.seq = (event.raw?.seq as number) ?? this.message_id
+    this.rand = (event.raw?.rand as number) ?? 0
+    this.font = (event.raw?.font as string) ?? "unknown"
     this.raw_message = event.summary
     this.parsed = new PhiliaToOICQ(this.c, event.message)
     lock(this, "parsed")
@@ -183,9 +179,9 @@ export class PrivateMessage extends Message {
   /** 好友对象 */
   friend: Friend
 
-  /** 反序列化一条私聊消息，你需要传入你的`uin`，否则无法知道你是发送者还是接收者 */
-  deserialize(event: Event.UserMessage) {
-    return new PrivateMessage(this.c, event)
+  /** 反序列化一条私聊消息 */
+  static deserialize(c: Client, event: Event.UserMessage) {
+    return new PrivateMessage(c, event).parse()
   }
 
   constructor(c: Client, event: Event.UserMessage) {
@@ -219,8 +215,8 @@ export class GroupMessage extends Message {
   member: Member
 
   /** 反序列化一条群消息 */
-  deserialize(event: Event.GroupMessage) {
-    return new GroupMessage(this.c, event)
+  static deserialize(c: Client, event: Event.GroupMessage) {
+    return new GroupMessage(c, event).parse()
   }
 
   constructor(c: Client, event: Event.GroupMessage) {
