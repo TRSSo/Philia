@@ -28,7 +28,7 @@ export class Member extends User {
   /** 群员资料 */
   get info() {
     if (!this.c.config.cache_group_member) return this._info
-    if (!this._info || timestamp() - this._info?.update_time! >= 900) this.renew().catch(NOOP)
+    if (!this._info || timestamp() - this._info.update_time >= 900) this.renew().catch(NOOP)
     return this._info
   }
 
@@ -64,7 +64,7 @@ export class Member extends User {
 
   /** 禁言剩余时间 */
   get mute_left() {
-    const t = this.info?.shutup_time! - timestamp()
+    const t = this.info ? this.info.shutup_time - timestamp() : 0
     return t > 0 ? t : 0
   }
 

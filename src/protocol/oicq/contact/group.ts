@@ -93,7 +93,7 @@ export class Group extends Contactable {
 
   /** 群资料 */
   get info() {
-    if (!this._info || timestamp() - this._info?.update_time! >= 900) this.renew().catch(NOOP)
+    if (!this._info || timestamp() - this._info.update_time >= 900) this.renew().catch(NOOP)
     return this._info
   }
 
@@ -111,11 +111,11 @@ export class Group extends Contactable {
   }
   /** 是否全员禁言 */
   get all_muted() {
-    return this.info?.shutup_time_whole! > timestamp()
+    return this.info && this.info.shutup_time_whole > timestamp()
   }
   /** 我的禁言剩余时间 */
   get mute_left() {
-    const t = this.info?.shutup_time_me! - timestamp()
+    const t = this.info ? this.info.shutup_time_me - timestamp() : 0
     return t > 0 ? t : 0
   }
 

@@ -55,29 +55,7 @@ export class Project {
         i.value[1].role === "Server"
       )
         list.push([Path.join(connect_type, i.value[0]), i.value[0]])
-
-    const custom = Symbol("custom") as unknown as string
-    list.push([custom, "自定义"])
-    const path = await inquirer.checkbox({
-      message: "请选择项目",
-      choices: selectArray(list),
-    })
-    const index = path.indexOf(custom)
-    if (index !== -1) {
-      path.splice(index, 1)
-      path.push(
-        ...(
-          await inquirer.input({
-            message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔:",
-          })
-        )
-          .split(",")
-          .map(i => `file://${i.trim()}`)
-          .filter(i => i !== "file://"),
-      )
-    }
-    if (!path.length) throw TypeError("连接地址不能为空")
-    return path
+    return list
   }
 
   static async createConfig(
@@ -102,7 +80,30 @@ export class Project {
     let path: IConfig["path"]
     switch (type) {
       case "Socket":
-        if (role === "Client") path = await Project.getClientProject(connect_type)
+        if (role === "Client") {
+          const list = await Project.getClientProject(connect_type)
+          const custom = Symbol("custom") as unknown as string
+          list.push([custom, "自定义"])
+          path = await inquirer.checkbox({
+            message: "请选择项目",
+            choices: selectArray(list),
+          })
+          const index = path.indexOf(custom)
+          if (index !== -1) {
+            path.splice(index, 1)
+            path.push(
+              ...(
+                await inquirer.input({
+                  message: "请输入 Philia Socket 服务器地址，多个按半角逗号分隔:",
+                })
+              )
+                .split(",")
+                .filter(i => i.trim())
+                .map(i => (i.startsWith("tcp://") ? i : `file://${i.trim()}`)),
+            )
+          }
+          if (!path.length) throw TypeError("连接地址不能为空")
+        }
         break
       case "WebSocket":
         if (role === "Server")
@@ -176,6 +177,7 @@ export class Project {
             (this.config.path as string[]).map(i => {
               if (i.startsWith("file://")) i = i.slice(7)
               else if (!i.startsWith("tcp://")) i = getProjectDir(i, this.config.name)
+
               const client = new Socket.Client(this.logger, this.handles, this.config.opts)
               this.clients.add(client)
               return client.connect(i)
@@ -184,11 +186,7 @@ export class Project {
         } else {
           this.server = new Socket.Server(this.logger, this.handles, this.config.opts)
           this.clients = this.server.clients
-          if (this.config.path) {
-            if (!(this.config.path as string).startsWith("tcp://"))
-              this.config.path = this.config.path
-          } else this.config.path = this.config.name
-          return this.server.listen(this.config.path as string)
+          return this.server.listen((this.config.path as string) || this.config.name)
         }
       case "WebSocket":
         if (this.config.role === "Client") {
@@ -207,9 +205,9 @@ export class Project {
     }
   }
 
-  stop() {
+  async stop() {
     if (this.http) this.http.stop()
-    if (this.config.role === "Server") return this.server?.close()!
+    if (this.config.role === "Server") return this.server?.close()
     return Promise.allSettled([...this.clients].map(i => i.close()))
   }
 }

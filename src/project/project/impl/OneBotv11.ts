@@ -82,8 +82,8 @@ export class Project extends Common.Project {
     return promiseEvent(this.server.wss, "listening", "error")
   }
 
-  stop() {
-    if (this.config.server.type === "ws") return this.client?.close()!
-    return this.server?.close()!
+  async stop() {
+    if (this.config.server.type === "ws") return this.client?.close()
+    return this.server?.close()
   }
 }

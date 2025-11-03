@@ -200,7 +200,7 @@ export class User extends Contactable {
   }
   /** 分组名 */
   get class_name() {
-    return this.c.classes.get(this.info?.class_id!)
+    return this.info?.class_id && this.c.classes.get(this.info.class_id)
   }
 
   /** 设置分组(注意：如果分组id不存在也会成功) */
