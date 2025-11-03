@@ -29,7 +29,7 @@ export default class ProjectManagerTui {
   fileLog(follow?: boolean): Promise<void>;
   log(): Promise<void>;
   start(): Promise<void>;
-  foreground(): child_process.SpawnSyncReturns<Buffer<ArrayBufferLike>>;
+  foreground(): child_process.SpawnSyncReturns<NonSharedBuffer>;
   stop(): Promise<SocketClient>;
   setting(): void;
   delete(): Promise<false | undefined>;

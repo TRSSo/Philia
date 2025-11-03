@@ -22,10 +22,10 @@ export declare class Project {
   clients: Set<Client>;
   http?: HTTPClient;
   constructor(config: IConfig, handles?: type.HandleMap);
-  static getClientProject(connect_type: "Impl" | "App"): Promise<string[]>;
+  static getClientProject(connect_type: "Impl" | "App"): Promise<[string, string][]>;
   static createConfig(connect_type: "Impl" | "App", role?: IConfig["role"]): Promise<IConfig>;
   verifyConfig(): void;
   httpStart(): Promise<unknown>;
   start(): Promise<PromiseSettledResult<void>[]> | Promise<Socket.Server> | Promise<WebSocket.Server> | undefined;
-  stop(): Promise<void> | Promise<PromiseSettledResult<void>[]>;
+  stop(): Promise<void | PromiseSettledResult<void>[]>;
 }

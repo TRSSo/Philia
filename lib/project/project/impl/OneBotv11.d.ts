@@ -13,5 +13,5 @@ export declare class Project extends Common.Project {
   static createConfig(name: IConfig["name"]): Promise<IConfig>;
   verifyConfig(): void;
   start(): Promise<unknown>;
-  stop(): Promise<void>;
+  stop(): Promise<void | undefined>;
 }

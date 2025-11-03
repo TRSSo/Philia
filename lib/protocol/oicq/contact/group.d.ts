@@ -58,7 +58,7 @@ export declare class Group extends Contactable {
   /** 我是否是管理 */
   get is_admin(): boolean;
   /** 是否全员禁言 */
-  get all_muted(): boolean;
+  get all_muted(): boolean | undefined;
   /** 我的禁言剩余时间 */
   get mute_left(): number;
   /** 群文件系统 */

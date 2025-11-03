@@ -83,7 +83,7 @@ export declare class User extends Contactable {
   /** 分组id */
   get class_id(): number | undefined;
   /** 分组名 */
-  get class_name(): string | undefined;
+  get class_name(): string | 0 | undefined;
   /** 设置分组(注意：如果分组id不存在也会成功) */
   setClass(name: number): Promise<void>;
   /** 戳一戳 */
