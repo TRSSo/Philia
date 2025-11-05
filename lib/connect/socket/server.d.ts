@@ -16,6 +16,10 @@ export declare class Server {
     id: string;
     name: string;
   };
+  cache: Map<string, {
+    client: Client;
+    timeout: NodeJS.Timeout;
+  }>;
   path: string;
   limit?: number;
   constructor(logger: Logger, handle?: type.HandleMap, opts?: ServerOptions);

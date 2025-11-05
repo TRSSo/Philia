@@ -2,6 +2,8 @@ import { type Logger } from "#logger";
 import { Manager, type type as ManagerType } from "../manager/index.js";
 import * as Philia from "./philia.js";
 export interface IConfig {
+  /** 项目ID */
+  id: string;
   /** 项目名 */
   name: string;
   /** 项目 Philia 端配置 */

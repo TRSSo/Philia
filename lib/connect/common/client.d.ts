@@ -13,9 +13,7 @@ export default abstract class Client {
   };
   meta: type.Meta;
   encoder: Encoder;
-  cache: {
-    [key: type.Cache["data"]["id"]]: type.Cache;
-  };
+  cache: Map<string, type.Cache>;
   queue: type.Cache["data"]["id"][];
   idle: boolean;
   open: boolean;
@@ -55,7 +53,8 @@ export default abstract class Client {
   onconnected(info?: string): void;
   /** 处理连接时错误 */
   onconnectError(reconnect?: number): Promise<this> | undefined;
-  allow_reconnect: boolean;
+  reconnect_allow: boolean;
+  reconnect_timeout?: NodeJS.Timeout;
   /** 处理重连 */
   reconnect(delay?: number): void;
   /** 准备关闭连接 */

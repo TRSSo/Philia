@@ -9,6 +9,6 @@ export default class Server {
   wss: WebSocketServer;
   clients: Map<string, Client>;
   constructor(logger: Logger, philia: Philia.IConfig, path: number, opts?: ConstructorParameters<typeof WebSocketServer>[0]);
-  connected(ws: WebSocket, req: IncomingMessage): void;
+  connected(ws: WebSocket, req: IncomingMessage): Promise<void>;
   close(): Promise<void>;
 }

@@ -18,6 +18,10 @@ export declare class Server {
     id: string;
     name: string;
   };
+  cache: Map<string, {
+    client: Client;
+    timeout: NodeJS.Timeout;
+  }>;
   limit?: number;
   constructor(logger: Logger, handle?: type.HandleMap, opts?: ServerOptions);
   listen(port?: number, ...args: any[]): Promise<this>;
