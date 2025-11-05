@@ -23,7 +23,7 @@ export default abstract class Client {
     },
   }
   encoder!: Encoder
-  cache: { [key: type.Cache["data"]["id"]]: type.Cache } = {}
+  cache = new Map<type.Cache["data"]["id"], type.Cache>()
   queue: type.Cache["data"]["id"][] = []
   idle = false
   open = false
@@ -115,24 +115,29 @@ export default abstract class Client {
   /** 处理连接时错误 */
   onconnectError(reconnect?: number) {
     if (reconnect === 0) return promiseEvent<this>(this.event, "connected", "error")
-    this.allow_reconnect = true
+    this.reconnect_allow = true
     promiseEvent<this>(this.event, "connected", "error").catch(err => {
       this.logger.error("连接错误", err)
       this.reconnect(reconnect)
     })
   }
 
-  allow_reconnect = false
+  reconnect_allow = false
+  reconnect_timeout?: NodeJS.Timeout
   /** 处理重连 */
   reconnect(delay = this.timeout.send) {
-    if (!this.allow_reconnect) return
+    if (!this.reconnect_allow) return
     this.logger.info(delay / 1e3, "秒后重连")
-    setTimeout(this.connect.bind(this, undefined, delay + this.timeout.send), delay)
+    this.reconnect_timeout = setTimeout(
+      this.connect.bind(this, undefined, delay + this.timeout.send),
+      delay,
+    )
   }
 
   /** 准备关闭连接 */
   prepareClose() {
-    this.allow_reconnect = false
+    this.reconnect_allow = false
+    clearTimeout(this.reconnect_timeout)
   }
 
   /** 处理连接关闭 */
@@ -140,11 +145,18 @@ export default abstract class Client {
     this.open = false
     for (const i in this.listener) this.event.off(i, this.listener[i])
     this.closed_fn?.(this)
-    info &&= `，${info}`
-    if (this.path && this.allow_reconnect) {
-      this.logger.warn(`${this.meta.remote?.id} 已断开连接${info}`)
+
+    this.cache.forEach((cache, id) => {
+      cache.finally = this.cache.delete.bind(this.cache, id)
+      clearTimeout(cache.timeout)
+      cache.timeout = setTimeout(() => cache.reject(Error("连接断开")), this.timeout.wait)
+    })
+
+    info = `${this.meta.remote?.id} 已断开连接${info && `，${info}`}`
+    if (this.path && this.reconnect_allow) {
+      this.logger.warn(info)
       this.reconnect()
-    } else this.logger.debug(`${this.meta.remote?.id} 已断开连接${info}`)
+    } else this.logger.debug(info)
   }
 
   /** 处理连接错误 */
@@ -154,19 +166,25 @@ export default abstract class Client {
   }
 
   /** 设置请求超时 */
-  setTimeout(cache: type.Cache, timeout = this.timeout.send) {
+  setTimeout(cache: type.Cache, timeout?: number) {
     const fn = () => {
       if (cache.retry > this.timeout.retry)
         return cache.reject(makeError("等待消息超时", { timeout }))
       cache.retry++
       this.logger.warn(`发送 ${cache.data.id} 超时，重试${cache.retry}次`)
-      this.queue.push(cache.data.id)
-      if (this.idle) {
+      if (timeout) {
+        this.queue.push(cache.data.id)
+        if (this.idle) {
+          this.idle = false
+          this.sender()
+        }
+      } else {
+        this.queue.unshift(cache.data.id)
         this.idle = false
         this.sender()
       }
     }
-    cache.timeout = setTimeout(fn, timeout)
+    cache.timeout = setTimeout(fn, timeout ?? this.timeout.send)
   }
 
   /** 启动发送数据队列 */
@@ -174,7 +192,7 @@ export default abstract class Client {
     if (!this.open) return (this.idle = true)
     const id = this.queue.shift()
     if (!id) return (this.idle = true)
-    const cache = this.cache[id]
+    const cache = this.cache.get(id)
     if (!cache?.data) return this.sender()
     this.setTimeout(cache)
     this.send(cache.data)
@@ -187,13 +205,13 @@ export default abstract class Client {
       data: { id, code: type.EStatus.Request as const, name, data },
       retry: 0,
       finally: () => {
-        delete this.cache[id]
+        this.cache.delete(id)
         this.sender()
       },
       ...Promise.withResolvers(),
     }
 
-    this.cache[id] = cache
+    this.cache.set(id, cache)
     this.queue.push(id)
     if (this.idle) {
       this.idle = false

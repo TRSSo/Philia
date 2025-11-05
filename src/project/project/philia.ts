@@ -1,6 +1,7 @@
 import fs from "node:fs/promises"
 import Path from "node:path"
 import * as inquirer from "@inquirer/prompts"
+import { ulid } from "ulid"
 import YAML from "yaml"
 import type { Client, type } from "#connect/common"
 import type HTTPClient from "#connect/common/http.js"
@@ -123,7 +124,7 @@ export class Project {
           ).split(",")
         break
     }
-    return { name: "Philia", type, role, path }
+    return { name: "Philia", type, role, path, opts: { meta: { id: ulid() } } }
   }
 
   verifyConfig() {

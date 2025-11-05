@@ -139,7 +139,7 @@ export default class Handle {
   }
 
   getCache(req: type.Base<type.EStatus>) {
-    const cache = this.client.cache[req.id]
+    const cache = this.client.cache.get(req.id)
     if (!cache) throw makeError(`请求缓存 ${req.id} 不存在`, { req })
     clearTimeout(cache.timeout)
     return cache
@@ -153,10 +153,9 @@ export default class Handle {
   async(req: type.Async) {
     const cache = this.getCache(req)
     cache.finally()
-    cache.finally = () => delete this.client.cache[req.id]
-    const time = req.time ? req.time * 1e3 : this.client.timeout.wait
-    this.client.setTimeout(cache, time)
-    this.client.cache[req.id] = cache
+    cache.finally = this.client.cache.delete.bind(this.client.cache, req.id)
+    this.client.setTimeout(cache, req.time ? req.time * 1e3 : this.client.timeout.wait)
+    this.client.cache.set(req.id, cache)
   }
 
   error(req: type.Error) {

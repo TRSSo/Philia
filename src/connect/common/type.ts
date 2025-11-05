@@ -14,7 +14,7 @@ export interface Meta {
 }
 
 export interface Options {
-  meta?: MetaInfo
+  meta?: Partial<MetaInfo>
   timeout?: {
     send?: number
     wait?: number

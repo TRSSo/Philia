@@ -1,4 +1,5 @@
 import * as inquirer from "@inquirer/prompts"
+import { ulid } from "ulid"
 import type { Client } from "#connect/common"
 import { makeLogger } from "#logger"
 import * as Common from "#project/project/common.js"
@@ -53,7 +54,7 @@ export class Project extends Common.Project {
       prefix: await inquirer.input({ message: "请输入命令前缀:", default: "/", required: true }),
       split: await inquirer.input({ message: "请输入命令分隔符:", default: " " }),
     }
-    return { name, command, philia: await Philia.Project.createConfig("Impl") }
+    return { id: ulid(), name, command, philia: await Philia.Project.createConfig("Impl") }
   }
 
   verifyConfig() {

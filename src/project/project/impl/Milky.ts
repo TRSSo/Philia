@@ -1,4 +1,5 @@
 import * as inquirer from "@inquirer/prompts"
+import { ulid } from "ulid"
 import { Impl } from "#protocol/milky"
 import * as Common from "../common.js"
 import * as Philia from "../philia.js"
@@ -31,11 +32,7 @@ export class Project extends Common.Project {
       },
     })
 
-    return {
-      name,
-      server,
-      philia: await Philia.Project.createConfig("App"),
-    }
+    return { id: ulid(), name, server, philia: await Philia.Project.createConfig("App") }
   }
 
   verifyConfig() {

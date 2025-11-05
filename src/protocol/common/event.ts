@@ -58,7 +58,7 @@ export default class EventHandle {
           handles.splice(+index, 1)
           continue
         }
-        i.client.request(i.handle, event)
+        i.client.request(i.handle, event).catch(err => i.client.logger.error("处理事件错误", err))
       }
     }
   }

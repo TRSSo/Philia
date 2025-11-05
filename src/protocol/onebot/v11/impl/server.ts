@@ -28,24 +28,18 @@ export default class Server {
       })
   }
 
-  connected(ws: WebSocket, req: IncomingMessage) {
+  async connected(ws: WebSocket, req: IncomingMessage) {
     this.logger.info("WebSocket 已连接")
     const id = req.headers["x-self-id"] as string
     if (!id) return ws.terminate()
 
-    if (this.clients.has(id)) {
-      const client = this.clients.get(id) as Client
-      if (client.open) {
-        this.logger.warn(`WebSocket 客户端 ${id} 已存在`)
-        ws.terminate()
-      } else {
-        client.ws = ws
-        client.queue = Object.keys(client.cache)
-        client.sendQueue()
-      }
-    } else {
-      this.clients.set(id, new Client(this.logger, this.philia, ws))
+    const client = this.clients.get(id)
+    if (client?.open) {
+      this.logger.warn(`WebSocket 客户端 ${id} 已存在`)
+      return ws.terminate()
     }
+
+    this.clients.set(id, new Client(this.logger, this.philia, ws))
   }
 
   close() {

@@ -30,7 +30,7 @@ export default class Client {
   timeout = 6e4
 
   get open() {
-    return this.ws.readyState === WebSocket.OPEN
+    return this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CLOSING
   }
 
   constructor(
@@ -64,6 +64,9 @@ export default class Client {
     this.ws.onclose = event => {
       this.logger.info(`WebSocket 已断开 ${event.reason}(${event.code})`)
       this.philia.stop()
+      this.cache.forEach(i => {
+        clearTimeout(i.timeout)
+      })
     }
     this.ws.onmessage = this.message.bind(this)
   }

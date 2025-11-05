@@ -37,7 +37,7 @@ export default class Client extends AClient {
         path = `\0${path}`
         break
       case "Windows_NT":
-        path = Path.join("\\\\?\\pipe", path)
+        path = `\\\\?\\pipe\\${path}`
         break
     }
     this.event.connect(path)

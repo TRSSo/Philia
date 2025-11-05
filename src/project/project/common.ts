@@ -1,8 +1,11 @@
+import { ulid } from "ulid"
 import { type Logger, makeLogger } from "#logger"
 import { Manager, type type as ManagerType } from "../manager/index.js"
 import * as Philia from "./philia.js"
 
 export interface IConfig {
+  /** 项目ID */
+  id: string
   /** 项目名 */
   name: string
   /** 项目 Philia 端配置 */
@@ -31,7 +34,7 @@ export abstract class Project {
 
   /** 创建配置文件，静态方法 */
   static async createConfig(name: IConfig["name"]): Promise<IConfig> {
-    return { name, philia: await Philia.Project.createConfig("Impl") }
+    return { id: ulid(), name, philia: await Philia.Project.createConfig("Impl") }
   }
   /** 验证配置 */
   abstract verifyConfig(): void

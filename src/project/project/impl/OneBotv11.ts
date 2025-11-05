@@ -1,4 +1,5 @@
 import * as inquirer from "@inquirer/prompts"
+import { ulid } from "ulid"
 import { Impl } from "#protocol/onebot/v11"
 import { promiseEvent } from "#util"
 import * as Common from "../common.js"
@@ -37,6 +38,7 @@ export class Project extends Common.Project {
           required: true,
         }))
     return {
+      id: ulid(),
       name,
       server: { type, path },
       philia: await Philia.Project.createConfig(

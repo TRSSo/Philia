@@ -19,6 +19,7 @@ export class Server {
     id: ulid(),
     name: "Server",
   }
+  cache = new Map<Client["meta"]["local"]["id"], { client: Client; timeout: NodeJS.Timeout }>()
   limit?: number
 
   constructor(
@@ -68,10 +69,43 @@ export class Server {
       this.server.add(this)
       this.onconnected(`共${this.server.wss.size}个连接`)
       this.heartbeat()
+
+      const cache = this.server.cache.get(this.meta.remote!.id)
+      if (cache) {
+        this.logger.info(`${this.meta.remote!.id} 恢复连接`)
+        cache.client.request = this.request.bind(this)
+        clearTimeout(cache.timeout)
+        this.server.cache.delete(this.meta.remote!.id)
+
+        cache.client.cache.forEach((cache, id) => {
+          clearTimeout(cache.timeout)
+          this.cache.set(id, {
+            ...cache,
+            finally: () => {
+              this.cache.delete(id)
+              this.sender()
+            },
+          })
+          this.queue.push(id)
+        })
+        if (this.idle) {
+          this.idle = false
+          this.sender()
+        }
+      }
     },
+
     close(this: Client) {
       this.server.del(this)
       this.onclose(`剩余${this.server.wss.size}个连接`)
+
+      this.server.cache.set(this.meta.remote!.id, {
+        client: this,
+        timeout: setTimeout(
+          this.server.cache.delete.bind(this.server.cache, this.meta.remote!.id),
+          this.timeout.wait,
+        ),
+      })
     },
   }
 
