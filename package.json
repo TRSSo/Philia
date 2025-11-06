@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "biome check --write src",
     "compile": "node -e \"fs.rmSync('lib',{recursive:true,force:true})\" && tsc",
-    "minify": "node mod/minify lib",
+    "minify": "minify lib",
     "build": "pnpm lint && pnpm compile && pnpm minify",
     "main": "node lib/main"
   },

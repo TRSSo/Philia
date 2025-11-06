@@ -14,14 +14,14 @@ export type inquirerSelect<T> = Exclude<Parameters<typeof inquirer.select<T>>[0]
  * @param desc 描述数组
  */
 export declare function selectArray<T>(value: (readonly [T, string])[], desc?: string[]): {
-  name: string;
-  value: T;
-  description?: string;
+	name: string;
+	value: T;
+	description?: string;
 }[];
 export declare function selectArray<T>(value: T[], desc?: string[]): {
-  name: string;
-  value: T;
-  description?: string;
+	name: string;
+	value: T;
+	description?: string;
 }[];
 /**
  * 读取zstd文本并使用less显示

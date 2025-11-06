@@ -38,101 +38,101 @@ import type * as type from "./type.js";
  * ```
  */
 export declare class createPlugin<T extends Philia.Event.Event = Philia.Event.Message> {
-  /** 插件数据 */
-  plugin: type.Plugin;
-  constructor(name: type.Plugin["name"], desc: type.Plugin["desc"], priority?: type.Plugin["priority"]);
-  /**
-   * 添加命令
-   * @param cmd 命令
-   * @param method 命令方法
-   * @param opts 命令选项
-   */
-  command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.SingleCommand<U>["cmd"], method: type.SingleCommand<U>["method"], opts?: Omit<type.SingleCommand<U>, "cmd" | "method">): typeof this;
-  command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.MultiCommand<U>["cmd"], method: type.MultiCommand<U>["method"], opts?: Omit<type.MultiCommand<U>, "cmd" | "method">): typeof this;
-  command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.RegExpCommand<U>["cmd"], method: type.RegExpCommand<U>["method"], opts?: Omit<type.RegExpCommand<U>, "cmd" | "method">): typeof this;
-  /**
-   * 添加中间件
-   * @param method 中间件方法
-   * @param opts.type 事件类型，默认 message
-   * @param opts.scene 事件场景
-   */
-  middleware<U extends Philia.Event.Event = T>(method: type.Middleware<U>["method"], opts?: Omit<type.Middleware<U>, "method">): this;
-  /**
-   * 添加事件
-   * @param opts.type 事件类型
-   * @param opts.scene 事件场景
-   * @param method 事件方法
-   */
-  event<U extends Philia.Event.Event = T>(opts: Omit<type.Middleware<U>, "method">, method: type.Event<U>["method"]): this;
-  /**
-   * 添加定时任务
-   * @param spec 定时任务规格
-   * @param method 定时任务方法
-   */
-  schedule(spec: type.Schedule["spec"], method: type.Schedule["method"]): this;
-  /** 添加启动完成触发方法 */
-  start(method: type.Plugin["start"]): this;
-  /** 添加关闭时触发方法 */
-  stop(method: type.Plugin["stop"]): this;
-  /** 添加机器人连接时触发方法 */
-  connect(method: type.Plugin["connect"]): this;
-  /** 添加机器人断开连接时触发方法 */
-  close(method: type.Plugin["close"]): this;
+	/** 插件数据 */
+	plugin: type.Plugin;
+	constructor(name: type.Plugin["name"], desc: type.Plugin["desc"], priority?: type.Plugin["priority"]);
+	/**
+	 * 添加命令
+	 * @param cmd 命令
+	 * @param method 命令方法
+	 * @param opts 命令选项
+	 */
+	command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.SingleCommand<U>["cmd"], method: type.SingleCommand<U>["method"], opts?: Omit<type.SingleCommand<U>, "cmd" | "method">): typeof this;
+	command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.MultiCommand<U>["cmd"], method: type.MultiCommand<U>["method"], opts?: Omit<type.MultiCommand<U>, "cmd" | "method">): typeof this;
+	command<U extends Philia.Event.Message = T extends Philia.Event.Message ? T : never>(cmd: type.RegExpCommand<U>["cmd"], method: type.RegExpCommand<U>["method"], opts?: Omit<type.RegExpCommand<U>, "cmd" | "method">): typeof this;
+	/**
+	 * 添加中间件
+	 * @param method 中间件方法
+	 * @param opts.type 事件类型，默认 message
+	 * @param opts.scene 事件场景
+	 */
+	middleware<U extends Philia.Event.Event = T>(method: type.Middleware<U>["method"], opts?: Omit<type.Middleware<U>, "method">): this;
+	/**
+	 * 添加事件
+	 * @param opts.type 事件类型
+	 * @param opts.scene 事件场景
+	 * @param method 事件方法
+	 */
+	event<U extends Philia.Event.Event = T>(opts: Omit<type.Middleware<U>, "method">, method: type.Event<U>["method"]): this;
+	/**
+	 * 添加定时任务
+	 * @param spec 定时任务规格
+	 * @param method 定时任务方法
+	 */
+	schedule(spec: type.Schedule["spec"], method: type.Schedule["method"]): this;
+	/** 添加启动完成触发方法 */
+	start(method: type.Plugin["start"]): this;
+	/** 添加关闭时触发方法 */
+	stop(method: type.Plugin["stop"]): this;
+	/** 添加机器人连接时触发方法 */
+	connect(method: type.Plugin["connect"]): this;
+	/** 添加机器人断开连接时触发方法 */
+	close(method: type.Plugin["close"]): this;
 }
 /** 类插件 */
 export declare class Plugin<E extends Philia.Event.Event = Philia.Event.Message> {
-  ctx: Context<E>;
-  /**
-   * 创建一个类插件数据
-   * @this 类
-   * @param d 插件数据
-   * @example
-   * ```ts
-   * export class Example extends Plugin {
-   *   static plugin = this.createPlugin({
-   *     name: "example",
-   *     desc: "示例插件",
-   *     type: "message",
-   *     command: { cmd: "复读", method: "cmd" },
-   *     middleware: { method: "middleware" },
-   *     event: { method: "event" },
-   *     schedule: { spec: "0 0 0 0 0 0", method: "schedule" },
-   *     start: "start",
-   *     stop: "stop",
-   *     connect: "connect",
-   *     close: "close",
-   *   })
-   *   async cmd(args: string) {
-   *     await this.reply(args)
-   *   }
-   *   middleware(next: () => Promise<boolean>) {
-   *     this.logger.info("收到一条消息", this.e.summary)
-   *     return next()
-   *   }
-   *   event() {
-   *     this.logger.info("这条消息被我处理了！", this.e.summary)
-   *   }
-   *   schedule() {
-   *     this.logger.info("0点到了！")
-   *   }
-   *   start() {
-   *     this.logger.info("启动完成！")
-   *   }
-   *   stop() {
-   *     this.logger.info("正在关闭……")
-   *   }
-   *   connect() {
-   *     this.logger.info("连接成功！", this.ctx.self)
-   *   }
-   *   close() {
-   *     this.logger.info("连接已断开！", this.ctx.self)
-   *   }
-   * }
-   * ```
-   */
-  static createPlugin<T, E extends Philia.Event.Event>(this: new (...args: ConstructorParameters<typeof Plugin<E>>) => T, d: type.ClassPlugin<T, E>): type.Plugin;
-  e: E;
-  logger: Logger;
-  constructor(ctx: Context<E>);
-  reply(...args: Parameters<Context<Philia.Event.Event>["reply"]>): Promise<Philia.Message.RSendMsg> | undefined;
+	ctx: Context<E>;
+	/**
+	 * 创建一个类插件数据
+	 * @this 类
+	 * @param d 插件数据
+	 * @example
+	 * ```ts
+	 * export class Example extends Plugin {
+	 *   static plugin = this.createPlugin({
+	 *     name: "example",
+	 *     desc: "示例插件",
+	 *     type: "message",
+	 *     command: { cmd: "复读", method: "cmd" },
+	 *     middleware: { method: "middleware" },
+	 *     event: { method: "event" },
+	 *     schedule: { spec: "0 0 0 0 0 0", method: "schedule" },
+	 *     start: "start",
+	 *     stop: "stop",
+	 *     connect: "connect",
+	 *     close: "close",
+	 *   })
+	 *   async cmd(args: string) {
+	 *     await this.reply(args)
+	 *   }
+	 *   middleware(next: () => Promise<boolean>) {
+	 *     this.logger.info("收到一条消息", this.e.summary)
+	 *     return next()
+	 *   }
+	 *   event() {
+	 *     this.logger.info("这条消息被我处理了！", this.e.summary)
+	 *   }
+	 *   schedule() {
+	 *     this.logger.info("0点到了！")
+	 *   }
+	 *   start() {
+	 *     this.logger.info("启动完成！")
+	 *   }
+	 *   stop() {
+	 *     this.logger.info("正在关闭……")
+	 *   }
+	 *   connect() {
+	 *     this.logger.info("连接成功！", this.ctx.self)
+	 *   }
+	 *   close() {
+	 *     this.logger.info("连接已断开！", this.ctx.self)
+	 *   }
+	 * }
+	 * ```
+	 */
+	static createPlugin<T, E extends Philia.Event.Event>(this: new (...args: ConstructorParameters<typeof Plugin<E>>) => T, d: type.ClassPlugin<T, E>): type.Plugin;
+	e: E;
+	logger: Logger;
+	constructor(ctx: Context<E>);
+	reply(...args: Parameters<Context<Philia.Event.Event>["reply"]>): Promise<Philia.Message.RSendMsg> | undefined;
 }

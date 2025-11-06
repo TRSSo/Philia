@@ -6,8 +6,8 @@
  * @param opts.replacer 配置文本替换函数
  */
 export default function makeConfig<T extends object>(name: string, config: T, keep?: Partial<T>, opts?: {
-  replacer?(data: string): string | Promise<string>;
+	replacer?(data: string): string | Promise<string>;
 }): Promise<{
-  config: T;
-  configSave(): Promise<void>;
+	config: T;
+	configSave(): Promise<void>;
 }>;

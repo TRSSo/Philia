@@ -46,14 +46,14 @@ export declare function toJSON(data: any, space?: Parameters<typeof JSON.stringi
  * @param opts.path 是否返回文件路径
  */
 export declare function toBuffer(data: any, opts?: {
-  http?: boolean;
-  path?: boolean;
+	http?: boolean;
+	path?: boolean;
 } & Parameters<typeof fetch>[1]): Promise<Buffer | string>;
 interface InspectOptions extends util.InspectOptions {
-  /** 字符串是否直接返回 */
-  string?: boolean;
-  /** 限制长度 */
-  length?: number;
+	/** 字符串是否直接返回 */
+	string?: boolean;
+	/** 限制长度 */
+	length?: number;
 }
 /**
  * 把任意类型转成终端彩色编码字符串
@@ -84,14 +84,14 @@ export declare function isSubObj<T extends object>(A: Partial<T>, B: T, length?:
 export declare function isEqualObj<T extends object>(A: T, B: T, length?: number): boolean;
 /** 匹配规则 */
 export interface IModeMatch {
-  /** 匹配模式
-   * include: 目标在匹配列表
-   * exclude: 目标不在匹配列表
-   * regexp : 目标符合匹配列表正则表达式
-   */
-  mode: "include" | "exclude" | "regexp";
-  /** 匹配列表 */
-  list: string | string[];
+	/** 匹配模式
+	 * include: 目标在匹配列表
+	 * exclude: 目标不在匹配列表
+	 * regexp : 目标符合匹配列表正则表达式
+	 */
+	mode: "include" | "exclude" | "regexp";
+	/** 匹配列表 */
+	list: string | string[];
 }
 /**
  * 模式匹配
@@ -134,7 +134,7 @@ export declare function getProjectDir(...args: string[]): string;
  * @returns 地址
  */
 export declare function getSocketAddress(socket: {
-  address: (Socket | Server)["address"];
+	address: (Socket | Server)["address"];
 }): string | AddressInfo;
 /**
  * 获取 Socket 远程地址

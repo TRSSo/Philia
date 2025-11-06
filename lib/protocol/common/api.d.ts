@@ -1,7 +1,7 @@
 /** API 转换器 */
 export default function createAPI<T>(client: {
-  request: (name: keyof T, data: any) => Promise<unknown>;
+	request: (name: keyof T, data: any) => Promise<unknown>;
 }): { [K in keyof Required<T>]: Required<T>[K] extends {
-  (): any;
-  (arg: infer P, ...args: any[]): unknown;
+	(): any;
+	(arg: infer P, ...args: any[]): unknown;
 } ? unknown extends P ? () => Promise<Awaited<ReturnType<Required<T>[K]>>> : (data?: P) => Promise<Awaited<ReturnType<Required<T>[K]>>> : Required<T>[K] extends (arg: undefined, ...args: any[]) => unknown ? () => Promise<Awaited<ReturnType<Required<T>[K]>>> : Required<T>[K] extends (arg: infer P, ...args: any[]) => unknown ? (data: P) => Promise<Awaited<ReturnType<Required<T>[K]>>> : never; };
