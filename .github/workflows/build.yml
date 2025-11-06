@@ -2,7 +2,9 @@ name: Build and Publish Library
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - dev
   workflow_dispatch:
 
 permissions:
@@ -33,16 +35,16 @@ jobs:
     - name: Prepare lib branch
       run: |
         pnpm pkg delete devDependencies
-        mkdir -p temp/mod
-        mv lib LICENSE package.json pnpm-workspace.yaml README.md temp
-        mv mod/*.patch temp/mod
-        sed "/\/lib/d" .gitignore > temp/.gitignore
+        mkdir temp
+        mv lib mod LICENSE package.json pnpm-workspace.yaml README.md temp
+        sed '/\/lib/d' .gitignore > temp/.gitignore
 
     # 5. 推送到 lib 分支
     - name: Push to lib branch
+      if: github.ref == 'refs/heads/main'
       run: |
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@users.noreply.github.com"
+        git config --global user.name 'GitHub Actions Bot'
+        git config --global user.email 'actions@users.noreply.github.com'
         git reset --hard
         git checkout lib || git checkout --orphan lib
         cd temp
